@@ -1,0 +1,79 @@
+{
+  "measured_at": "2026-10-15T05:48:14+0700",
+  "model": "nvidia/Cosmos-Embed1-224p",
+  "model_revision": "787e0b996f5260a71ad474a283c90539a2e12986",
+  "video_url": "https://upload.wikimedia.org/wikipedia/commons/3/3d/Branko_Paukovic%2C_javelin_throw.webm",
+  "video_sha256": "75ab52aa5868d866b9974b922bdf292b501d2e26a13396b5638a3c58058aae8a",
+  "machine": "arm64",
+  "platform": "macOS-26.5.2-arm64-arm-64bit",
+  "processor": "Apple M1 Max",
+  "python": "3.11.15",
+  "torch": "2.14.1",
+  "transformers": "4.51.3",
+  "av": "18.1.0",
+  "numpy": "2.4.6",
+  "torch_threads": 8,
+  "mps_available": true,
+  "PYTORCH_ENABLE_MPS_FALLBACK": "1",
+  "device": "cpu",
+  "dtype": "float32",
+  "status": "PASS",
+  "top1_caption": "a man wearing red spandex throwing a javelin",
+  "top1_index": 3,
+  "probs": {
+    "a person riding a motorcycle in the night": 1e-06,
+    "a car overtaking a white truck": 0.0,
+    "a video of a knight fighting with a sword": 1e-06,
+    "a man wearing red spandex throwing a javelin": 0.424689,
+    "a young man javelin throwing during the evening": 0.364886,
+    "a man throwing a javelin with both hands": 0.210423
+  },
+  "cosine": {
+    "a person riding a motorcycle in the night": -0.02865,
+    "a car overtaking a white truck": -0.144915,
+    "a video of a knight fighting with a sword": -0.054621,
+    "a man wearing red spandex throwing a javelin": 0.418773,
+    "a young man javelin throwing during the evening": 0.413498,
+    "a man throwing a javelin with both hands": 0.394366
+  },
+  "visual_proj_shape": [
+    1,
+    256
+  ],
+  "visual_proj_l2_norm": 1.0,
+  "text_proj_shape": [
+    6,
+    256
+  ],
+  "model_load_s": 29.14,
+  "runs": 20,
+  "warmup": 3,
+  "s_per_clip_preprocess_plus_embed": {
+    "p50": 3.2443,
+    "p95": 4.5398,
+    "min": 2.8619,
+    "max": 5.5588
+  },
+  "s_embed_only": {
+    "p50": 3.2417,
+    "p95": 4.5365
+  },
+  "s_text_embed_one_caption_mean": 0.0451,
+  "frames_decoded": 64,
+  "frame_ids": [
+    0,
+    9,
+    18,
+    27,
+    36,
+    45,
+    54,
+    63
+  ],
+  "frame_shape": [
+    8,
+    360,
+    640,
+    3
+  ]
+}

@@ -1,0 +1,9 @@
+# decord check (day-0 stage COSMOS), 2026-10-15 05:51 WIB
+# command: uv pip install --dry-run decord   (Python 3.11.15, Darwin arm64)
+# result: no macOS arm64 wheel; jaga reads video with PyAV (av 18.1.0) instead
+
+      `decord` (v0.2.0) with the following Python ABI tags: `cp35m`, `cp36m`,
+      `cp37m`
+
+      hint: Wheels are available for `decord` (v0.6.0) on the following
+      platforms: `manylinux2010_x86_64`, `win_amd64`

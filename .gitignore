@@ -1,0 +1,18 @@
+.env
+.env.*
+node_modules/
+__pycache__/
+.next/
+dist/
+coverage/
+.DS_Store
+.venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+*.pyc
+# local-only data: vectors, DB and raw recordings never enter the repo by default
+*.db
+*.db-journal
+vectors-*.npz
+/data/raw/
