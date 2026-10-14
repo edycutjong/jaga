@@ -1,0 +1,293 @@
+"""The overlay's local server: FastAPI on 127.0.0.1:8765 only, one static page, one SSE stream.
+
+Request guard (architecture: Endpoints):
+* every request — `Host` must be 127.0.0.1:<port> or localhost:<port>, so a DNS-rebinding page can neither
+  read the camera stream nor post;
+* every POST — `Origin` absent or exactly this origin, and the `X-Jaga-Session` token minted at start and
+  embedded only in the served page. This matters because `POST /plug/test` is the one path that switches
+  mains ON (operator-only, invariant I1).
+"""
+from __future__ import annotations
+
+import asyncio
+import html
+import json
+import math
+import secrets
+import time
+from contextlib import asynccontextmanager
+from pathlib import Path
+
+import numpy as np
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import HTMLResponse, JSONResponse, Response, StreamingResponse
+from fastapi.staticfiles import StaticFiles
+
+from . import config, receipts
+
+STATIC = Path(__file__).resolve().parent / "static"
+
+
+def _default(o):
+    if isinstance(o, (np.floating,)):
+        v = float(o)
+        return v if math.isfinite(v) else None
+    if isinstance(o, (np.integer,)):
+        return int(o)
+    if isinstance(o, np.ndarray):
+        return o.tolist()
+    return str(o)
+
+
+def dumps(obj) -> str:
+    return json.dumps(obj, default=_default, allow_nan=False, ensure_ascii=False)
+
+
+class Broadcaster:
+    """Thread → asyncio fan-out of SSE messages. Slow clients drop their oldest message, never block."""
+
+    def __init__(self, maxsize: int = 32):
+        self.loop: asyncio.AbstractEventLoop | None = None
+        self.clients: set[asyncio.Queue] = set()
+        self.maxsize = maxsize
+
+    def publish(self, kind: str, payload: dict) -> None:
+        loop = self.loop
+        if loop is None or not self.clients:
+            return
+        try:
+            data = dumps(payload)
+        except ValueError:
+            data = json.dumps(json.loads(json.dumps(payload, default=_default)), default=_default)
+        for q in list(self.clients):
+            loop.call_soon_threadsafe(self._put, q, (kind, data))
+
+    def _put(self, q: asyncio.Queue, item) -> None:
+        if q.full():
+            try:
+                q.get_nowait()
+            except asyncio.QueueEmpty:
+                pass
+        q.put_nowait(item)
+
+
+def create_app(watcher, *, compile_fn=None, embed_text_fn=None, broadcaster: Broadcaster | None = None,
+               port: int = config.PORT, token: str | None = None, info: dict | None = None) -> FastAPI:
+    token = token or secrets.token_urlsafe(24)
+    bc = broadcaster or Broadcaster()
+    allowed_hosts = {f"127.0.0.1:{port}", f"localhost:{port}"}
+    @asynccontextmanager
+    async def lifespan(_app):
+        bc.loop = asyncio.get_running_loop()
+        yield
+
+    app = FastAPI(title="jaga", docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
+    app.state.token = token
+    app.state.broadcaster = bc
+    app.state.info = info or {}
+
+    @app.middleware("http")
+    async def guard(request: Request, call_next):
+        host = request.headers.get("host", "")
+        if host not in allowed_hosts:
+            return JSONResponse({"error": "forbidden host"}, status_code=403)
+        if request.method not in ("GET", "HEAD"):
+            origin = request.headers.get("origin")
+            if origin is not None and origin != f"http://{host}":
+                return JSONResponse({"error": "cross-origin request refused"}, status_code=403)
+            if request.headers.get("sec-fetch-site") == "cross-site":
+                return JSONResponse({"error": "cross-site request refused"}, status_code=403)
+            if not secrets.compare_digest(request.headers.get("x-jaga-session", ""), token):
+                return JSONResponse({"error": "missing or wrong session token"}, status_code=403)
+        resp = await call_next(request)
+        resp.headers["Cache-Control"] = "no-store"
+        resp.headers["X-Content-Type-Options"] = "nosniff"
+        resp.headers["Referrer-Policy"] = "no-referrer"
+        return resp
+
+    app.mount("/static", StaticFiles(directory=STATIC), name="static")
+
+    @app.get("/", response_class=HTMLResponse)
+    async def index() -> HTMLResponse:
+        page = (STATIC / "index.html").read_text()
+        page = page.replace("{{TOKEN}}", html.escape(token)).replace("{{VERSION}}", html.escape(config_version()))
+        return HTMLResponse(page, headers={"Content-Security-Policy": CSP})
+
+    @app.get("/api/state")
+    async def state() -> Response:
+        snap = watcher.snapshot(include_frames=True)
+        body = {"snapshot": snap, "traces": watcher.traces(), "events": watcher.db.recent_events(8, watcher.session),
+                "info": app.state.info, "receipt": receipts.footer_line()}
+        return Response(dumps(body), media_type="application/json")
+
+    @app.get("/stream")
+    async def stream(request: Request) -> StreamingResponse:
+        q: asyncio.Queue = asyncio.Queue(maxsize=bc.maxsize)
+        bc.clients.add(q)
+
+        async def gen():
+            try:
+                yield "retry: 1500\n\n"
+                while True:
+                    if await request.is_disconnected():
+                        break
+                    try:
+                        kind, data = await asyncio.wait_for(q.get(), timeout=15)
+                        yield f"event: {kind}\ndata: {data}\n\n"
+                    except asyncio.TimeoutError:
+                        yield ": keep-alive\n\n"
+            finally:
+                bc.clients.discard(q)
+
+        return StreamingResponse(gen(), media_type="text/event-stream",
+                                 headers={"X-Accel-Buffering": "no", "Cache-Control": "no-store"})
+
+    def _slot_free() -> str:
+        used = set(watcher.tripwires)
+        for i in range(1, 100):
+            s = f"{i:02d}"
+            if s not in used:
+                return s
+        raise HTTPException(409, "no free slot")
+
+    @app.post("/tripwires")
+    async def add_tripwire(request: Request) -> Response:
+        body = await request.json()
+        sentence = " ".join(str(body.get("sentence", "")).split())
+        if not sentence:
+            raise HTTPException(422, "type a sentence first")
+        if len(sentence) > 240:
+            raise HTTPException(422, "keep it to one sentence (240 characters)")
+        slot = str(body.get("slot") or _slot_free()).zfill(2)
+        if compile_fn is None or embed_text_fn is None:
+            raise HTTPException(503, "compiler not configured")
+        try:
+            res = await asyncio.to_thread(compile_fn, sentence)
+        except Exception as e:  # TF down or no valid spec: armed tripwires keep running
+            cached = watcher.db.cached_spec(sentence)
+            if cached is None:
+                watcher.db.log_compile(sentence, False, f"{type(e).__name__}: {str(e)[:300]}")
+                return Response(dumps({"ok": False, "state": "compile-failed",
+                                       "detail": "Token Factory unreachable or no valid spec — new sentences wait; "
+                                                 "armed tripwires keep running",
+                                       "error": str(e)[:300]}), status_code=502, media_type="application/json")
+            res = cached
+        spec = res["spec"]
+        watcher.db.log_compile(sentence, True, "cached" if res.get("cached") else "", res)
+        if not spec.get("visual", False):
+            return Response(dumps({"ok": True, "state": "not-visual", "slot": slot, "spec": spec,
+                                   "tf_request_id": res.get("tf_request_id"), "model": res.get("model")}),
+                            media_type="application/json")
+        pos = await asyncio.to_thread(embed_text_fn, spec["positives"])
+        neg = await asyncio.to_thread(embed_text_fn, spec["hard_negatives"])
+        from .tripwires import fresh_threshold
+
+        await asyncio.to_thread(watcher.load_tripwire, slot, sentence, spec, pos, neg, fresh_threshold(watcher.t),
+                                {k: res.get(k) for k in ("tf_request_id", "tf_response_id", "model", "created",
+                                                         "temperature")} | {"compiled_live": True})
+        return Response(dumps({"ok": True, "state": "cached" if res.get("cached") else "compiled", "slot": slot,
+                               "spec": spec, "tf_request_id": res.get("tf_request_id"), "model": res.get("model"),
+                               "latency_s": res.get("latency_s")}), media_type="application/json")
+
+    @app.post("/tripwires/{slot}/arm")
+    async def arm(slot: str, request: Request) -> dict:
+        body = await _json_or_empty(request)
+        cap = body.get("capture_s")
+        try:
+            if body.get("action") is not None or body.get("dwell_s") is not None:
+                await asyncio.to_thread(watcher.set_operating, slot, body.get("action"),
+                                        None if body.get("dwell_s") is None else float(body["dwell_s"]))
+            await asyncio.to_thread(watcher.arm, slot, None if cap is None else float(cap))
+        except (KeyError, ValueError) as e:
+            raise HTTPException(404 if isinstance(e, KeyError) else 409, str(e)) from e
+        return {"ok": True}
+
+    @app.post("/tripwires/{slot}/disarm")
+    async def disarm(slot: str) -> dict:
+        try:
+            await asyncio.to_thread(watcher.disarm, slot)
+        except KeyError as e:
+            raise HTTPException(404, str(e)) from e
+        return {"ok": True}
+
+    @app.post("/tripwires/{slot}/example")
+    async def example(slot: str) -> dict:
+        try:
+            return await asyncio.to_thread(watcher.add_example, slot)
+        except KeyError as e:
+            raise HTTPException(404, str(e)) from e
+
+    @app.post("/plug/test")
+    async def plug_test() -> Response:
+        from .act import ActionFailed
+
+        try:
+            res = await asyncio.to_thread(watcher.plug_test)
+        except ActionFailed as e:
+            return Response(dumps({"ok": False, "detail": str(e)[:300]}), status_code=502,
+                            media_type="application/json")
+        return Response(dumps({"ok": True, **res}), media_type="application/json")
+
+    @app.post("/events/{event_id}/wrong")
+    async def wrong(event_id: int) -> dict:
+        ok = await asyncio.to_thread(watcher.db.mark_wrong, event_id)
+        if not ok:
+            raise HTTPException(404, "no such event")
+        watcher.label("wrong", f"event {event_id}")
+        return {"ok": True}
+
+    @app.post("/labels")
+    async def label(request: Request) -> dict:
+        body = await request.json()
+        kind = str(body.get("kind", "")).strip()[:40]
+        if not kind:
+            raise HTTPException(422, "kind required")
+        lid = await asyncio.to_thread(watcher.label, kind, str(body.get("note", ""))[:200])
+        return {"ok": True, "id": lid}
+
+    @app.get("/receipts", response_class=HTMLResponse)
+    async def receipts_view(request: Request):
+        data = receipts.collect(watcher)
+        if request.query_params.get("format") == "json":
+            return Response(dumps(data), media_type="application/json")
+        return HTMLResponse(receipts.render_html(data), headers={"Content-Security-Policy": CSP})
+
+    return app
+
+
+CSP = ("default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; font-src 'self'; "
+       "connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+
+
+def config_version() -> str:
+    from . import __version__
+
+    return __version__
+
+
+async def _json_or_empty(request: Request) -> dict:
+    try:
+        raw = await request.body()
+        return json.loads(raw) if raw else {}
+    except json.JSONDecodeError:
+        return {}
+
+
+def run(app: FastAPI, port: int = config.PORT) -> None:
+    import uvicorn
+
+    uvicorn.run(app, host=config.HOST, port=port, log_level="warning", access_log=False)
+
+
+def wait_for_server(port: int, timeout: float = 30.0) -> bool:
+    import httpx
+
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            if httpx.get(f"http://127.0.0.1:{port}/api/state", timeout=2).status_code == 200:
+                return True
+        except Exception:
+            pass
+        time.sleep(0.3)
+    return False

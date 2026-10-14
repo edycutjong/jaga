@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="jaga-token" content="{{TOKEN}}">
+<title>jaga · watching</title>
+<link rel="preload" href="/static/fonts/big-shoulders-stencil-800-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/static/fonts/atkinson-hyperlegible-next-400-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/static/overlay.css">
+</head>
+<body>
+<header class="strip" id="header">
+  <span class="name" aria-label="jaga">JAGA</span>
+  <span class="meta" id="hdr-meta"><span id="hdr-armed">0 armed here</span> · Cosmos-Embed1-224p · <span id="hdr-device">—</span>
+    · <span class="num" id="hdr-spc">—</span> s/clip · window <span class="num" id="hdr-period">—</span> s</span>
+  <span class="badge" id="hdr-badge" hidden></span>
+  <a class="hdr-link" href="/receipts" id="hdr-receipts">receipts</a>
+  <span class="clock num" id="hdr-clock">--:--:--</span>
+</header>
+
+<main class="panel">
+  <section class="cam" id="cam" aria-label="live camera">
+    <img class="frame" id="frame" alt="" decoding="async">
+    <div class="nosignal" id="nosignal"><p class="ns-title">NO PICTURE</p><p id="nosignal-text">waiting for the first 8 frames…</p></div>
+    <div class="filmstrip" id="filmstrip" aria-hidden="true"><span class="fs-label">WINDOW · 8 frames · 1 fps</span><div class="fs-frames" id="fs-frames"></div></div>
+
+    <div class="tapewire" id="tapewire" data-state="idle">
+      <div class="wire wl"></div><div class="wire wr"></div>
+      <div class="brk" aria-hidden="true"></div>
+      <div class="tape l" id="tape-l"></div><div class="tape r" id="tape-r"></div>
+      <div class="notch" aria-hidden="true"></div>
+    </div>
+
+    <div class="tracebox" id="tracebox">
+      <svg class="trace" id="trace" viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true">
+        <line class="theta-line" x1="0" y1="50" x2="1000" y2="50"></line>
+        <path class="trace-fill" id="trace-fill" d=""></path>
+        <polyline class="trace-line" id="trace-line" points=""></polyline>
+      </svg>
+      <span class="tb-left">−120 s</span>
+      <span class="tb-theta" id="tb-theta">θ —</span>
+      <span class="tb-value" id="tb-value"></span>
+    </div>
+
+    <div class="dwell" id="dwell"><span class="cells" id="dwell-cells"></span><span class="num" id="dwell-text">dwell —</span></div>
+
+    <div class="capture" id="capture" hidden>
+      <p class="cap-title">NORMAL STATE</p>
+      <p class="cap-clock num" id="cap-clock">2:00</p>
+      <p class="cap-text" id="cap-text">do what normally happens here</p>
+      <button class="btn ghost" id="cap-example" type="button">it's happening now (optional, 0/3)</button>
+    </div>
+    <div class="veil" id="veil" hidden><p id="veil-text"></p></div>
+
+    <div class="motion" id="motion"><span class="tag">BASELINE</span> frame difference: <span class="num" id="mo-pct">—</span> of pixels · still for <span class="num" id="mo-still">—</span></div>
+  </section>
+
+  <aside class="side">
+    <section class="breaker" id="breaker" data-state="unknown" aria-label="breaker">
+      <h2 class="eyebrow">BREAKER · <span id="plug-label">Wi-Fi plug</span> · <span class="num" id="plug-addr">—</span></h2>
+      <div class="toggle">
+        <div class="body" aria-hidden="true"><div class="lever"></div></div>
+        <div class="stamps"><span class="on">ON</span><span class="off">OFF</span></div>
+      </div>
+      <p class="flag" id="flag" hidden>TRIPPED</p>
+      <p class="failed" id="failed" hidden><span class="fw">ACTION FAILED</span><span class="fd" id="failed-detail">push sent · retrying OFF</span></p>
+      <p class="last" id="plug-last">last action: —</p>
+      <button class="btn ghost small" id="plug-test" type="button" title="operator only: switches the plug OFF, then ON">test plug (off → on)</button>
+    </section>
+    <section class="events" aria-label="event log">
+      <h2 class="eyebrow">EVENTS</h2>
+      <ol id="events" class="ev-list"></ol>
+    </section>
+  </aside>
+</main>
+
+<section class="schedule" aria-label="schedule">
+  <div class="sch-head">
+    <h2 class="eyebrow">SCHEDULE <span class="sub" id="sch-sub">· armed for this camera position</span></h2>
+    <form class="compose" id="compose" autocomplete="off">
+      <label class="sr" for="sentence">Type what to watch for</label>
+      <input id="sentence" name="sentence" maxlength="240" placeholder="type what to watch for — e.g. the door is left open and nobody is there">
+      <button class="btn" id="compile" type="submit">compile</button>
+    </form>
+  </div>
+  <table class="sch" id="sch" aria-live="polite"><tbody id="sch-rows"></tbody></table>
+  <div class="soak" id="soak" hidden><span class="tag">SESSION</span> <span id="soak-name"></span> <span id="soak-next"></span><span class="keys" id="soak-keys"></span></div>
+</section>
+
+<div class="drawer" id="drawer" role="dialog" aria-modal="false" aria-labelledby="dr-title" hidden>
+  <div class="dr-head"><h2 id="dr-title" class="eyebrow">COMPILED BY NEMOTRON 3 SUPER · TOKEN FACTORY</h2>
+    <button class="btn ghost small" id="dr-close" type="button" aria-label="close">close</button></div>
+  <p class="dr-status" id="dr-status"></p>
+  <p class="dr-sentence" id="dr-sentence"></p>
+  <div class="dr-cols">
+    <div><h3>Cosmos looks for</h3><ul class="tapes pos" id="dr-pos"></ul></div>
+    <div><h3>…and tells it apart from</h3><ul class="tapes neg" id="dr-neg"></ul></div>
+  </div>
+  <fieldset class="dr-choose" id="dr-choose">
+    <legend>when it holds for the dwell</legend>
+    <label><input type="radio" name="dr-action" value="plug_off"> cut the plug</label>
+    <label><input type="radio" name="dr-action" value="notify"> notify me</label>
+    <label class="dw">dwell <select id="dr-dwell"><option>30</option><option>60</option><option>120</option><option>300</option></select> s</label>
+  </fieldset>
+  <p class="dr-rule num" id="dr-rule"></p>
+  <p class="dr-req num" id="dr-req"></p>
+  <div class="dr-actions">
+    <button class="btn" id="dr-arm" type="button">arm · 2-min normal capture</button>
+    <button class="btn ghost" id="dr-edit" type="button">edit sentence</button>
+  </div>
+</div>
+
+<div class="stopped" id="stopped" hidden role="alert"><span>WATCHER STOPPED</span> <span class="num" id="stopped-text"></span></div>
+
+<footer class="foot" id="footer">Built on NVIDIA Cosmos · video frames never leave this laptop · <span id="foot-job">θ: Nebius Job —</span>
+  · rules compiled by Nemotron 3 Super on Nebius Token Factory</footer>
+<script src="/static/overlay.js" defer></script>
+</body>
+</html>
