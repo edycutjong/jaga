@@ -1,6 +1,6 @@
 {
   "stage": "S3-fallback check (build-plan D0 stage S3, a2a r02 N8)",
-  "measured_at": "2026-10-15T06:31:00+0700",
+  "measured_at": "2026-10-15T06:16:03+0700",
   "question": "Does `nebius ai job logs <id>` return a COMPLETED Serverless Job's container stdout, so the Job's result can be read back without Object Storage?",
   "command": "nebius ai job logs <completed-job-id> --since 48h --tail 8",
   "job_used": "a COMPLETED cpu-d3 Job already on this tenant (eu-west1), from another project; its id and output are not copied here",
