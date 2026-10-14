@@ -50,13 +50,21 @@ class Tuning:
     dark_floor: float = 0.12  # P3: mean luma (0–1) below which the camera cannot see
     phase_response_min: float = 0.3  # P4: border-mask phase-correlation response floor
     camera_shift_frac: float = 0.04  # shift above 4 % of the width = camera moved
+    camera_moved_windows: int = 3  # consecutive windows the camera-moved test must fail (one noisy frame never unarms)
     sigma0_floor: float = 0.01  # P5: floor on σ₀ (margin units)
     theta_z: float = 3.0  # P6: default θ_z for a fresh sentence
     k_fraction: float = 0.8  # P7: k = ceil(k_fraction · n)
     still_motion_pct: float = 0.5  # P8: stillness-timer motion threshold (% of pixels changed)
     motion_pixel_delta: int = 25  # grey-level change that counts a pixel as "changed"
+    hog_min_weight: float = 0.0  # HOG pedestrian detector: OpenCV's default SVM score floor (baseline input only)
     watchdog_factor: float = 3.0  # WATCHER STOPPED after this many × the p95 window period
+    watchdog_floor_s: float = 10.0  # …but never sooner than this
     rearm_poll_s: float = 5.0  # plug status poll while a plug_off tripwire is tripped
+    light_return_factor: float = 1.2  # "too dark" clears once luma ≥ 1.2 × P3 …
+    light_return_windows: int = 5  # … for this many consecutive windows
+    action_retry_s: float = 5.0  # a failed turn_off is retried (OFF only) every this many seconds …
+    action_retries: int = 12  # … at most this many times
+    capture_s: float = 120.0  # the 2-min "normal state" capture at arming
     extra: dict = field(default_factory=dict)
 
 
