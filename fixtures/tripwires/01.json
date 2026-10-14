@@ -1,0 +1,80 @@
+{
+  "slot": "01",
+  "event": "iron",
+  "sentence": "nobody is at the ironing board",
+  "spec": {
+    "visual": true,
+    "reason": "",
+    "name": "IRONING BOARD",
+    "positives": [
+      "empty ironing board with an iron on it",
+      "ironing board alone in the laundry room",
+      "bare ironing board next to a basket"
+    ],
+    "hard_negatives": [
+      "person standing at the ironing board folding clothes",
+      "someone ironing a shirt on the ironing board",
+      "hand touching the iron on the ironing board"
+    ],
+    "dwell_s": 30,
+    "action": "notify",
+    "cooldown_s": 600,
+    "language_in": "en"
+  },
+  "tf_request_id": "9727b666068a1e42a836b303ab8fd65c",
+  "tf_response_id": "chatcmpl-a42a161248cd1e8e",
+  "model": "nvidia/nemotron-3-super-120b-a12b",
+  "temperature": 1.0,
+  "top_p": 0.95,
+  "max_tokens": 4096,
+  "shape": "openai",
+  "created": "2026-10-15T06:43:50+0700",
+  "latency_s": 2.462,
+  "usage": {
+    "completion_tokens": 266,
+    "prompt_tokens": 799,
+    "total_tokens": 1065,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": null,
+      "reasoning_tokens": 137,
+      "rejected_prediction_tokens": null,
+      "text_tokens": null
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": null,
+      "cache_write_tokens": null,
+      "cached_tokens": 0,
+      "image_tokens": null,
+      "text_tokens": null,
+      "created_cache_tokens": 0,
+      "multimodal_tokens": null
+    },
+    "prompt_cache_hit_tokens": 0,
+    "prompt_cache_miss_tokens": 799
+  },
+  "frozen_at": "2026-10-15T06:43:50+0700",
+  "leakage_guard": "compiled once from the sentence alone, before any clip was scored; never edited",
+  "caption_vectors": "01.vec.npz — Cosmos-Embed1 text_proj (256-d), positives and hard negatives in spec order",
+  "superseded": [
+    {
+      "tf_request_id": "8cab8a7d47e3885a20a2bfabc348283d",
+      "created": "2026-10-15T06:41:52+0700",
+      "why": "compiler prompt revised before any clip existed: captions must name the main object (a positive read 'unused whiteboard-like surface')"
+    }
+  ],
+  "operating": {
+    "action": "plug_off",
+    "dwell_s": 120,
+    "cooldown_s": 600,
+    "set_by": "protocol (spec: tripwire 01 cuts the iron's power; default dwell 120 s, cool-down 600 s)",
+    "super_proposed": {
+      "action": "notify",
+      "dwell_s": 30,
+      "cooldown_s": 600
+    },
+    "note": "Action, dwell and cool-down are operating choices (the user confirms them before arming); they do not change any clip score. The captions above are Super's, verbatim and frozen."
+  },
+  "compiler_prompt_sha256": "82b051a3683175dd6791d815aaa3dfcddf3e207052e4ea232081195577707e4b",
+  "frozen": null
+}

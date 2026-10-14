@@ -1,0 +1,84 @@
+{
+  "slot": "02",
+  "event": "fridge",
+  "sentence": "the fridge door is left open and nobody is there",
+  "spec": {
+    "visual": true,
+    "reason": "",
+    "name": "FRIDGE DOOR OPEN",
+    "positives": [
+      "fridge door standing wide open",
+      "open refrigerator door showing interior shelves",
+      "fridge doorway ajar with light inside",
+      "refrigerator door left open revealing food items",
+      "wide open fridge door with no one nearby"
+    ],
+    "hard_negatives": [
+      "fridge door tightly closed",
+      "refrigerator door sealed shut",
+      "fridge doorway closed with no gap",
+      "refrigerator door shut blocking interior view",
+      "closed fridge door hiding contents"
+    ],
+    "dwell_s": 60,
+    "action": "notify",
+    "cooldown_s": 600,
+    "language_in": "en"
+  },
+  "tf_request_id": "8443496366c38c295426f1f559cf9335",
+  "tf_response_id": "chatcmpl-8efa83fe2a70c950",
+  "model": "nvidia/nemotron-3-super-120b-a12b",
+  "temperature": 1.0,
+  "top_p": 0.95,
+  "max_tokens": 4096,
+  "shape": "openai",
+  "created": "2026-10-15T06:43:53+0700",
+  "latency_s": 2.199,
+  "usage": {
+    "completion_tokens": 227,
+    "prompt_tokens": 802,
+    "total_tokens": 1029,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": null,
+      "reasoning_tokens": 75,
+      "rejected_prediction_tokens": null,
+      "text_tokens": null
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": null,
+      "cache_write_tokens": null,
+      "cached_tokens": 0,
+      "image_tokens": null,
+      "text_tokens": null,
+      "created_cache_tokens": 0,
+      "multimodal_tokens": null
+    },
+    "prompt_cache_hit_tokens": 0,
+    "prompt_cache_miss_tokens": 802
+  },
+  "frozen_at": "2026-10-15T06:43:53+0700",
+  "leakage_guard": "compiled once from the sentence alone, before any clip was scored; never edited",
+  "caption_vectors": "02.vec.npz — Cosmos-Embed1 text_proj (256-d), positives and hard negatives in spec order",
+  "superseded": [
+    {
+      "tf_request_id": "8990a0b6d5e521a884c5091e957fcd4c",
+      "created": "2026-10-15T06:41:55+0700",
+      "why": "compiler prompt revised before any clip existed: this compile proposed plug_off for a fridge (cutting a fridge's power is the harm); the prompt now reserves plug_off for heating/cooking appliances and the code coerces never-cut appliances to notify"
+    }
+  ],
+  "operating": {
+    "action": "notify",
+    "dwell_s": 60,
+    "cooldown_s": 600,
+    "set_by": "protocol (spec: tripwire 02 notifies); dwell and cool-down as Super proposed",
+    "super_proposed": {
+      "action": "notify",
+      "dwell_s": 60,
+      "cooldown_s": 600
+    },
+    "note": "Action, dwell and cool-down are operating choices (the user confirms them before arming); they do not change any clip score. The captions above are Super's, verbatim and frozen."
+  },
+  "compiler_prompt_sha256": "82b051a3683175dd6791d815aaa3dfcddf3e207052e4ea232081195577707e4b",
+  "frozen": null
+}

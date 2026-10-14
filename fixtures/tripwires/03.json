@@ -1,0 +1,80 @@
+{
+  "slot": "03",
+  "event": "door",
+  "sentence": "the door is left open and nobody is there",
+  "spec": {
+    "visual": true,
+    "reason": "",
+    "name": "DOOR OPEN EMPTY",
+    "positives": [
+      "The front door stands open with no person nearby.",
+      "An open doorway seen from inside, empty hallway visible.",
+      "Door ajar, no one in view, foyer lights off."
+    ],
+    "hard_negatives": [
+      "The front door is closed and empty hallway shows no one.",
+      "A person stands in the open doorway, hallway visible.",
+      "The door is open but a child walks past inside."
+    ],
+    "dwell_s": 60,
+    "action": "notify",
+    "cooldown_s": 600,
+    "language_in": "en"
+  },
+  "tf_request_id": "b1c49cea814647cf30a30c50cea5b1aa",
+  "tf_response_id": "chatcmpl-96de2c7e8cc70043",
+  "model": "nvidia/nemotron-3-super-120b-a12b",
+  "temperature": 1.0,
+  "top_p": 0.95,
+  "max_tokens": 4096,
+  "shape": "openai",
+  "created": "2026-10-15T06:43:58+0700",
+  "latency_s": 4.704,
+  "usage": {
+    "completion_tokens": 669,
+    "prompt_tokens": 801,
+    "total_tokens": 1470,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": null,
+      "reasoning_tokens": 530,
+      "rejected_prediction_tokens": null,
+      "text_tokens": null
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": null,
+      "cache_write_tokens": null,
+      "cached_tokens": 0,
+      "image_tokens": null,
+      "text_tokens": null,
+      "created_cache_tokens": 0,
+      "multimodal_tokens": null
+    },
+    "prompt_cache_hit_tokens": 0,
+    "prompt_cache_miss_tokens": 801
+  },
+  "frozen_at": "2026-10-15T06:43:58+0700",
+  "leakage_guard": "compiled once from the sentence alone, before any clip was scored; never edited",
+  "caption_vectors": "03.vec.npz — Cosmos-Embed1 text_proj (256-d), positives and hard negatives in spec order",
+  "superseded": [
+    {
+      "tf_request_id": "0d90ec2cb966f3412f0e165c85a3e3df",
+      "created": "2026-10-15T06:41:58+0700",
+      "why": "recompiled with the revised prompt (same compiler version for all three frozen tripwires)"
+    }
+  ],
+  "operating": {
+    "action": "notify",
+    "dwell_s": 60,
+    "cooldown_s": 600,
+    "set_by": "protocol (spec: tripwire 03 notifies); dwell and cool-down as Super proposed",
+    "super_proposed": {
+      "action": "notify",
+      "dwell_s": 60,
+      "cooldown_s": 600
+    },
+    "note": "Action, dwell and cool-down are operating choices (the user confirms them before arming); they do not change any clip score. The captions above are Super's, verbatim and frozen."
+  },
+  "compiler_prompt_sha256": "82b051a3683175dd6791d815aaa3dfcddf3e207052e4ea232081195577707e4b",
+  "frozen": null
+}
