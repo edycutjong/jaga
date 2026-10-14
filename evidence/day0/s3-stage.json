@@ -1,0 +1,20 @@
+{
+  "stage": "S3",
+  "measured_at": "2026-10-15T05:57:32+0700",
+  "endpoint": "https://storage.eu-west1.nebius.cloud",
+  "region": "eu-west1",
+  "create_bucket": "created",
+  "mode": "bucket",
+  "bucket": "jaga-calib",
+  "prefix": "",
+  "object_key": "day0/s3-check-1792018655.bin",
+  "presigned_put_status": 200,
+  "presigned_get_status": 200,
+  "bytes": 1024,
+  "roundtrip_equal": true,
+  "sha256": "b989b71e93ce176d94bf92d3362a7332e6b5f934923c02bbfe10bf6fd49ee69c",
+  "put_s": 0.72,
+  "get_s": 0.521,
+  "cleanup": "deleted",
+  "pass": true
+}
