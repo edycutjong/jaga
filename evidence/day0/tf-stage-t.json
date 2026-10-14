@@ -1,0 +1,907 @@
+{
+  "stage": "T",
+  "measured_at": "2026-10-15T05:56:40+0700",
+  "model": "nvidia/nemotron-3-super-120b-a12b",
+  "base_url": "https://api.tokenfactory.nebius.com/v1/",
+  "temperature": 1.0,
+  "top_p": 0.95,
+  "max_tokens": 4096,
+  "reasoning_effort": "low",
+  "valid": "5/5",
+  "pass": true,
+  "indonesian": "2/2",
+  "indonesian_claimed": true,
+  "shape_ok_counts": {
+    "tf": 0,
+    "openai": 6,
+    "json_object": 6
+  },
+  "non_visual_refused": true,
+  "rows": [
+    {
+      "lang": "en",
+      "sentence": "nobody is at the ironing board",
+      "non_visual_check": false,
+      "first_working_shape": "openai",
+      "shapes": {
+        "tf": {
+          "ok": false,
+          "kind": "compile_failed",
+          "detail": "no request shape produced a valid TripwireSpec",
+          "attempts": [
+            {
+              "shape": "tf",
+              "ok": false,
+              "error": "UnprocessableEntityError: Error code: 422 - {'detail': [{'type': 'missing', 'loc': ['body', 'response_format', 'json_schema', 'name'], 'msg': 'Field required', 'input': {'type': 'object', 'properties': {'visual': {'type': 'boolean'}, 'reason': {'type': 'string'}, 'name': {'type': 'string', 'maxLength': 24}, 'positives': {'ty"
+            }
+          ]
+        },
+        "openai": {
+          "ok": true,
+          "sentence": "nobody is at the ironing board",
+          "spec": {
+            "visual": true,
+            "reason": "",
+            "name": "NOBODY IRONING BOARD",
+            "positives": [
+              "Empty ironing board in laundry room.",
+              "Unused ironing board beside washing machine.",
+              "Clear view of vacant ironing board surface."
+            ],
+            "hard_negatives": [
+              "Person pressing clothes on the ironing board.",
+              "Iron resting on the ironing board while someone stands nearby.",
+              "Hand adjusting the iron on the occupied ironing board."
+            ],
+            "dwell_s": 120,
+            "action": "plug_off",
+            "cooldown_s": 600,
+            "language_in": "en"
+          },
+          "tf_request_id": "0b64dc6cffede12921409d40cc0e8d92",
+          "tf_response_id": "chatcmpl-afdf64ddb81e7753",
+          "model": "nvidia/nemotron-3-super-120b-a12b",
+          "temperature": 1.0,
+          "top_p": 0.95,
+          "max_tokens": 4096,
+          "created": "2026-10-15T05:56:16+0700",
+          "shape": "openai",
+          "latency_s": 1.91,
+          "usage": {
+            "completion_tokens": 259,
+            "prompt_tokens": 716,
+            "total_tokens": 975,
+            "completion_tokens_details": {
+              "accepted_prediction_tokens": null,
+              "audio_tokens": null,
+              "reasoning_tokens": 125,
+              "rejected_prediction_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 0,
+              "image_tokens": null,
+              "text_tokens": null,
+              "created_cache_tokens": 0,
+              "multimodal_tokens": null
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 716
+          },
+          "attempts": [
+            {
+              "shape": "openai",
+              "response_id": "chatcmpl-afdf64ddb81e7753",
+              "request_id": "0b64dc6cffede12921409d40cc0e8d92",
+              "finish_reason": "stop",
+              "latency_s": 1.91,
+              "ok": true
+            }
+          ]
+        },
+        "json_object": {
+          "ok": true,
+          "sentence": "nobody is at the ironing board",
+          "spec": {
+            "visual": true,
+            "reason": "",
+            "name": "IRONING BOARD EMPTY",
+            "positives": [
+              "empty ironing board with no clothes",
+              "bare ironing board surface visible",
+              "ironing board alone in laundry area"
+            ],
+            "hard_negatives": [
+              "person standing at ironing board pressing clothes",
+              "someone holding iron over ironing board",
+              "clothes piled on ironing board being pressed"
+            ],
+            "dwell_s": 120,
+            "action": "plug_off",
+            "cooldown_s": 600,
+            "language_in": "en"
+          },
+          "tf_request_id": "5e26f039397270d962f4bb33a121bd6f",
+          "tf_response_id": "chatcmpl-b1ff93d50c66c981",
+          "model": "nvidia/nemotron-3-super-120b-a12b",
+          "temperature": 1.0,
+          "top_p": 0.95,
+          "max_tokens": 4096,
+          "created": "2026-10-15T05:56:18+0700",
+          "shape": "json_object",
+          "latency_s": 1.749,
+          "usage": {
+            "completion_tokens": 200,
+            "prompt_tokens": 716,
+            "total_tokens": 916,
+            "completion_tokens_details": {
+              "accepted_prediction_tokens": null,
+              "audio_tokens": null,
+              "reasoning_tokens": 75,
+              "rejected_prediction_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 0,
+              "image_tokens": null,
+              "text_tokens": null,
+              "created_cache_tokens": 0,
+              "multimodal_tokens": null
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 716
+          },
+          "attempts": [
+            {
+              "shape": "json_object",
+              "response_id": "chatcmpl-b1ff93d50c66c981",
+              "request_id": "5e26f039397270d962f4bb33a121bd6f",
+              "finish_reason": "stop",
+              "latency_s": 1.749,
+              "ok": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "lang": "en",
+      "sentence": "the cat has been on the kitchen counter",
+      "non_visual_check": false,
+      "first_working_shape": "openai",
+      "shapes": {
+        "tf": {
+          "ok": false,
+          "kind": "compile_failed",
+          "detail": "no request shape produced a valid TripwireSpec",
+          "attempts": [
+            {
+              "shape": "tf",
+              "ok": false,
+              "error": "UnprocessableEntityError: Error code: 422 - {'detail': [{'type': 'missing', 'loc': ['body', 'response_format', 'json_schema', 'name'], 'msg': 'Field required', 'input': {'type': 'object', 'properties': {'visual': {'type': 'boolean'}, 'reason': {'type': 'string'}, 'name': {'type': 'string', 'maxLength': 24}, 'positives': {'ty"
+            }
+          ]
+        },
+        "openai": {
+          "ok": true,
+          "sentence": "the cat has been on the kitchen counter",
+          "spec": {
+            "visual": true,
+            "reason": "",
+            "name": "CAT ON COUNTER",
+            "positives": [
+              "Cat perched on the kitchen countertop",
+              "Orange cat lying near the sink edge",
+              "Cat stretching along the marble counter surface"
+            ],
+            "hard_negatives": [
+              "Empty kitchen counter with no animals present",
+              "Dog sleeping on the kitchen floor nearby",
+              "Person's hands placing a bowl on the counter"
+            ],
+            "dwell_s": 30,
+            "action": "notify",
+            "cooldown_s": 600,
+            "language_in": "en"
+          },
+          "tf_request_id": "3b4e49144d710e8ab3b2402c20e8a402",
+          "tf_response_id": "chatcmpl-8186fed9af5ce22a",
+          "model": "nvidia/nemotron-3-super-120b-a12b",
+          "temperature": 1.0,
+          "top_p": 0.95,
+          "max_tokens": 4096,
+          "created": "2026-10-15T05:56:20+0700",
+          "shape": "openai",
+          "latency_s": 1.711,
+          "usage": {
+            "completion_tokens": 216,
+            "prompt_tokens": 717,
+            "total_tokens": 933,
+            "completion_tokens_details": {
+              "accepted_prediction_tokens": null,
+              "audio_tokens": null,
+              "reasoning_tokens": 96,
+              "rejected_prediction_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 0,
+              "image_tokens": null,
+              "text_tokens": null,
+              "created_cache_tokens": 0,
+              "multimodal_tokens": null
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 717
+          },
+          "attempts": [
+            {
+              "shape": "openai",
+              "response_id": "chatcmpl-8186fed9af5ce22a",
+              "request_id": "3b4e49144d710e8ab3b2402c20e8a402",
+              "finish_reason": "stop",
+              "latency_s": 1.711,
+              "ok": true
+            }
+          ]
+        },
+        "json_object": {
+          "ok": true,
+          "sentence": "the cat has been on the kitchen counter",
+          "spec": {
+            "visual": true,
+            "reason": "",
+            "name": "CAT ON KITCHEN COUNTER",
+            "positives": [
+              "Cat sitting on the white kitchen countertop near sink.",
+              "A gray cat rests on the edge of the marble kitchen counter.",
+              "Orange cat stretched out across the center of the kitchen work surface."
+            ],
+            "hard_negatives": [
+              "Empty white kitchen countertop near sink with no objects present.",
+              "Clear view of marble kitchen counter showing only smooth stone surface.",
+              "Kitchen work surface bare, free of any items or animals."
+            ],
+            "dwell_s": 30,
+            "action": "notify",
+            "cooldown_s": 600,
+            "language_in": "en"
+          },
+          "tf_request_id": "a9990c498fbd76f5133956651fe5ac36",
+          "tf_response_id": "chatcmpl-a9b9070896b410c7",
+          "model": "nvidia/nemotron-3-super-120b-a12b",
+          "temperature": 1.0,
+          "top_p": 0.95,
+          "max_tokens": 4096,
+          "created": "2026-10-15T05:56:23+0700",
+          "shape": "json_object",
+          "latency_s": 3.417,
+          "usage": {
+            "completion_tokens": 641,
+            "prompt_tokens": 717,
+            "total_tokens": 1358,
+            "completion_tokens_details": {
+              "accepted_prediction_tokens": null,
+              "audio_tokens": null,
+              "reasoning_tokens": 492,
+              "rejected_prediction_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 0,
+              "image_tokens": null,
+              "text_tokens": null,
+              "created_cache_tokens": 0,
+              "multimodal_tokens": null
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 717
+          },
+          "attempts": [
+            {
+              "shape": "json_object",
+              "response_id": "chatcmpl-a9b9070896b410c7",
+              "request_id": "a9990c498fbd76f5133956651fe5ac36",
+              "finish_reason": "stop",
+              "latency_s": 3.417,
+              "ok": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "lang": "en",
+      "sentence": "the door is left open and nobody is there",
+      "non_visual_check": false,
+      "first_working_shape": "openai",
+      "shapes": {
+        "tf": {
+          "ok": false,
+          "kind": "compile_failed",
+          "detail": "no request shape produced a valid TripwireSpec",
+          "attempts": [
+            {
+              "shape": "tf",
+              "ok": false,
+              "error": "UnprocessableEntityError: Error code: 422 - {'detail': [{'type': 'missing', 'loc': ['body', 'response_format', 'json_schema', 'name'], 'msg': 'Field required', 'input': {'type': 'object', 'properties': {'visual': {'type': 'boolean'}, 'reason': {'type': 'string'}, 'name': {'type': 'string', 'maxLength': 24}, 'positives': {'ty"
+            }
+          ]
+        },
+        "openai": {
+          "ok": true,
+          "sentence": "the door is left open and nobody is there",
+          "spec": {
+            "visual": true,
+            "reason": "",
+            "name": "DOOR OPEN NOBODY",
+            "positives": [
+              "Open doorway seen from hallway with no one inside.",
+              "Door ajar showing empty living room beyond threshold.",
+              "Wide-open front door framing vacant foyer space."
+            ],
+            "hard_negatives": [
+              "Person standing in the open doorway looking out.",
+              "Door closed with no one visible in the hallway.",
+              "Open doorway with a child playing near the threshold."
+            ],
+            "dwell_s": 60,
+            "action": "notify",
+            "cooldown_s": 600,
+            "language_in": "en"
+          },
+          "tf_request_id": "26da96bf07c91204275b27538e878d3b",
+          "tf_response_id": "chatcmpl-bb11b873be546678",
+          "model": "nvidia/nemotron-3-super-120b-a12b",
+          "temperature": 1.0,
+          "top_p": 0.95,
+          "max_tokens": 4096,
+          "created": "2026-10-15T05:56:25+0700",
+          "shape": "openai",
+          "latency_s": 1.772,
+          "usage": {
+            "completion_tokens": 218,
+            "prompt_tokens": 718,
+            "total_tokens": 936,
+            "completion_tokens_details": {
+              "accepted_prediction_tokens": null,
+              "audio_tokens": null,
+              "reasoning_tokens": 88,
+              "rejected_prediction_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 0,
+              "image_tokens": null,
+              "text_tokens": null,
+              "created_cache_tokens": 0,
+              "multimodal_tokens": null
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 718
+          },
+          "attempts": [
+            {
+              "shape": "openai",
+              "response_id": "chatcmpl-bb11b873be546678",
+              "request_id": "26da96bf07c91204275b27538e878d3b",
+              "finish_reason": "stop",
+              "latency_s": 1.772,
+              "ok": true
+            }
+          ]
+        },
+        "json_object": {
+          "ok": true,
+          "sentence": "the door is left open and nobody is there",
+          "spec": {
+            "visual": true,
+            "reason": "",
+            "name": "OPEN DOOR EMPTY",
+            "positives": [
+              "Empty doorway with door ajar, hallway visible.",
+              "Open door showing vacant foyer floor.",
+              "Door left wide open, no one in sight."
+            ],
+            "hard_negatives": [
+              "Person standing in the open doorway.",
+              "Closed door blocking the hallway view.",
+              "Door slightly open with a pet sitting inside."
+            ],
+            "dwell_s": 60,
+            "action": "notify",
+            "cooldown_s": 600,
+            "language_in": "en"
+          },
+          "tf_request_id": "c8a4902f22be0e54e430ff5455f51138",
+          "tf_response_id": "chatcmpl-981b1305c44b23de",
+          "model": "nvidia/nemotron-3-super-120b-a12b",
+          "temperature": 1.0,
+          "top_p": 0.95,
+          "max_tokens": 4096,
+          "created": "2026-10-15T05:56:27+0700",
+          "shape": "json_object",
+          "latency_s": 1.855,
+          "usage": {
+            "completion_tokens": 225,
+            "prompt_tokens": 718,
+            "total_tokens": 943,
+            "completion_tokens_details": {
+              "accepted_prediction_tokens": null,
+              "audio_tokens": null,
+              "reasoning_tokens": 103,
+              "rejected_prediction_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 0,
+              "image_tokens": null,
+              "text_tokens": null,
+              "created_cache_tokens": 0,
+              "multimodal_tokens": null
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 718
+          },
+          "attempts": [
+            {
+              "shape": "json_object",
+              "response_id": "chatcmpl-981b1305c44b23de",
+              "request_id": "c8a4902f22be0e54e430ff5455f51138",
+              "finish_reason": "stop",
+              "latency_s": 1.855,
+              "ok": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "lang": "id",
+      "sentence": "nggak ada orang di meja setrika",
+      "non_visual_check": false,
+      "first_working_shape": "openai",
+      "shapes": {
+        "tf": {
+          "ok": false,
+          "kind": "compile_failed",
+          "detail": "no request shape produced a valid TripwireSpec",
+          "attempts": [
+            {
+              "shape": "tf",
+              "ok": false,
+              "error": "UnprocessableEntityError: Error code: 422 - {'detail': [{'type': 'missing', 'loc': ['body', 'response_format', 'json_schema', 'name'], 'msg': 'Field required', 'input': {'type': 'object', 'properties': {'visual': {'type': 'boolean'}, 'reason': {'type': 'string'}, 'name': {'type': 'string', 'maxLength': 24}, 'positives': {'ty"
+            }
+          ]
+        },
+        "openai": {
+          "ok": true,
+          "sentence": "nggak ada orang di meja setrika",
+          "spec": {
+            "visual": true,
+            "reason": "",
+            "name": "IRONING BOARD EMPTY",
+            "positives": [
+              "Empty ironing board in laundry room",
+              "Ironing board clear of people",
+              "Quiet space beside idle ironing board"
+            ],
+            "hard_negatives": [
+              "Person pressing clothes on ironing board",
+              "Someone standing by the ironing board",
+              "Hand moving iron across the board"
+            ],
+            "dwell_s": 120,
+            "action": "plug_off",
+            "cooldown_s": 600,
+            "language_in": "id"
+          },
+          "tf_request_id": "ae1f821952047af87c011273168b8daf",
+          "tf_response_id": "chatcmpl-b65778660d0d6423",
+          "model": "nvidia/nemotron-3-super-120b-a12b",
+          "temperature": 1.0,
+          "top_p": 0.95,
+          "max_tokens": 4096,
+          "created": "2026-10-15T05:56:29+0700",
+          "shape": "openai",
+          "latency_s": 1.792,
+          "usage": {
+            "completion_tokens": 236,
+            "prompt_tokens": 719,
+            "total_tokens": 955,
+            "completion_tokens_details": {
+              "accepted_prediction_tokens": null,
+              "audio_tokens": null,
+              "reasoning_tokens": 116,
+              "rejected_prediction_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 0,
+              "image_tokens": null,
+              "text_tokens": null,
+              "created_cache_tokens": 0,
+              "multimodal_tokens": null
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 719
+          },
+          "attempts": [
+            {
+              "shape": "openai",
+              "response_id": "chatcmpl-b65778660d0d6423",
+              "request_id": "ae1f821952047af87c011273168b8daf",
+              "finish_reason": "stop",
+              "latency_s": 1.792,
+              "ok": true
+            }
+          ]
+        },
+        "json_object": {
+          "ok": true,
+          "sentence": "nggak ada orang di meja setrika",
+          "spec": {
+            "visual": true,
+            "reason": "",
+            "name": "IRONING TABLE EMPTY",
+            "positives": [
+              "empty ironing board with iron placed nearby",
+              "clear view of unused ironing table surface",
+              "ironing board waiting without any person present"
+            ],
+            "hard_negatives": [
+              "person standing at ironing board pressing clothes",
+              "someone arranging shirts on the ironing table",
+              "adult leaning over the ironing board with iron active"
+            ],
+            "dwell_s": 120,
+            "action": "plug_off",
+            "cooldown_s": 600,
+            "language_in": "id"
+          },
+          "tf_request_id": "bfe2897650317a5af8d958807cd918c2",
+          "tf_response_id": "chatcmpl-abc0bcd9e895276e",
+          "model": "nvidia/nemotron-3-super-120b-a12b",
+          "temperature": 1.0,
+          "top_p": 0.95,
+          "max_tokens": 4096,
+          "created": "2026-10-15T05:56:31+0700",
+          "shape": "json_object",
+          "latency_s": 1.904,
+          "usage": {
+            "completion_tokens": 249,
+            "prompt_tokens": 719,
+            "total_tokens": 968,
+            "completion_tokens_details": {
+              "accepted_prediction_tokens": null,
+              "audio_tokens": null,
+              "reasoning_tokens": 119,
+              "rejected_prediction_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 0,
+              "image_tokens": null,
+              "text_tokens": null,
+              "created_cache_tokens": 0,
+              "multimodal_tokens": null
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 719
+          },
+          "attempts": [
+            {
+              "shape": "json_object",
+              "response_id": "chatcmpl-abc0bcd9e895276e",
+              "request_id": "bfe2897650317a5af8d958807cd918c2",
+              "finish_reason": "stop",
+              "latency_s": 1.904,
+              "ok": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "lang": "id",
+      "sentence": "pintu dibiarkan terbuka dan tidak ada orang",
+      "non_visual_check": false,
+      "first_working_shape": "openai",
+      "shapes": {
+        "tf": {
+          "ok": false,
+          "kind": "compile_failed",
+          "detail": "no request shape produced a valid TripwireSpec",
+          "attempts": [
+            {
+              "shape": "tf",
+              "ok": false,
+              "error": "UnprocessableEntityError: Error code: 422 - {'detail': [{'type': 'missing', 'loc': ['body', 'response_format', 'json_schema', 'name'], 'msg': 'Field required', 'input': {'type': 'object', 'properties': {'visual': {'type': 'boolean'}, 'reason': {'type': 'string'}, 'name': {'type': 'string', 'maxLength': 24}, 'positives': {'ty"
+            }
+          ]
+        },
+        "openai": {
+          "ok": true,
+          "sentence": "pintu dibiarkan terbuka dan tidak ada orang",
+          "spec": {
+            "visual": true,
+            "reason": "",
+            "name": "DOOR OPEN NO ONE",
+            "positives": [
+              "Open doorway with no one in view",
+              "Empty hallway through an open door",
+              "Door ajar, vacant interior visible"
+            ],
+            "hard_negatives": [
+              "Person standing in the open doorway",
+              "Someone walking through the open door",
+              "Closed door with no one present"
+            ],
+            "dwell_s": 60,
+            "action": "notify",
+            "cooldown_s": 600,
+            "language_in": "id"
+          },
+          "tf_request_id": "efb5cfe43b926babcf191d2f80049196",
+          "tf_response_id": "chatcmpl-be3fa18d1a51363a",
+          "model": "nvidia/nemotron-3-super-120b-a12b",
+          "temperature": 1.0,
+          "top_p": 0.95,
+          "max_tokens": 4096,
+          "created": "2026-10-15T05:56:33+0700",
+          "shape": "openai",
+          "latency_s": 1.725,
+          "usage": {
+            "completion_tokens": 238,
+            "prompt_tokens": 720,
+            "total_tokens": 958,
+            "completion_tokens_details": {
+              "accepted_prediction_tokens": null,
+              "audio_tokens": null,
+              "reasoning_tokens": 125,
+              "rejected_prediction_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 0,
+              "image_tokens": null,
+              "text_tokens": null,
+              "created_cache_tokens": 0,
+              "multimodal_tokens": null
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 720
+          },
+          "attempts": [
+            {
+              "shape": "openai",
+              "response_id": "chatcmpl-be3fa18d1a51363a",
+              "request_id": "efb5cfe43b926babcf191d2f80049196",
+              "finish_reason": "stop",
+              "latency_s": 1.725,
+              "ok": true
+            }
+          ]
+        },
+        "json_object": {
+          "ok": true,
+          "sentence": "pintu dibiarkan terbuka dan tidak ada orang",
+          "spec": {
+            "visual": true,
+            "reason": "",
+            "name": "DOOR LEFT OPEN",
+            "positives": [
+              "door slightly open, no people visible",
+              "open door showing empty foyer",
+              "gap between door frames, vacant hallway",
+              "door ajar, floor space unoccupied"
+            ],
+            "hard_negatives": [
+              "door fully closed, hallway empty",
+              "door open, person standing in doorway",
+              "door shut, individual walking past"
+            ],
+            "dwell_s": 60,
+            "action": "notify",
+            "cooldown_s": 600,
+            "language_in": "id"
+          },
+          "tf_request_id": "5aa65f0de99cc6b4eaa72574eeeeeb22",
+          "tf_response_id": "chatcmpl-a3e146c0a3ff6307",
+          "model": "nvidia/nemotron-3-super-120b-a12b",
+          "temperature": 1.0,
+          "top_p": 0.95,
+          "max_tokens": 4096,
+          "created": "2026-10-15T05:56:35+0700",
+          "shape": "json_object",
+          "latency_s": 2.55,
+          "usage": {
+            "completion_tokens": 399,
+            "prompt_tokens": 720,
+            "total_tokens": 1119,
+            "completion_tokens_details": {
+              "accepted_prediction_tokens": null,
+              "audio_tokens": null,
+              "reasoning_tokens": 277,
+              "rejected_prediction_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 0,
+              "image_tokens": null,
+              "text_tokens": null,
+              "created_cache_tokens": 0,
+              "multimodal_tokens": null
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 720
+          },
+          "attempts": [
+            {
+              "shape": "json_object",
+              "response_id": "chatcmpl-a3e146c0a3ff6307",
+              "request_id": "5aa65f0de99cc6b4eaa72574eeeeeb22",
+              "finish_reason": "stop",
+              "latency_s": 2.55,
+              "ok": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "lang": "en",
+      "sentence": "tell me if something is wrong",
+      "non_visual_check": true,
+      "first_working_shape": "openai",
+      "shapes": {
+        "tf": {
+          "ok": false,
+          "kind": "compile_failed",
+          "detail": "no request shape produced a valid TripwireSpec",
+          "attempts": [
+            {
+              "shape": "tf",
+              "ok": false,
+              "error": "UnprocessableEntityError: Error code: 422 - {'detail': [{'type': 'missing', 'loc': ['body', 'response_format', 'json_schema', 'name'], 'msg': 'Field required', 'input': {'type': 'object', 'properties': {'visual': {'type': 'boolean'}, 'reason': {'type': 'string'}, 'name': {'type': 'string', 'maxLength': 24}, 'positives': {'ty"
+            }
+          ]
+        },
+        "openai": {
+          "ok": true,
+          "sentence": "tell me if something is wrong",
+          "spec": {
+            "visual": false,
+            "reason": "The sentence does not refer to a specific observable scenario.",
+            "name": "UNKNOWN SITUATION",
+            "positives": [],
+            "hard_negatives": [],
+            "dwell_s": 30,
+            "action": "notify",
+            "cooldown_s": 600,
+            "language_in": "en"
+          },
+          "tf_request_id": "1a4d934fd9ba9c6a52f339c65dc69bb7",
+          "tf_response_id": "chatcmpl-9ec446e077a13b07",
+          "model": "nvidia/nemotron-3-super-120b-a12b",
+          "temperature": 1.0,
+          "top_p": 0.95,
+          "max_tokens": 4096,
+          "created": "2026-10-15T05:56:38+0700",
+          "shape": "openai",
+          "latency_s": 2.086,
+          "usage": {
+            "completion_tokens": 241,
+            "prompt_tokens": 715,
+            "total_tokens": 956,
+            "completion_tokens_details": {
+              "accepted_prediction_tokens": null,
+              "audio_tokens": null,
+              "reasoning_tokens": 164,
+              "rejected_prediction_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 0,
+              "image_tokens": null,
+              "text_tokens": null,
+              "created_cache_tokens": 0,
+              "multimodal_tokens": null
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 715
+          },
+          "attempts": [
+            {
+              "shape": "openai",
+              "response_id": "chatcmpl-9ec446e077a13b07",
+              "request_id": "1a4d934fd9ba9c6a52f339c65dc69bb7",
+              "finish_reason": "stop",
+              "latency_s": 2.086,
+              "ok": true
+            }
+          ]
+        },
+        "json_object": {
+          "ok": true,
+          "sentence": "tell me if something is wrong",
+          "spec": {
+            "visual": false,
+            "reason": "The sentence does not refer to any observable visual state.",
+            "name": "ALERT WRONG",
+            "positives": [],
+            "hard_negatives": [],
+            "dwell_s": 60,
+            "action": "notify",
+            "cooldown_s": 600,
+            "language_in": "en"
+          },
+          "tf_request_id": "18be65cc79b053fdfc4809cb07872036",
+          "tf_response_id": "chatcmpl-badceab571c89853",
+          "model": "nvidia/nemotron-3-super-120b-a12b",
+          "temperature": 1.0,
+          "top_p": 0.95,
+          "max_tokens": 4096,
+          "created": "2026-10-15T05:56:40+0700",
+          "shape": "json_object",
+          "latency_s": 2.061,
+          "usage": {
+            "completion_tokens": 244,
+            "prompt_tokens": 715,
+            "total_tokens": 959,
+            "completion_tokens_details": {
+              "accepted_prediction_tokens": null,
+              "audio_tokens": null,
+              "reasoning_tokens": 168,
+              "rejected_prediction_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 0,
+              "image_tokens": null,
+              "text_tokens": null,
+              "created_cache_tokens": 0,
+              "multimodal_tokens": null
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 715
+          },
+          "attempts": [
+            {
+              "shape": "json_object",
+              "response_id": "chatcmpl-badceab571c89853",
+              "request_id": "18be65cc79b053fdfc4809cb07872036",
+              "finish_reason": "stop",
+              "latency_s": 2.061,
+              "ok": true
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
