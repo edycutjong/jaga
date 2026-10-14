@@ -1,0 +1,30 @@
+{
+  "slot": "01",
+  "draw": 5,
+  "sentence": "nobody is at the ironing board",
+  "spec": {
+    "visual": true,
+    "reason": "",
+    "name": "IRONING BOARD",
+    "positives": [
+      "Empty ironing board with cord visible",
+      "Ironing board alone against wall",
+      "Clear ironing board surface no items"
+    ],
+    "hard_negatives": [
+      "Person ironing a shirt on the ironing board",
+      "Someone standing near the ironing board holding an iron",
+      "Child playing with toys on the ironing board"
+    ],
+    "dwell_s": 60,
+    "action": "notify",
+    "cooldown_s": 600,
+    "language_in": "en"
+  },
+  "tf_request_id": "32199bc0d69fe6e25c08fd109c4b85aa",
+  "model": "nvidia/nemotron-3-super-120b-a12b",
+  "temperature": 1.0,
+  "top_p": 0.95,
+  "created": "2026-10-15T06:57:26+0700",
+  "use": "compile variance only (never used for θ)"
+}

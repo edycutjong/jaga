@@ -1,0 +1,30 @@
+{
+  "slot": "03",
+  "draw": 3,
+  "sentence": "the door is left open and nobody is there",
+  "spec": {
+    "visual": true,
+    "reason": "",
+    "name": "OPEN DOOR",
+    "positives": [
+      "open front door with no person in view",
+      "door ajar showing empty hallway inside",
+      "wide open door revealing vacant room beyond"
+    ],
+    "hard_negatives": [
+      "person standing in the open doorway",
+      "someone walking through the open door",
+      "child playing near the open door"
+    ],
+    "dwell_s": 60,
+    "action": "notify",
+    "cooldown_s": 600,
+    "language_in": "en"
+  },
+  "tf_request_id": "4184591e22df85da9f4ac792febbf334",
+  "model": "nvidia/nemotron-3-super-120b-a12b",
+  "temperature": 1.0,
+  "top_p": 0.95,
+  "created": "2026-10-15T06:57:48+0700",
+  "use": "compile variance only (never used for θ)"
+}

@@ -1,0 +1,30 @@
+{
+  "slot": "02",
+  "draw": 3,
+  "sentence": "the fridge door is left open and nobody is there",
+  "spec": {
+    "visual": true,
+    "reason": "",
+    "name": "FRIDGE DOOR OPEN",
+    "positives": [
+      "fridge door slightly open showing inside shelves",
+      "refrigerator door ajar with interior light on",
+      "open fridge door revealing food items inside"
+    ],
+    "hard_negatives": [
+      "fridge door fully closed with no gap visible",
+      "person standing in front of closed refrigerator door",
+      "someone reaching into an open fridge door"
+    ],
+    "dwell_s": 60,
+    "action": "notify",
+    "cooldown_s": 600,
+    "language_in": "en"
+  },
+  "tf_request_id": "076d151fa9c9f3695d69d5020bd00e51",
+  "model": "nvidia/nemotron-3-super-120b-a12b",
+  "temperature": 1.0,
+  "top_p": 0.95,
+  "created": "2026-10-15T06:57:34+0700",
+  "use": "compile variance only (never used for θ)"
+}
