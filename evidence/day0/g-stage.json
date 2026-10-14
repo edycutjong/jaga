@@ -1,0 +1,98 @@
+{
+  "stage": "G",
+  "measured_at": "2026-10-15T06:15:10+0700",
+  "dry_run_only": true,
+  "smallest_cpu_disk_validated": "16Gi",
+  "probes": [
+    {
+      "probe": "gpu-l40s-a 1gpu-8vcpu-32gb, eu-north1",
+      "platform": "gpu-l40s-a",
+      "preset": "1gpu-8vcpu-32gb",
+      "disk_size": null,
+      "rc": 0,
+      "verdict": "validated",
+      "first_line": "Job validation succeeded; no resource was created.",
+      "detail": []
+    },
+    {
+      "probe": "gpu-h200-sxm 1gpu-16vcpu-200gb, eu-west1",
+      "platform": "gpu-h200-sxm",
+      "preset": "1gpu-16vcpu-200gb",
+      "disk_size": null,
+      "rc": 0,
+      "verdict": "validated",
+      "first_line": "Job validation succeeded; no resource was created.",
+      "detail": []
+    },
+    {
+      "probe": "cpu-d3 4vcpu-16gb disk 1Gi, eu-west1",
+      "platform": "cpu-d3",
+      "preset": "4vcpu-16gb",
+      "disk_size": "1Gi",
+      "rc": 3,
+      "verdict": "rejected",
+      "first_line": "Error: rpc error: code = InvalidArgument desc = spec.disk.size_bytes is invalid",
+      "detail": [
+        "request = e77d10d1-9aa9-4c8c-9ec4-a505f8d6971a",
+        "caused by service error:",
+        "  Bad Request BadRequest: service compute, violations:",
+        "    spec.disk.size_bytes: Disk size must be >= 10737418240 (minimum disk size for image \"computeimage-e01kfpw3a3b35dpj6k\")"
+      ]
+    },
+    {
+      "probe": "cpu-d3 4vcpu-16gb disk 8Gi, eu-west1",
+      "platform": "cpu-d3",
+      "preset": "4vcpu-16gb",
+      "disk_size": "8Gi",
+      "rc": 3,
+      "verdict": "rejected",
+      "first_line": "Error: rpc error: code = InvalidArgument desc = spec.disk.size_bytes is invalid",
+      "detail": [
+        "request = aa0aef11-22cc-46b1-8c39-4072af7da051",
+        "caused by service error:",
+        "  Bad Request BadRequest: service compute, violations:",
+        "    spec.disk.size_bytes: Disk size must be >= 10737418240 (minimum disk size for image \"computeimage-e01kfpw3a3b35dpj6k\")"
+      ]
+    },
+    {
+      "probe": "cpu-d3 4vcpu-16gb disk 16Gi, eu-west1",
+      "platform": "cpu-d3",
+      "preset": "4vcpu-16gb",
+      "disk_size": "16Gi",
+      "rc": 0,
+      "verdict": "validated",
+      "first_line": "Job validation succeeded; no resource was created.",
+      "detail": []
+    },
+    {
+      "probe": "cpu-d3 4vcpu-16gb disk 32Gi, eu-west1",
+      "platform": "cpu-d3",
+      "preset": "4vcpu-16gb",
+      "disk_size": "32Gi",
+      "rc": 0,
+      "verdict": "validated",
+      "first_line": "Job validation succeeded; no resource was created.",
+      "detail": []
+    },
+    {
+      "probe": "cpu-d3 4vcpu-16gb disk 64Gi, eu-west1",
+      "platform": "cpu-d3",
+      "preset": "4vcpu-16gb",
+      "disk_size": "64Gi",
+      "rc": 0,
+      "verdict": "validated",
+      "first_line": "Job validation succeeded; no resource was created.",
+      "detail": []
+    },
+    {
+      "probe": "cpu-d3 4vcpu-16gb disk 128Gi, eu-west1",
+      "platform": "cpu-d3",
+      "preset": "4vcpu-16gb",
+      "disk_size": "128Gi",
+      "rc": 0,
+      "verdict": "validated",
+      "first_line": "Job validation succeeded; no resource was created.",
+      "detail": []
+    }
+  ]
+}
