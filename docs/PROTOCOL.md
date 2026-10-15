@@ -6,6 +6,10 @@ only come from unscored data (θ v1, P7, P8, R, the zone box and the HOG detecti
 **rules** below and written into [Frozen values](#frozen-values-filled-before-b1) in a dated commit before B1 starts.
 B1 does not start until that section is filled. Every run counts; an aborted run and its reason are reported.
 
+*Amended 2026-10-15, still before any clip or soak data existed (see this file's git history): the frame-difference
+orientation per tripwire, the fresh-mode hold-out, the Soak A scoring rules, the secondary 30-s row and the P7
+fallback were written down explicitly, and the Soak B outputs per exit type were wired into `scripts/bench.py`.*
+
 ## 1. The question
 
 At an ironing board, a person is often present but still (reading, scrolling a phone, standing). A stillness timer
@@ -20,10 +24,10 @@ Both halves matter. A system that never cuts is useless; a system that cuts on e
 |---|---|
 | People / rooms | one person (the builder), one room; disclosed on every surface |
 | Camera position | named `board` (recorded on every window as `camera_pos`) |
-| Tripwire | **01 · "nobody is at the ironing board"** — `fixtures/tripwires/01.json`, compiled once by Nemotron 3 Super (Token Factory request `9727b666068a1e42a836b303ab8fd65c`), frozen before any clip existed |
+| Tripwire | **01 · "nobody is at the ironing board"** — `fixtures/tripwires/01.json`, frozen from one Nemotron 3 Super compile (Token Factory request `9727b666068a1e42a836b303ab8fd65c`) made before any clip existed; the earlier compile it replaced is listed under `superseded` in the fixture |
 | Action | `plug_off` on the real Wi-Fi plug; a desk lamp on the same plug is the visible load; the iron is an **unplugged prop** |
 | Threshold | θ_m **v1**, frozen before B1 (rule in §6); the same θ for B1 and B2; never refitted on a scored session |
-| Dwell | **120 s primary** (the default); the 30-s demo dwell is computed offline from the same logs as a secondary row |
+| Dwell | **120 s primary** (the default); the 30-s demo dwell is a secondary row recomputed offline from the same logs for every system (`bench.py soak --dwell 30 --secondary`; jaga's live trips count only at 120 s) |
 | k-of-n | k = max(2, ⌈P7 · n⌉), n = max(2, dwell ÷ window period) — never fewer than two windows (I2) |
 | Cool-down | 600 s; a re-arm (the plug switched back on) ends it |
 | Suspend | a jump in mean luma > P1 (25 %) suspends trips for P2 (60 s) |
@@ -81,7 +85,7 @@ After a computed baseline trip, that baseline is paused until the next scheduled
 * **Exit caught** — the system trips at t with exit start < t ≤ return + one window period.
   **Time-to-trip** = t − exit start. Reported per exit type (leaves the room / steps away in view).
 * **Other false cut** — a trip outside every exit and every still episode (during an activity): reported per
-  attended hour, secondary.
+  attended hour (attended hours = the logged length of B1 + B2), secondary.
 * **Plug countdown timer** — mid-session cuts while the person is present, and the minutes the power stays on after
   each exit begins.
 
@@ -90,11 +94,11 @@ After a computed baseline trip, that baseline is paused until the next scheduled
 | Value | Rule (applied to unscored data only) |
 |---|---|
 | θ_m v1 | the highest margin that keeps recall ≥ 0.9 on the labelled **iron** clips (`scripts/seed.py freeze-theta --version 1`) |
-| P7 (k fraction) | 0.8, unless the unscored session shows a logged exit missed at 0.8; then the largest of {0.7, 0.6} that catches every logged exit |
+| P7 (k fraction) | 0.8, unless the unscored session shows a logged exit missed at 0.8; then the largest of {0.7, 0.6} that catches every logged exit; if neither does, 0.6 and the miss is disclosed (`bench.py tune`) |
 | P8 (stillness timer) | the strictest threshold that still flags every empty-board window of the unscored session as still: max(`motion_pct`) over those windows, rounded up to 0.01 % — the timer's best operating point |
 | R (reference difference) | the 99th percentile of `ref_diff_pct` over the 2-min capture windows of the unscored session |
 | Zone box | the board's box in the `board` camera view, as fractions of the frame |
-| HOG detection rate | the share of the 10 person-present iron clips (the hard negatives) on which `person_in_zone` = 1 |
+| HOG detection rate | the share of the 10 person-present iron clips (the hard negatives) on which `person_in_zone` = 1, read on the newest frame of each clip's window as the live guard reads it (`bench.py hog --zone …`) |
 
 ## 7. Statistics
 
@@ -126,13 +130,38 @@ One 8-hour, mostly unattended night, θ frozen at v1, a room lamp left on all ni
 unarms the tripwires and the night measures the guard). A second lamp on a mechanical wall timer switches at known
 times. The builder walks through every 2 h; on alternate passes the door (or fridge) is left open for at least the
 dwell plus a minute, a logged positive (keys 6 = left open, 7 = closed). Only the tripwires whose area is in the one
-camera view are armed. Reported: false alarms per **armed** hour with an exact Poisson interval (armed hours stated),
-against frame-difference motion through the same rule; the stored window vectors are also re-scored offline in fresh
-mode at frozen P6.
+camera view are armed.
+
+* **Armed hours** — the time a tripwire could trip: each window in the `armed` or `holding` state counts until the
+  next window, a gap counting at most twice the p95 window period.
+* **False alarm** — a trip outside every logged positive (key 6 → key 7, plus one window period). Reported per armed
+  hour with an exact Poisson interval, armed hours stated. **Positive caught** — a trip inside it; k of n,
+  Clopper–Pearson.
+* **Baselines, through the same rule** (dwell, k-of-n, suspend, cool-down) over the same armed windows: frame
+  difference at the P8 frozen for Soak B, in **both** orientations — motion (`motion_pct` ≥ P8) and stillness
+  (`motion_pct` < P8) — since an open door in an empty room is neither clearly one nor the other.
+* **Fresh mode, offline** — the stored window vectors re-scored with μ₀/σ₀ from the first 60 s of the session's
+  2-minute capture and θ_z = P6 (3.0), through the same rule.
 
 ```bash
 jaga soak A --session A1 --load 02,03 --camera-pos kitchen
+python scripts/bench.py soak-a --session A1
 ```
+
+## Clips and fresh mode (supporting; fixed before any clip is scored)
+
+* **Clips** — one 8-s clip = one window. Per tripwire: AUC with a Hanley–McNeil interval (reported as undefined at
+  AUC 0 or 1); each clip judged at a leave-one-out θ (recall 0.9 on the other positives); precision from those
+  decisions. The `iron-inview` clips are scored only at the frozen θ (a separate recall) and never fit it;
+  `iron-day2` is held out.
+* **Frame-difference baseline on clips** — orientation fixed per tripwire: 01, 02 and 03 describe a still scene
+  ("nobody … there"), so frame difference is scored as stillness (−`motion_pct`); 04 (a cat on the counter) as motion.
+  jaga vs frame difference is paired on the same clips (each at its own leave-one-out θ): exact sign test on the
+  discordant clips.
+* **Fresh mode** (no labelled clips) — μ₀/σ₀ from the first 60 s of a 2-minute normal-state recording; the second
+  60 s is a held-out false-positive test scored at a **30-s dwell** (a longer dwell could never trip inside 60 s),
+  and the share of its windows above θ_z is reported beside the trip count. The window stride is the measured live
+  window period (p50).
 
 ## Frozen values (filled before B1)
 
