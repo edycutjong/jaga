@@ -58,7 +58,7 @@
     "prompt_cache_miss_tokens": 802
   },
   "frozen_at": "2026-10-15T06:43:53+0700",
-  "leakage_guard": "compiled once from the sentence alone, before any clip was scored; never edited",
+  "leakage_guard": "frozen from one compile of the sentence alone, made before any clip was scored; earlier compiles of the same sentence are listed under superseded; the captions and vectors are never edited",
   "caption_vectors": "02.vec.npz — Cosmos-Embed1 text_proj (256-d), positives and hard negatives in spec order",
   "superseded": [
     {

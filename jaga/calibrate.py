@@ -32,9 +32,9 @@ PROJECT = os.environ.get("JAGA_NEBIUS_PROJECT", "project-e01phrcvpa003r6v2aep14"
 SUBNET = os.environ.get("JAGA_NEBIUS_SUBNET", "vpcsubnet-e01mdp8yxx4t2hccw5")
 PLATFORM, PRESET, IMAGE, DISK, TIMEOUT = "cpu-d3", "4vcpu-16gb", "python:3.11", "16Gi", "1h"
 REGION = "eu-west1"
-# $/hour for 4 vCPU + 16 GiB: the listed cpu-d3 price (4×0.012 + 16×0.0032, docs.nebius.com/compute/resources/pricing)
-# and a higher rate kept as a margin (4×0.015 + 16×0.0045; not a listed price)
-PRICE_DOCS, PRICE_HIGH = 0.0992, 0.132
+# $/hour for 4 vCPU + 16 GiB on cpu-d3 (Non-GPU AMD Epyc Genoa), docs.nebius.com/compute/resources/pricing:
+# listed from 2026-10-01: 4×0.015 + 16×0.0045 = 0.132; listed before 2026-10-01: 4×0.012 + 16×0.0032 = 0.0992
+PRICE_LISTED, PRICE_BEFORE_OCT = 0.132, 0.0992
 INJECT_LIMIT = 64 * 1024
 MIN_POS = 5  # engineering guard: a threshold from fewer positive clips is recorded, never adopted
 TERMINAL = {"COMPLETED", "FAILED", "CANCELLED", "CANCELED", "ERROR", "DELETED", "TERMINATED", "STOPPED"}
@@ -268,8 +268,8 @@ def dispatch(smoke: bool = False, input_csv: str | None = None, wait: bool = Tru
           "input_rows": n_rows, "input_bytes": len(data), "input_sha256": hashlib.sha256(data).hexdigest(),
           "input": "fixtures/test/smoke_margins.csv (synthetic test fixture — plumbing only)" if smoke else
           (input_csv or "labelled clip margins + ✗ wrong marks (unscored sessions only)"),
-          "cost_usd_docs_price": None if wall is None else round(wall / 3600 * PRICE_DOCS, 6),
-          "cost_usd_high_price": None if wall is None else round(wall / 3600 * PRICE_HIGH, 6),
+          "cost_usd_listed": None if wall is None else round(wall / 3600 * PRICE_LISTED, 6),
+          "cost_usd_listed_before_oct": None if wall is None else round(wall / 3600 * PRICE_BEFORE_OCT, 6),
           "billed_usd": None, "billed_note": "read the billed amount from the Nebius console (the formula has no disk "
                                               "or provisioning term)", "result_matches_input": result_ok,
           "cancelled_by_dispatcher": bool(info.get("cancelled_by_dispatcher")), "result": result}
@@ -288,7 +288,7 @@ def _usd(x) -> str:
 
 def write_runs_md() -> None:
     """docs/RUNS.md is generated from evidence/jobs/*.json, so every row traces to a Job's own record."""
-    from .receipts import job_runs
+    from .receipts import cost_listed, job_runs
 
     lines = [RUNS_HEADER]
     for ev in job_runs():
@@ -302,11 +302,15 @@ def write_runs_md() -> None:
         prov = ev.get("provisioning_s")
         lines.append(
             f"| {(ev.get('created_at') or '')[:19].replace('T', ' ')} | `{ev['job_id']}` | {kind} | {ev.get('state')} | "
-            f"{'—' if prov is None else round(prov)} | {ev.get('wall_clock_s')} | {_usd(ev.get('cost_usd_docs_price'))} | "
-            f"{_usd(ev.get('cost_usd_high_price'))} | {ev.get('input_rows')} rows · sha256 "
+            f"{'—' if prov is None else round(prov)} | {ev.get('wall_clock_s')} | {_usd(cost_listed(ev))} | "
+            f"{_usd(cost_before_oct(ev))} | {ev.get('input_rows')} rows · sha256 "
             f"`{(ev.get('input_sha256') or '')[:12]}` | {summary} | {ev.get('result_via')} |")
     RUNS_MD.parent.mkdir(parents=True, exist_ok=True)
     RUNS_MD.write_text("\n".join(lines) + "\n")
+
+
+def cost_before_oct(ev: dict):
+    return ev.get("cost_usd_listed_before_oct", ev.get("cost_usd_docs_price"))
 
 
 RUNS_HEADER = """# Calibration runs — Nebius AI Cloud Serverless Jobs
@@ -314,10 +318,10 @@ RUNS_HEADER = """# Calibration runs — Nebius AI Cloud Serverless Jobs
 Every row is written by `jaga calibrate` (`jaga/calibrate.py`) from the Job's own status and output; the
 evidence file for each run is `evidence/jobs/<job-id>.json`. Compute: `cpu-d3` · `4vcpu-16gb` · stock
 `python:3.11` · `--disk-size 16Gi` (the smallest size we probed that validated; the API's minimum for the image is
-10 GiB) · region eu-west1. Input: labelled margins only (no vectors, no frames). Cost = container wall clock × hourly
-price for 4 vCPU + 16 GiB: at the listed price for this platform (AMD Epyc Genoa, $0.012 per vCPU-hour + $0.0032 per
-GiB-hour = $0.0992/h, <https://docs.nebius.com/compute/resources/pricing>) and, as a margin, at a higher rate of
-$0.132/h (4 × $0.015 + 16 × $0.0045; not a listed price). Both are computed, not billed amounts.
+10 GiB) · region eu-west1. Input: labelled margins only (no vectors, no frames). Cost = container wall clock × the
+listed hourly price for 4 vCPU + 16 GiB on this platform (Non-GPU AMD Epyc Genoa,
+<https://docs.nebius.com/compute/resources/pricing>): from 2026-10-01 $0.015 per vCPU-hour + $0.0045 per GiB-hour =
+$0.132/h; before 2026-10-01 $0.012 + $0.0032 = $0.0992/h, shown for comparison. Both are computed, not billed amounts.
 
 A **smoke** run checks the plumbing on a committed synthetic test fixture. It is not a calibration and its
 numbers mean nothing about any tripwire.
@@ -325,7 +329,7 @@ numbers mean nothing about any tripwire.
 Provisioning = from the create call to the container start (queue, scheduling and the image pull); the cost
 columns price the container's own wall clock only.
 
-| created (UTC) | job ID | kind | state | provisioning (s) | wall clock (s) | cost @ $0.0992/h | cost @ $0.132/h | input | result | result read via |
+| created (UTC) | job ID | kind | state | provisioning (s) | wall clock (s) | cost @ $0.132/h (listed) | cost @ $0.0992/h (before 2026-10-01) | input | result | result read via |
 |---|---|---|---|---|---|---|---|---|---|---|"""
 
 

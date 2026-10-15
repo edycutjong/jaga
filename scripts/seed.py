@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Deterministic fixtures for jaga: frozen tripwires, labelled clips, clip vectors, frozen thresholds.
 
-Order matters (leakage guard): each tripwire is compiled ONCE from its sentence alone and frozen before any
-clip is scored; its spec is never edited afterwards. θ is computed from clips only after that.
+Order matters (leakage guard): each tripwire is frozen from one compile of its sentence alone, made before any
+clip is scored (an earlier compile it replaced is kept under `superseded`); its spec is never edited afterwards.
+θ is computed from clips only after that.
 
     seed.py freeze-specs              compile 01/02/03 once with Nemotron 3 Super, save request IDs, embed captions
     seed.py freeze-ablation           ablation (c-id): Super's compile of the Indonesian sentence, frozen once
@@ -46,6 +47,8 @@ SENTENCES = {
     "03": ("door", "the door is left open and nobody is there"),
 }
 CAT_SENTENCE = ("cat", "the cat is on the kitchen counter")
+LEAKAGE_GUARD = ("frozen from one compile of the sentence alone, made before any clip was scored; earlier compiles of "
+                 "the same sentence are listed under superseded; the captions and vectors are never edited")
 SET_TO_SLOT = {"iron": "01", "iron-inview": "01", "iron-day2": "01", "fridge": "02", "cat": "04", "door": "03"}
 HELDOUT_SETS = {"iron-day2"}
 TEST_ONLY_SETS = {"iron-inview"}  # scored at the frozen θ, never used to fit it (a separate recall, per exit type)
@@ -72,7 +75,7 @@ def compile_frozen(slot: str, event: str, sentence: str, embedder, out: Path) ->
           "temperature": r["temperature"], "top_p": r["top_p"], "max_tokens": r["max_tokens"], "shape": r["shape"],
           "created": r["created"], "latency_s": r["latency_s"], "usage": r["usage"],
           "frozen_at": now(),
-          "leakage_guard": "compiled once from the sentence alone, before any clip was scored; never edited",
+          "leakage_guard": LEAKAGE_GUARD,
           "caption_vectors": f"{out.stem}.vec.npz — Cosmos-Embed1 text_proj (256-d), positives and hard negatives "
                              "in spec order",
           "frozen": None}
@@ -231,7 +234,9 @@ def cmd_import(a) -> int:
                     print(f"ERROR {f.name}: {cid} was already imported from a {old.get('lighting')} clip at "
                           f"{old.get('camera_pos')} — give this one its own number")
                     collisions += 1
-                continue  # the same clip, imported before
+                else:
+                    print(f"skip {f.name}: {cid} is already imported (a retake? pass --force to replace it)")
+                continue
             info = probe(f)
             if info.duration_s < 8.0:
                 print(f"skip {f.name}: {info.duration_s:.1f} s is shorter than the 8-s window")
@@ -286,6 +291,9 @@ def cmd_embed_clips(a) -> int:
             print(f"missing local clip {src}")
             continue
         vec, _ = embed_clip(src, emb, "start")  # the stored file IS the 8-s window
+        if not np.all(np.isfinite(vec)):
+            print(f"ERROR {r['clip_id']}: the model returned a non-finite vector — not saved; re-run embed-clips")
+            continue
         out.parent.mkdir(parents=True, exist_ok=True)
         np.save(out, vec.astype(np.float32))
         n += 1
@@ -338,11 +346,15 @@ def cmd_freeze_theta(a) -> int:
             rows_out.append({"clip_id": cid, "tripwire": slot, "label": y, "margin": f"{m:.6f}",
                              "theta_m": f"{theta:.6f}", "theta_version": a.version, "above": int(m >= theta)})
         print(f"{slot}: θ_m {theta:+.6f} (v{a.version}) from {len(pos)} positive clips")
-    if rows_out:
+    if rows_out:  # replace only the rows of the tripwires frozen now; the others' published decisions stay
+        done = {r["tripwire"] for r in rows_out}
+        keep = []
+        if DECISIONS_FROZEN.exists():
+            keep = [r for r in csv.DictReader(DECISIONS_FROZEN.open()) if r["tripwire"] not in done]
         with DECISIONS_FROZEN.open("w", newline="") as f:
             w = csv.DictWriter(f, fieldnames=list(rows_out[0]), lineterminator="\n")
             w.writeheader()
-            w.writerows(rows_out)
+            w.writerows(sorted(keep + rows_out, key=lambda r: (r["tripwire"], r["clip_id"])))
     return 0
 
 
