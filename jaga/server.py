@@ -90,6 +90,7 @@ class Broadcaster:
 def create_app(watcher, *, compile_fn=None, embed_text_fn=None, broadcaster: Broadcaster | None = None,
                port: int = config.PORT, token: str | None = None, info: dict | None = None) -> FastAPI:
     token = token or secrets.token_urlsafe(24)
+    run_id = secrets.token_hex(6)  # changes on every start: an open tab reloads itself to pick up the new token
     bc = broadcaster or Broadcaster()
     allowed_hosts = {f"127.0.0.1:{port}", f"localhost:{port}"}
     @asynccontextmanager
@@ -99,6 +100,7 @@ def create_app(watcher, *, compile_fn=None, embed_text_fn=None, broadcaster: Bro
 
     app = FastAPI(title="jaga", docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
     app.state.token = token
+    app.state.run_id = run_id
     app.state.broadcaster = bc
     app.state.info = info or {}
 
@@ -130,12 +132,12 @@ def create_app(watcher, *, compile_fn=None, embed_text_fn=None, broadcaster: Bro
         page = page.replace("{{TOKEN}}", html.escape(token)).replace("{{VERSION}}", html.escape(config_version()))
         return HTMLResponse(page, headers={"Content-Security-Policy": CSP})
 
-    @app.get("/api/state")
+    @app.api_route("/api/state", methods=["GET", "HEAD"])
     async def state() -> Response:
         def build() -> str:  # off the event loop: it waits on the watcher lock and reads the DB
             return dumps({"snapshot": watcher.snapshot(include_frames=True), "traces": watcher.traces(),
                           "events": watcher.db.recent_events(8, watcher.session), "info": app.state.info,
-                          "receipt": receipts.footer_line()})
+                          "receipt": receipts.footer_line(), "run_id": run_id})
 
         return Response(await asyncio.to_thread(build), media_type="application/json")
 
@@ -147,14 +149,21 @@ def create_app(watcher, *, compile_fn=None, embed_text_fn=None, broadcaster: Bro
             try:
                 bc.clients.add(q)  # registered only once streaming starts, so `finally` always removes it
                 yield "retry: 1500\n\n"
+                yield f"event: hello\ndata: {dumps({'run_id': run_id})}\n\n"
+                quiet = 0.0
                 while True:
-                    if await request.is_disconnected():
-                        break
+                    server = getattr(app.state, "server", None)
+                    if (server is not None and server.should_exit) or await request.is_disconnected():
+                        break  # shutting down: end the stream ourselves, so nothing has to be cancelled
                     try:
-                        kind, data = await asyncio.wait_for(q.get(), timeout=15)
+                        kind, data = await asyncio.wait_for(q.get(), timeout=1.0)
+                        quiet = 0.0
                         yield f"event: {kind}\ndata: {data}\n\n"
                     except asyncio.TimeoutError:
-                        yield ": keep-alive\n\n"
+                        quiet += 1.0
+                        if quiet >= 3.0:  # a heartbeat, so a page never mistakes a quiet watcher for a dead one
+                            quiet = 0.0
+                            yield "event: ping\ndata: {}\n\n"
             finally:
                 bc.clients.discard(q)
 
@@ -230,7 +239,7 @@ def create_app(watcher, *, compile_fn=None, embed_text_fn=None, broadcaster: Bro
                 await asyncio.to_thread(watcher.set_operating, slot, action, dwell)
             await asyncio.to_thread(watcher.arm, slot, cap)
         except (KeyError, ValueError) as e:
-            raise HTTPException(404 if isinstance(e, KeyError) else 409, str(e)) from e
+            raise HTTPException(404 if isinstance(e, KeyError) else 409, str(e.args[0] if e.args else e)) from e
         return {"ok": True}
 
     @app.post("/tripwires/{slot}/disarm")
@@ -278,7 +287,7 @@ def create_app(watcher, *, compile_fn=None, embed_text_fn=None, broadcaster: Bro
         lid = await asyncio.to_thread(watcher.label, kind, str(body.get("note", ""))[:200])
         return {"ok": True, "id": lid}
 
-    @app.get("/receipts", response_class=HTMLResponse)
+    @app.api_route("/receipts", methods=["GET", "HEAD"], response_class=HTMLResponse)
     async def receipts_view(request: Request):
         data = await asyncio.to_thread(receipts.collect, watcher)
         if request.query_params.get("format") == "json":
@@ -327,7 +336,7 @@ def _number(v, name: str, lo: float, hi: float) -> float | None:
         raise HTTPException(422, f"{name} must be a number")
     try:
         x = float(v)
-    except ValueError:
+    except (ValueError, OverflowError):
         raise HTTPException(422, f"{name} must be a number") from None
     if not math.isfinite(x) or not lo <= x <= hi:
         raise HTTPException(422, f"{name} must be between {lo:g} and {hi:g}")
@@ -337,7 +346,7 @@ def _number(v, name: str, lo: float, hi: float) -> float | None:
 async def _json_or_422(request: Request) -> dict:
     try:
         body = await request.json()
-    except (json.JSONDecodeError, UnicodeDecodeError):
+    except (ValueError, UnicodeDecodeError, RecursionError):  # incl. integers past Python's 4300-digit limit
         raise HTTPException(422, "the body must be JSON") from None
     if not isinstance(body, dict):
         raise HTTPException(422, "the body must be a JSON object")
@@ -351,7 +360,7 @@ async def _json_or_empty(request: Request) -> dict:
         return {}
     try:
         body = json.loads(raw)
-    except (json.JSONDecodeError, UnicodeDecodeError):
+    except (ValueError, UnicodeDecodeError, RecursionError):
         raise HTTPException(422, "the body must be JSON") from None
     if not isinstance(body, dict):
         raise HTTPException(422, "the body must be a JSON object")

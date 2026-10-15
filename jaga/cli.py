@@ -17,6 +17,7 @@ import json
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import threading
@@ -55,6 +56,7 @@ def port_free(port: int | None) -> None:
     from . import config
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # as uvicorn binds: a just-closed jaga does not count
     try:
         s.bind((config.HOST, int(port)))
     except OSError:
@@ -80,6 +82,9 @@ def build_watcher(a, *, scored: bool = False, session: str | None = None):
     if session_used(db, session):
         raise SystemExit(f"session {session!r} already has data: every run counts, so a new run needs a new name "
                          "(e.g. B1-run2, U1-run2); the earlier run stays on record")
+    missing = [s for s in _slots(getattr(a, "arm", None)) if s not in _slots(a.load)]
+    if missing:
+        raise SystemExit(f"--arm {','.join(missing)}: arm only tripwires you --load (loaded: {a.load or 'none'})")
     fixtures = []
     for slot in _slots(a.load):  # every refusal happens before the model loads and before the session is opened
         fx = load(slot)
@@ -138,11 +143,18 @@ def cmd_serve(a, *, scored: bool = False, session: str | None = None, on_started
     def ready():
         print(f"jaga is watching · session {w.session} · http://{config.HOST}:{a.port}/  (Ctrl-C to stop)", flush=True)
 
+    def _term(signum, frame):  # SIGTERM ends like Ctrl-C: the watcher flushes its vectors and closes the session
+        raise KeyboardInterrupt
+
+    signal.signal(signal.SIGTERM, _term)
     try:
         run(app, a.port, on_ready=ready)
+    except KeyboardInterrupt:
+        pass
     finally:
         src.stop()
         w.stop()
+        print("jaga stopped", flush=True)
     return 0
 
 
@@ -152,6 +164,8 @@ def cmd_soak(a) -> int:
     if not a.session:
         raise SystemExit("a soak needs its own --session name (B1, B2, A1 …)")
     if a.kind == "B":
+        if not a.schedule:
+            raise SystemExit("Soak B needs its pre-registered schedule: --schedule docs/protocol/<session>.csv")
         a.load = a.load or "01"
         a.arm = a.arm or a.load
     else:
