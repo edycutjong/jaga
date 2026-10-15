@@ -447,23 +447,71 @@ def test_label_keys_follow_the_labels_flag_not_only_scored_sessions(home, tuning
     assert "S.snap.labels && SOAK_KEYS" in js and "S.snap.scored && SOAK_KEYS" not in js
 
 
-def test_a_scored_session_name_is_never_reused(home, monkeypatch):
+def test_a_session_name_with_data_is_never_reused_but_a_failed_start_is_not_burnt(home, monkeypatch):
     from types import SimpleNamespace
 
     from jaga import cli
     from jaga.db import DB
 
     db = DB()
-    db.start_session("B1", True, "board", "live")
 
     def boom(*a, **k):
-        raise AssertionError("the model must not load before the name check")
+        raise AssertionError("the model must not load before the start checks")
 
     monkeypatch.setattr("jaga.embed.shared", boom)
-    a = SimpleNamespace(db=None, device="cpu", source="camera", camera=0, loop=False, offline=False,
+    a = SimpleNamespace(db=None, device="cpu", source="camera", camera=0, loop=False, offline=False, port=None,
                         no_os_banner=True, session="B1", camera_pos="board", zone=None, load="01", labels=False)
-    with pytest.raises(SystemExit, match="already exists"):
+    # 1. no frozen θ yet: refused before the model loads, and the name stays free
+    with pytest.raises(SystemExit, match="frozen θ"):
         cli.build_watcher(a, scored=True, session="B1")
+    assert not cli.session_used(db, "B1")
+    # 2. a run that started and logged windows owns its name
+    db.start_session("B1", True, "board", "live")
+    db.add_embed(1.0, "B1", True, 0.5, 0.0, 0.0, None, None, "board", 900, "live")
+    with pytest.raises(SystemExit, match="already has data"):
+        cli.build_watcher(a, scored=True, session="B1")
+    # 3. unscored names too (a second U1 would merge two runs)
+    db.add_label("U1", "exit_leave", ts=5.0)
+    with pytest.raises(SystemExit, match="already has data"):
+        cli.build_watcher(SimpleNamespace(**{**vars(a), "session": "U1"}), scored=False)
+
+
+def test_a_busy_port_is_refused_before_the_model_loads():
+    import socket
+
+    from jaga import cli
+
+    s = socket.socket()
+    s.bind(("127.0.0.1", 0))
+    s.listen(1)
+    try:
+        with pytest.raises(SystemExit, match="in use"):
+            cli.port_free(s.getsockname()[1])
+    finally:
+        s.close()
+
+
+def test_the_schedule_runner_hands_over_when_the_session_ends():
+    import threading as th
+
+    from jaga.soak import ScheduleRunner, Step
+
+    class W:
+        def __init__(self):
+            self.labels = []
+
+        def label(self, kind, note=""):
+            self.labels.append(kind)
+
+        def publish(self, *a):
+            pass
+
+    w, done, started = W(), th.Event(), th.Event()
+    started.set()
+    r = ScheduleRunner(w, [Step(0, 0.0, 0.001, "capture", "capture")], say=False, started=started,
+                       on_complete=done.set)
+    r.start()
+    assert done.wait(10) and w.labels[-1] == "plan:session_end"
 
 
 def test_portrait_phone_video_is_turned_upright():
@@ -551,6 +599,8 @@ def test_a_dropped_camera_is_reopened_not_abandoned(monkeypatch):
 
     caps = [Cap(False), Cap(True)]  # unplugged, then back
     monkeypatch.setattr(CameraSource, "_open", lambda self: caps.pop(0) if caps else None)
+    monkeypatch.setattr(CameraSource, "REOPEN_AFTER_S", 0.5)
+    monkeypatch.setattr(CameraSource, "REOPEN_PAUSE_S", 0.1)
     src = CameraSource(Ring(), 0)
     src.start()
     try:
@@ -642,4 +692,152 @@ def test_the_optional_check_is_reachable_after_the_capture(home, tuning):
     assert row["state"] == "armed" and row["armed_at"] is not None and row["examples"] == 0
     assert w.add_example("01") == {"ok": True, "examples": 1}
     js = (__import__("pathlib").Path(__file__).resolve().parents[1] / "jaga" / "static" / "overlay.js").read_text()
-    assert 'w.state === "armed" && w.armed_at' in js  # the check card follows the capture card
+    assert '(w.state === "armed" || w.state === "holding") && w.armed_at' in js  # the check card follows the capture
+
+
+# ------------------------------------------------------------------- one plug, many tripwires; lost acknowledgements
+SPEC_COOLDOWN = 60.0  # conftest.SPEC cooldown_s
+
+
+class FlakyPlug(PlugDriver):
+    """turn_off fails `fail_first` times; with `lose_ack` the plug really switches off but the ack never arrives."""
+
+    kind, label, address = "test", "Wi-Fi plug", "test"
+
+    def __init__(self, fail_first=0, lose_ack=False):
+        self.on, self.fail_first, self.lose_ack = True, fail_first, lose_ack
+        self.off_calls = 0
+
+    def turn_off(self):
+        self.off_calls += 1
+        if self.lose_ack:
+            self.on = False
+            raise ActionFailed("no acknowledgement (timeout)")
+        if self.off_calls <= self.fail_first:
+            raise ActionFailed("the plug is not reachable")
+        self.on = False
+        return Ack(True, 5.0, "test ack")
+
+    def status(self):
+        return self.on
+
+
+def _two_cut_tripwires(home, tuning, driver):
+    from conftest import SPEC
+
+    w, emb = make_watcher(home, tuning)
+    w.driver = driver
+    w.load_tripwire("02", "nobody is at the stove", {**SPEC, "name": "STOVE UNATTENDED"}, emb.caps.pos, emb.caps.neg,
+                    w.tripwires["01"].threshold.__class__("labelled-m", 0.0, version=1, source="test"),
+                    {"tf_request_id": "test"})
+    return w, emb
+
+
+def test_one_acknowledged_off_covers_every_tripwire_on_the_plug(home, tuning):
+    plug = FlakyPlug(fail_first=1)
+    w, emb = _two_cut_tripwires(home, tuning, plug)
+    w.start()
+    try:
+        w.arm("01", 0)
+        w.arm("02", 0)
+        push_windows(w, emb, "pos", 12, 100.0)
+        assert wait_for(lambda: all(t.off_acked for t in w.tripwires.values()), timeout=5)
+        assert w.retry is None and not w.plug["failed"]
+        plug.on = True  # a person switches it back on: both re-arm, nothing is left tripped
+        assert wait_for(lambda: all(t.state == "armed" for t in w.tripwires.values()), timeout=5)
+    finally:
+        w.stop()
+
+
+def test_a_lost_acknowledgement_is_confirmed_by_a_status_read(home, tuning):
+    from dataclasses import replace
+
+    t = replace(tuning, action_retry_s=1.0, rearm_poll_s=0.1)
+    plug = FlakyPlug(lose_ack=True)
+    w, emb = make_watcher(home, t)
+    w.driver = plug
+    w.start()
+    try:
+        w.arm("01", 0)
+        push_windows(w, emb, "pos", 10, 100.0)
+        assert wait_for(lambda: w.tripwires["01"].off_acked, timeout=5)  # the plug reads OFF after the trip
+        assert w.retry is None and w.plug["state"] == "off"
+        calls = plug.off_calls
+        plug.on = True  # back at the board, the person presses the plug's button
+        assert wait_for(lambda: w.tripwires["01"].state == "armed", timeout=5)
+        time.sleep(1.5)
+        assert plug.off_calls == calls  # no retry cut the power the person just switched on
+    finally:
+        w.stop()
+
+
+def test_disarming_during_a_retry_stops_it_and_clears_action_failed(home, tuning):
+    plug = FlakyPlug(fail_first=10**6)
+    w, emb = make_watcher(home, tuning)
+    w.driver = plug
+    w.start()
+    try:
+        w.arm("01", 0)
+        push_windows(w, emb, "pos", 10, 100.0)
+        assert wait_for(lambda: w.plug.get("failed") and w.retry is not None, timeout=5)
+        w.disarm("01")
+        assert w.retry is None and not w.plug["failed"]
+        n = plug.off_calls
+        time.sleep(0.5)
+        assert plug.off_calls == n
+    finally:
+        w.stop()
+
+
+def test_a_notify_tripwire_leaving_its_cool_down_goes_through_the_arm_gate(home, tuning):
+    w, emb = make_watcher(home, tuning, action="notify", dwell_s=5)
+    w.arm("01", 0)
+    tw = w.tripwires["01"]
+    res = push_windows(w, emb, "pos", 8, 100.0)
+    assert any(r[0].fired for r in res) and tw.state == "tripped"
+    for t2 in w.tripwires.values():  # the camera was knocked during the cool-down (as the guard marks it)
+        t2.stale_ref = True
+    push_windows(w, emb, "neg", 4, 100.0 + SPEC_COOLDOWN + 20)  # past the 60-s cool-down
+    assert tw.state == "unarmed" and "camera moved" in (tw.unarmed_reason or "")
+
+
+def test_a_camera_that_grabs_but_never_decodes_is_reopened(monkeypatch):
+    from jaga.capture import CameraSource, Ring
+
+    class Cap:
+        def __init__(self, decodes):
+            self.decodes = decodes
+
+        def grab(self):
+            return True
+
+        def retrieve(self):
+            return (True, np.full((90, 160, 3), 120, np.uint8)) if self.decodes else (False, None)
+
+        def get(self, prop):
+            return 160.0
+
+        def release(self):
+            pass
+
+    caps = [Cap(False), Cap(True)]
+    monkeypatch.setattr(CameraSource, "_open", lambda self: caps.pop(0) if caps else None)
+    monkeypatch.setattr(CameraSource, "REOPEN_AFTER_S", 0.5)
+    monkeypatch.setattr(CameraSource, "REOPEN_PAUSE_S", 0.1)
+    src = CameraSource(Ring(), 0, fps=50.0)
+    src.start()
+    try:
+        assert wait_for(lambda: src.status.extra.get("reopens") == 1 and src.status.frames > 0, timeout=10)
+    finally:
+        src.stop()
+        src.join(5)
+
+
+def test_the_banner_text_travels_as_an_argument_not_as_script():
+    from jaga.act import banner_argv
+
+    text = 'jaga · 01 BOARD — tripped "now" \\ end'
+    argv = banner_argv(text, "jaga")
+    scripts = [argv[i + 1] for i, a in enumerate(argv) if a == "-e"]
+    assert all(text not in sc and "·" not in sc for sc in scripts)
+    assert argv[argv.index("--") + 1:] == [text, "jaga"]

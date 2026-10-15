@@ -56,8 +56,40 @@ def test_cross_site_fetch_metadata_is_refused(app_client):
 
 
 def test_same_origin_with_token_is_allowed(app_client):
+    app_client.watcher.labels = True  # a session started with --labels (or a soak)
     r = post(app_client, "/labels", {"kind": "note", "note": "hello"}, origin="http://127.0.0.1:8765")
     assert r.status_code == 200 and r.json()["ok"]
+
+
+def test_labels_are_refused_when_the_session_has_them_off(app_client):
+    r = post(app_client, "/labels", {"kind": "exit_leave"}, origin="http://127.0.0.1:8765")
+    assert r.status_code == 409 and "--labels" in r.json()["detail"]
+
+
+def test_arm_rejects_bad_numbers_with_422_never_500(app_client):
+    for body in ([1, 2], {"capture_s": "nan"}, {"capture_s": -5}, {"capture_s": [120]}, {"dwell_s": {"x": 1}},
+                 {"dwell_s": 1.0}, {"action": "plug_on"}):
+        r = app_client.post("/tripwires/01/arm", json=body, headers={**HOST, "x-jaga-session": "tok-123"})
+        assert r.status_code == 422, (body, r.status_code, r.text)
+    assert app_client.plug.on_calls == 0
+
+
+def test_an_explicit_slot_cannot_overwrite_a_frozen_tripwire(app_client):
+    r = post(app_client, "/tripwires", {"sentence": "the kettle is left on", "slot": "01"})
+    assert r.status_code == 409 and app_client.compiles == []
+
+
+def test_compiler_down_only_when_every_attempt_failed_in_transport():
+    from jaga.compile import CompileError
+    from jaga.server import _unreachable
+
+    down = CompileError("compile_failed", "x", [{"shape": "openai", "ok": False, "error": "APIConnectionError: boom"},
+                                               {"shape": "json_object", "ok": False,
+                                                "error": "InternalServerError: Error code: 503 - busy"}])
+    answered = CompileError("compile_failed", "x", [{"shape": "openai", "ok": False, "response_id": "r1",
+                                                     "error": "ValidationError: field 504 too long"}])
+    assert _unreachable(down) and not _unreachable(answered)
+    assert _unreachable(CompileError("no_key", "no key"))
 
 
 def test_plug_test_is_the_operator_on_path(app_client):

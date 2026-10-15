@@ -255,3 +255,147 @@ def test_demo_says_timed_calls_and_load_honestly(bench):
     assert "200 timed calls on one window" in t and "not recorded during the run" in t
     assert "load average when the result was written: 37.1" in t
     assert "data/clips/iron/pos_03.mp4" not in t  # the replay command names a clip id, once clips exist
+
+
+# ------------------------------------------------------------------- QA round 2: schedule end, countdown, keys, inputs
+def test_the_plug_countdown_restarts_at_the_next_step_after_its_own_cut(bench):
+    cuts = bench.countdown_cuts(0.0, 3600.0, 15, resume_at=[600.0, 1200.0, 1500.0, 2400.0])
+    # on at 0 → cut 900; back on at the next step (1200) → cut 2100; back on at 2400 → cut 3300
+    assert cuts == [900.0, 2100.0, 3300.0]
+    assert bench.countdown_cuts(0.0, 600.0, 15, resume_at=[]) == []
+
+
+def test_nothing_after_the_schedule_end_is_scored(bench, tmp_path):
+    db = _soak_b_db(tmp_path)
+    db.add_label("B1", "plan:session_end", ts=1000.0 + 650)  # the schedule ended before the 700-s "other" trip
+    r = bench.soak_rows(db, "B1", "01", dwell_s=120, k_fraction=0.8, p8=0.5, r_thr=None)
+    assert r["systems"]["jaga (live)"]["other_false_cuts"] == 0 and r["hours"] < 660 / 3600
+    assert r["windows"] <= 652
+
+
+def test_an_unclosed_left_open_key_closes_after_fifteen_minutes_and_is_reported(bench):
+    labels = [{"ts": 100.0, "kind": "left_open"}, {"ts": 5000.0, "kind": "left_open"}, {"ts": 5100.0, "kind": "closed"},
+              {"ts": 6000.0, "kind": "closed"}]
+    pos, unpaired = bench.intervals(labels, "left_open", "closed")
+    assert pos == [(100.0, 100.0 + bench.MAX_OPEN_S), (5000.0, 5100.0)]
+    assert {u["missing"] for u in unpaired} == {"closed", "left_open"}
+
+
+def test_a_mistyped_session_never_overwrites_a_computed_result(bench, tmp_path):
+    import json
+
+    db = _soak_b_db(tmp_path)
+    a = SimpleNamespace(session=["B1"], tripwire="01", k_fraction=0.8, p8=0.5, r=None, db=str(tmp_path / "b.db"),
+                        dwell=120.0, secondary=False)
+    assert bench.cmd_soak(a) == 0
+    before = json.loads(bench.SUMMARY.read_text())["soak_b_dwell_120"]["pooled"]
+    a.session = ["B11"]
+    assert bench.cmd_soak(a) == 1
+    assert json.loads(bench.SUMMARY.read_text())["soak_b_dwell_120"]["pooled"] == before
+    del db
+
+
+def test_soak_scoring_requires_the_frozen_inputs_and_records_them(bench, tmp_path):
+    import json
+    import sys
+
+    _soak_b_db(tmp_path)
+    monkey_argv = ["bench.py", "--db", str(tmp_path / "b.db"), "soak", "--session", "B1"]
+    old = sys.argv
+    try:
+        sys.argv = monkey_argv
+        with pytest.raises(SystemExit):  # no --k-fraction / --p8: refused, never defaulted
+            bench.main()
+        sys.argv = monkey_argv + ["--k-fraction", "0.7", "--p8", "0.4", "--r", "2.5"]
+        assert bench.main() == 0
+    finally:
+        sys.argv = old
+    sec = json.loads(bench.SUMMARY.read_text())["soak_b_dwell_120"]
+    assert sec["inputs"]["P7_k_fraction"] == 0.7 and sec["inputs"]["P8"] == 0.4 and sec["inputs"]["R"] == 2.5
+    assert "15 min" in sec["plug_countdown"] and "Frozen inputs: P7" in bench.DEMO.read_text()
+
+
+def test_leave_one_out_with_a_single_positive_is_a_miss(bench):
+    dp, _ = bench.loo_decisions([0.4], [0.1, 0.2])
+    assert dp == [(float("inf"), False)]
+
+
+def test_freeze_theta_keeps_the_other_tripwires_published_rows(tmp_path, monkeypatch):
+    import json
+
+    seed = load_script("seed")
+    tw = tmp_path / "tw"
+    tw.mkdir()
+    for slot in ("01", "02"):
+        (tw / f"{slot}.json").write_text(json.dumps({"slot": slot, "frozen": None}))
+    monkeypatch.setattr(seed, "TRIPWIRES", tw)
+    monkeypatch.setattr(seed, "DECISIONS_FROZEN", tmp_path / "decisions_frozen.csv")
+    monkeypatch.setattr(seed, "clip_margins", lambda slot: [(f"{slot}/pos_01", 1, 0.3), (f"{slot}/neg_01", 0, 0.1)])
+    seed.cmd_freeze_theta(SimpleNamespace(slots="01", force=False, recall=0.9, version=1, frozen_for="B1"))
+    seed.cmd_freeze_theta(SimpleNamespace(slots="01,02", force=False, recall=0.9, version=1, frozen_for="B1"))
+    rows = list(csv.DictReader((tmp_path / "decisions_frozen.csv").open()))
+    assert sorted({r["tripwire"] for r in rows}) == ["01", "02"] and len(rows) == 4
+
+
+def test_readiness_staleness_follows_the_code_each_section_measured(monkeypatch, tmp_path):
+    import json
+
+    ck = load_script("check_submission_readiness")
+    out = tmp_path / "summary.json"
+    out.write_text(json.dumps({"speed": {"_commit": "abc1234"}, "period": {"_commit": "abc1234"},
+                               "clips": {"_commit": "abc1234"}, "fresh": {"_commit": "def5678+dirty"}}))
+    calls = []
+
+    def fake_git(*args):
+        calls.append(args)
+        if args[0] == "diff":  # only bench.py changed since abc1234
+            return "scripts/bench.py\n" if "scripts/bench.py" in args else ""
+        return ""  # git log -L: cmd_speed / cmd_period untouched
+
+    monkeypatch.setattr(ck, "git", fake_git)
+    monkeypatch.setattr(ck, "REPO", tmp_path)
+    (tmp_path / "bench" / "out").mkdir(parents=True)
+    (tmp_path / "bench" / "out" / "summary.json").write_text(out.read_text())
+    (tmp_path / "DEMO.md").write_text("This file is written by `scripts/bench.py`\n")
+    monkeypatch.setattr(ck, "collected_tests", lambda: 0)
+    res = {n: (ok, why) for n, ok, why in ck.check(None, {"video"})}
+    assert not res["numbers"][0]
+    assert "clips@abc1234" in res["numbers"][1] and "fresh@def5678+dirty" in res["numbers"][1]
+    assert "speed@" not in res["numbers"][1] and "period@" not in res["numbers"][1]
+
+
+def test_demo_marks_speed_rows_measured_on_a_busy_machine(bench):
+    import json
+
+    bench.OUT.mkdir(parents=True, exist_ok=True)
+    bench.SUMMARY.write_text(json.dumps({
+        "speed": {"rows": [{"device": "mps", "n": 200, "p50_s": 2.7, "p95_s": 5.7, "torch": "2", "threads": 8,
+                            "loadavg_1m_before": 3.8, "loadavg_1m_after": 57.3},
+                           {"device": "cpu", "n": 200, "p50_s": 4.3, "p95_s": 12.1, "torch": "2", "threads": 8,
+                            "loadavg_1m_before": 2.0, "loadavg_1m_after": 3.0}],
+                  "input": "javelin_throw.webm", "_commit": "abc", "_machine": {"cpu_count": 10, "loadavg_1m": 9}},
+        "period": {"windows": 283, "period_p50_s": 1.07, "period_p95_s": 1.34, "embed_p50_s": 0.90, "session": "p",
+                   "_commit": "abc", "_machine": {}}}))
+    bench.write_demo()
+    t = bench.DEMO.read_text()
+    assert "The MPS row ran while the 1-min load average exceeded the machine's 10 cores" in t
+    assert "live loop's own embed time was p50 0.90 s" in t and "CPU row" not in t
+
+
+def test_receipts_render_with_partial_bench_data(home, tuning):
+    from conftest import make_watcher
+
+    from jaga import receipts
+
+    w, _ = make_watcher(home, tuning)
+    d = receipts.collect(w)
+    d["bench"] = {"speed": {"rows": [{"device": "mps", "p50_s": 1.0}]}, "period": {"period_p50_s": None}}
+    html = receipts.render_html(d)
+    assert "MPS fp32" in html and "Live window period" not in html
+
+
+def test_the_overlay_says_lost_contact_instead_of_looking_armed():
+    js = (REPO / "jaga" / "static" / "overlay.js").read_text()
+    assert "LOST CONTACT" in js and "S.lost = true" in js and "LOST_AFTER_MS" in js
+    css = (REPO / "jaga" / "static" / "overlay.css").read_text()
+    assert "body.lost .panel" in css
