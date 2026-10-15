@@ -1,8 +1,9 @@
 """Act: cut a plug's power, or notify. Nothing in this module can switch power ON (invariant I1).
 
 A driver exposes exactly two calls: `turn_off()` and `status()`. Switching ON is an operator action that
-lives in `jaga/operator_on.py`, reachable only from `POST /plug/test` (localhost + Host/Origin allowlist +
-session token) — never from a trip. `tests/test_invariants.py` checks both facts.
+lives in `jaga/operator_on.py`, reachable only from operator actions (`POST /plug/test`: localhost +
+Host/Origin allowlist + session token; and the hand-run `scripts/day0_plug.py`) — never from a trip.
+`tests/test_invariants.py` checks both facts.
 
 `turn_off()` returns only after the plug acknowledges: the UI shows OFF only after that (invariant I3).
 
@@ -17,6 +18,7 @@ import json
 import os
 import subprocess
 import time
+from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import quote
@@ -81,7 +83,11 @@ class TuyaPlug(PlugDriver):
     kind = "tuya"
 
     def __init__(self, dev_id: str, ip: str, local_key: str, version: float | str = 3.3, dps: str = "1"):
-        self.dev_id, self.ip, self.local_key = dev_id, ip or "Auto", local_key
+        if not ip or ip == "Auto":  # never run LAN discovery inside the action path: resolve once, here
+            ip = resolve_tuya_ip(dev_id)
+        if not ip:
+            raise ActionFailed("plug IP unknown: run `python -m tinytuya scan` and add \"ip\" to devices.json")
+        self.dev_id, self.ip, self.local_key = dev_id, ip, local_key
         self.version = float(version)
         self.dps = str(dps)
         self.address = self.ip
@@ -106,17 +112,29 @@ class TuyaPlug(PlugDriver):
         t0 = time.perf_counter()
         try:
             r = self._device().turn_off(switch=int(self.dps))
-        except Exception as e:  # socket errors, decryption errors
+            if isinstance(r, dict) and r.get("Error"):
+                raise ActionFailed(f"the plug refused: {r.get('Error')}"[:120])
+            dps = (r.get("dps") if isinstance(r, dict) else None) or {}
+        except ActionFailed:
+            raise
+        except Exception as e:  # socket errors, decryption errors, an unexpected reply shape
             raise ActionFailed(why(e)) from e
-        if isinstance(r, dict) and r.get("Error"):
-            raise ActionFailed(f"the plug refused: {r.get('Error')}"[:120])
-        dps = (r or {}).get("dps") or {}
         if dps.get(self.dps) is False:
             return Ack(True, (time.perf_counter() - t0) * 1000, "acknowledged in the set response")
         st = self.status()  # some firmware answer the set call with no dps: read it back
         if st is False:
             return Ack(True, (time.perf_counter() - t0) * 1000, "acknowledged by a status read")
         raise ActionFailed("the plug did not confirm OFF")
+
+
+def resolve_tuya_ip(dev_id: str) -> str | None:
+    try:
+        import tinytuya
+
+        found = tinytuya.find_device(dev_id=dev_id) if hasattr(tinytuya, "find_device") else None
+    except Exception:
+        return None
+    return (found or {}).get("ip") or None
 
 
 class ShellyPlug(PlugDriver):
@@ -178,9 +196,12 @@ def load_driver(cfg_dir: Path | None = None) -> PlugDriver:
         dev = next((d for d in devices if want in (d.get("name"), d.get("id"))), None) if want else devices[0]
         if not dev:
             return NullPlug(f"plug {want!r} not in devices.json")
-        ip = choice.get("ip") or dev.get("ip") or "Auto"
-        return TuyaPlug(dev["id"], ip, dev.get("key") or dev.get("local_key", ""),
-                        choice.get("version") or dev.get("version") or 3.3, choice.get("dps", "1"))
+        ip = choice.get("ip") or dev.get("ip") or ""
+        try:
+            return TuyaPlug(dev["id"], ip, dev.get("key") or dev.get("local_key", ""),
+                            choice.get("version") or dev.get("version") or 3.3, choice.get("dps", "1"))
+        except ActionFailed as e:
+            return NullPlug(str(e))
     return NullPlug()
 
 
@@ -188,10 +209,14 @@ class Notifier:
     """The overlay event row is the notification on screen. Optional extras: a macOS banner (off with
     --no-os-banner while filming) and one ntfy text line (off unless JAGA_NTFY_TOPIC is set)."""
 
+    MIN_TOPIC = 20  # ntfy topics are readable by anyone who knows the name: refuse guessable ones
+
     def __init__(self, os_banner: bool = True, ntfy_topic: str | None = None):
         self.os_banner = os_banner
-        self.ntfy_topic = ntfy_topic if ntfy_topic is not None else os.environ.get("JAGA_NTFY_TOPIC")
-        self.sent: list[str] = []
+        topic = ntfy_topic if ntfy_topic is not None else os.environ.get("JAGA_NTFY_TOPIC")
+        self.ntfy_refused = bool(topic) and len(topic) < self.MIN_TOPIC
+        self.ntfy_topic = None if self.ntfy_refused else topic
+        self.sent: deque[str] = deque(maxlen=200)
 
     def notify(self, text: str, title: str = "jaga") -> None:
         self.sent.append(text)

@@ -1,4 +1,6 @@
 """The live watcher end to end with scripted vectors and the fake LAN plug: trip → OFF ack → re-arm."""
+import time
+
 import numpy as np
 from conftest import make_watcher, push_windows, wait_for
 
@@ -35,7 +37,7 @@ def test_action_failed_is_shown_pushed_and_retried_off_only(home, tuning, fakepl
         w.arm("01", 0)
         push_windows(w, emb, "pos", 10, 100.0)
         assert wait_for(lambda: w.plug["failed"])
-        assert any("ACTION FAILED" in t for t in w.notifier.sent)
+        assert wait_for(lambda: any("ACTION FAILED" in t for t in w.notifier.sent))  # pushed off the lock
         assert w.plug["state"] != "off" and states(w)["01"] == "tripped"
         fakeplug.fail_off = False  # the plug comes back: the retry (OFF only) succeeds
         assert wait_for(lambda: w.plug["state"] == "off", timeout=5)
@@ -180,10 +182,11 @@ def test_window_failure_is_logged_not_fatal(home, tuning):
     emb.embed_video = boom
     w.start()
     try:
-        w.ring.push(1.0, np.zeros((90, 160, 3), np.uint8))
-        for i in range(8):
+        for i in range(12):  # 5 windows, each failing: the third failure in a row stops the watcher, visibly
             w.ring.push(2.0 + i, np.zeros((90, 160, 3), np.uint8))
+            time.sleep(0.02)
         assert wait_for(lambda: any(e["kind"] == "watcher_stopped" for e in w.db.recent_events(5, "test")))
+        assert not w.watcher_ok and all(t.is_alive() for t in w.threads if t.name == "jaga-loop")
     finally:
         w.stop()
     assert isinstance(Window, type)

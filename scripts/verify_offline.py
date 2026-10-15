@@ -9,7 +9,8 @@ ranges are allowed: the plug lives there). Then a tripwire is armed and fed wind
                                                 from tests/fakeplug.py. No model, no camera, no key.
     python scripts/verify_offline.py --real --source <clip.mp4>
                                                 the cached Cosmos-Embed1 on this laptop and the real plug from
-                                                ~/.config/jaga (run once on camera for the record)
+                                                ~/.config/jaga; the recording starts with ≥ 20 s of the normal
+                                                state, then the event (run once on camera for the record)
 Exit 0 = tripped, OFF acknowledged, and no outbound non-LAN connection succeeded.
 """
 from __future__ import annotations
@@ -132,10 +133,11 @@ def run_ci(tmp: Path) -> dict:
     w.override_dwell("01", 10, "verify")
     w.start()
     try:
-        w.arm("01", 0)
-        frames = np.full((8, 90, 160, 3), 140, np.uint8)
+        w.arm("01", 3)  # a short normal-state capture, as a user's arming does (it also sets the camera reference)
+        rng = np.random.default_rng(0)
+        frames = np.clip(140 + rng.integers(-20, 20, (8, 90, 160, 3)), 0, 255).astype(np.uint8)
         ts = 1000.0
-        for side, n in (("neg", 5), ("pos", 12)):
+        for side, n in (("neg", 6), ("pos", 12)):
             emb.side = side
             for _ in range(n):
                 w.process(Window(seq=w.windows + 1, ts=[ts - 7 + k for k in range(8)], frames=frames))
@@ -174,7 +176,7 @@ def run_real(source: str, tmp: Path) -> dict:
     w.load_tripwire("01", fx["sentence"], fx["spec"], pos, neg, th, {"operating": fx["operating"]})
     w.override_dwell("01", 30, "verify")
     w.start()
-    w.arm("01", 0)
+    w.arm("01", 20)  # the recording must start with ≥ 20 s of the normal state (someone ironing), then the event
     src.start()
     src.join()
     end = time.monotonic() + 10

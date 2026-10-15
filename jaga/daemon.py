@@ -1,15 +1,19 @@
 """The watcher: the one flow, live. sense (Cosmos-Embed1) → decide (score.py) → act (act.py).
 
 One thread embeds windows from the ring, runs the guards, steps every tripwire and logs one `embed` row
-plus one `win` row per tripwire. Actions run on their own worker so a slow plug never stalls the camera.
-A watchdog reports WATCHER STOPPED when windows stop. While a `plug_off` tripwire is tripped, the plug's
-status is polled (read only) and an observed OFF → ON transition re-arms it with its stored reference.
-Nothing here can switch power ON (invariant I1).
+plus one `win` row per tripwire. Actions run on their own worker so a slow plug never stalls the camera;
+every plug call (a trip's OFF, a status read, the operator test) holds one driver lock, so they never
+interleave. The plug's state is read every few seconds (read only); an observed OFF → ON after an
+acknowledged OFF re-arms a tripped tripwire, through the same gate every arm path uses (not in the dark,
+not with a moved camera). A watchdog reports WATCHER STOPPED when windows stop, fail, or a thread dies.
+Nothing here can switch power ON (invariant I1); the overlay shows OFF only for this trip's
+acknowledgement (I3).
 """
 from __future__ import annotations
 
 import base64
 import queue
+import sys
 import threading
 import time
 from collections import deque
@@ -27,6 +31,8 @@ from .score import Threshold, Tripwire, window_period
 from .vectors import VectorStore
 
 TRACE_S = 120.0  # the overlay's margin trace covers the last two minutes
+FAILED_WINDOWS_STOP = 3  # this many failed windows in a row = WATCHER STOPPED
+MIN_DWELL_S = 2.0
 
 
 class Watcher:
@@ -42,6 +48,7 @@ class Watcher:
         self.publish = publish or (lambda kind, payload: None)
         self.source = source
         self.lock = threading.RLock()
+        self.driver_lock = threading.Lock()  # one plug conversation at a time
         self.tripwires: dict[str, Tripwire] = {}
         self.meta: dict[str, dict] = {}
         self.capture_slots: set[str] = set()
@@ -52,19 +59,23 @@ class Watcher:
         self.embed_s_hist: deque[float] = deque(maxlen=50)
         self.last_seq = 0
         self.last_window_mono: float | None = None
+        self.fail_streak = 0
         self.watcher_ok = True
         self.windows = 0
         self.last_guard: GuardResult | None = None
         self.plug = {**driver.describe(), "state": "unknown", "last_action": None, "latency_ms": None,
                      "failed": False, "detail": ""}
         self.plug_seen_off = False
+        self.last_off_ack_mono = 0.0
         self._poll_now = False
+        self._next_poll = 0.0
         self.retry: dict | None = None
         self.trace: dict[str, deque] = {}
         self.frame_jpeg: str | None = None
         self.filmstrip: list[str] = []
         self.stop_evt = threading.Event()
         self.actions: queue.Queue = queue.Queue()
+        self.notify_q: queue.Queue = queue.Queue(maxsize=64)
         self.vstore = VectorStore(session)
         self.threads: list[threading.Thread] = []
         db.start_session(session, scored, camera_pos, "offline" if offline else "live",
@@ -73,6 +84,9 @@ class Watcher:
     # ------------------------------------------------------------------ tripwire management (API thread)
     def load_tripwire(self, slot: str, sentence: str, spec: dict, pos: np.ndarray, neg: np.ndarray,
                       threshold: Threshold, meta: dict | None = None) -> Tripwire:
+        from .compile import may_cut
+        from .tripwires import build
+
         meta = dict(meta or {})
         tid = self.db.upsert_tripwire(slot, sentence, spec, meta.get("tf_request_id"), meta.get("model"),
                                       meta.get("created"))
@@ -81,14 +95,9 @@ class Watcher:
             for text, v in zip(texts, vecs, strict=True):
                 self.db.execute("INSERT INTO caption_vec(tripwire_id, kind, text, vec) VALUES(?,?,?,?)",
                                 (tid, kind, text, np.asarray(v, np.float32).tobytes()))
-        from .tripwires import build
-
         op = meta.get("operating")
-        if op and op.get("action") == "plug_off":
-            from .compile import NEVER_CUT
-
-            if NEVER_CUT.search(sentence + " " + spec.get("name", "")):
-                op = {**op, "action": "notify"}  # never cut an appliance that must keep its power
+        if op and op.get("action") == "plug_off" and not may_cut(sentence, spec.get("name", "")):
+            op = {**op, "action": "notify"}  # cutting power is only for heating/cooking appliances
         tw = build(slot, sentence, spec, pos, neg, threshold, self.t, tid, op)
         with self.lock:
             self.tripwires[slot] = tw
@@ -102,8 +111,8 @@ class Watcher:
         return tw
 
     def set_operating(self, slot: str, action: str | None = None, dwell_s: float | None = None) -> dict:
-        """The user's choice in the compile drawer, before arming. Never-cut appliances cannot be set to plug_off."""
-        from .compile import NEVER_CUT
+        """The user's choice in the compile drawer, before arming. Power is cut only for heating/cooking appliances."""
+        from .compile import may_cut
 
         with self.lock:
             tw = self._get(slot)
@@ -112,12 +121,13 @@ class Watcher:
             if action is not None:
                 if action not in ("plug_off", "notify"):
                     raise ValueError("action must be plug_off or notify")
-                if action == "plug_off" and NEVER_CUT.search(tw.sentence + " " + tw.name):
-                    raise ValueError("this appliance must keep its power: notify only")
+                if action == "plug_off" and not may_cut(tw.sentence, tw.name):
+                    raise ValueError("cutting power is only for heating or cooking appliances (an iron, a stove, "
+                                     "a heater, a kettle…): notify only")
                 tw.action = action
             if dwell_s is not None:
-                if not 1 <= float(dwell_s) <= 600:
-                    raise ValueError("dwell must be 1–600 s")
+                if not MIN_DWELL_S <= float(dwell_s) <= 600:
+                    raise ValueError("dwell must be 2–600 s")
                 tw.dwell_s = float(dwell_s)
                 tw.rule.dwell_s = float(dwell_s)
             self.meta[slot]["operating"] = {"action": tw.action, "dwell_s": tw.dwell_s, "cooldown_s": tw.cooldown_s,
@@ -126,6 +136,8 @@ class Watcher:
 
     def override_dwell(self, slot: str, dwell_s: float, note: str) -> None:
         """A labelled override (the video's demo dwell): shown on screen next to the spec's own dwell."""
+        if float(dwell_s) < MIN_DWELL_S:
+            raise ValueError("dwell must be at least 2 s")
         with self.lock:
             tw = self._get(slot)
             spec_dwell = tw.dwell_s
@@ -133,9 +145,21 @@ class Watcher:
             tw.rule.dwell_s = float(dwell_s)
             self.meta[slot]["dwell_note"] = f"{note} · default {spec_dwell:.0f} s"
 
+    def _arm_blocker(self, tw: Tripwire) -> str | None:
+        """The one gate every arm without a new capture goes through (call under self.lock)."""
+        if self.dark:
+            return "too dark to see"
+        if tw.stale_ref:
+            return "camera moved — re-arm to capture a new reference"
+        if not self.guards.has_reference:
+            return "no camera reference — re-arm to capture the normal state"
+        return None
+
     def arm(self, slot: str, capture_s: float | None = None) -> None:
         with self.lock:
             tw = self._get(slot)
+            if self.dark:
+                raise ValueError("too dark to see: turn a light on, then arm")
             capture_s = self.t.capture_s if capture_s is None else float(capture_s)
             if capture_s > 0:
                 if not self.capture_slots:
@@ -144,6 +168,9 @@ class Watcher:
                 tw.start_capture(self._now(), capture_s)
                 self._event("armed", tw, f"{tw.name}: capturing the normal state for {capture_s:.0f} s")
             else:
+                why = self._arm_blocker(tw)
+                if why:
+                    raise ValueError(why)
                 tw.arm()
                 self.db.set_armed(tw.tripwire_id, True)
                 self._event("armed", tw, f"{tw.name}: armed with its stored reference")
@@ -189,25 +216,19 @@ class Watcher:
         return self.ts_hist[-1] if (self.offline and self.ts_hist) else time.time()
 
     # ------------------------------------------------------------------ threads
-    def _read_plug_once(self) -> None:
-        """Show the plug's real state from the start (read only)."""
-        st = self.driver.status()
-        with self.lock:
-            if self.plug["state"] == "unknown" and st is not None:
-                self.plug["state"] = "on" if st else "off"
-
     def start(self) -> None:
         for target, name in ((self._loop, "jaga-loop"), (self._actions_worker, "jaga-act"),
                              (self._watchdog, "jaga-watchdog"), (self._plug_poll, "jaga-plug"),
-                             (self._read_plug_once, "jaga-plug-read")):
+                             (self._notify_loop, "jaga-notify")):
             th = threading.Thread(target=target, name=name, daemon=True)
             th.start()
             self.threads.append(th)
+        self._poll_now = True  # read the plug's real state at once
 
     def stop(self) -> None:
         self.stop_evt.set()
         self.ring.close()
-        self.actions.put(None)
+        self.actions.put(None)  # queued OFFs before it still run: power is cut before the watcher exits
         for th in self.threads:
             th.join(timeout=5)
         self.vstore.flush()
@@ -222,8 +243,17 @@ class Watcher:
                 continue
             try:
                 self.process(win)
-            except Exception as e:  # never die silently: the watchdog and the event log show it
-                self._event("watcher_stopped", None, f"window failed: {type(e).__name__}: {e}")
+            except Exception as e:  # never die silently: three failed windows in a row = WATCHER STOPPED
+                print(f"jaga: window failed: {type(e).__name__}: {e}", file=sys.stderr, flush=True)
+                with self.lock:
+                    self.fail_streak += 1
+                    n = self.fail_streak
+                    stop = n >= FAILED_WINDOWS_STOP and self.watcher_ok
+                    if stop:
+                        self.watcher_ok = False
+                if stop:
+                    self._event("watcher_stopped", None,
+                                f"WATCHER STOPPED — {n} windows failed in a row ({type(e).__name__})", notify=True)
             finally:
                 self.last_seq = win.seq
                 self.ring.mark_consumed(win.seq)
@@ -232,6 +262,8 @@ class Watcher:
     def process(self, win: Window) -> list:
         t0 = time.perf_counter()
         vec = self.embedder.embed_video(win.frames)
+        if not np.all(np.isfinite(vec)):
+            raise ValueError("the model returned a non-finite embedding")
         embed_s = time.perf_counter() - t0
         g = self.guards.update(win.ts[-1], win.newest, win.previous)
         ts = win.ts[-1] if self.offline else time.time()
@@ -239,7 +271,6 @@ class Watcher:
         with self.lock:
             self.ts_hist.append(ts)
             self.embed_s_hist.append(embed_s)
-            self.last_window_mono = time.monotonic()
             self.windows += 1
             self.last_guard = g
             period_p50, period_p95 = window_period(self.ts_hist)
@@ -248,16 +279,14 @@ class Watcher:
                                     g.person_in_zone, g.ref_diff_pct, self.camera_pos, embed_s * 1000,
                                     "offline" if self.offline else "live")
             self.vstore.add(eid, vec)
-            if not self.watcher_ok:
-                self.watcher_ok = True
-                self._event("watcher_ok", None, "windows are flowing again")
             self._guards_act(ts, g)
             if self.capture_slots:
                 self.guards.add_reference(win.newest)
+            blocked = self.dark or g.too_dark  # level-triggered: no window in the dark counts as above
             for slot in sorted(self.tripwires):
                 tw = self.tripwires[slot]
                 was = tw.state
-                r = tw.step(ts, vec, stride_s=stride, period_p95=period_p95)
+                r = tw.step(ts, vec, stride_s=stride, period_p95=period_p95, blocked=blocked)
                 th = tw.threshold
                 self.db.add_win(eid, ts, tw.tripwire_id, r.m, r.z, th.mu0, th.sigma0, th.version, embed_s * 1000,
                                 r.fired, r.state, r.above)
@@ -272,7 +301,14 @@ class Watcher:
                 self.capture_slots.clear()
             self.frame_jpeg = base64.b64encode(to_jpeg(win.newest, 960, 78)).decode()
             self.filmstrip = [base64.b64encode(to_jpeg(f, 152, 70)).decode() for f in win.frames]
+            # the heartbeat moves only after a complete window
+            self.last_window_mono = time.monotonic()
+            self.fail_streak = 0
+            back = not self.watcher_ok
+            self.watcher_ok = True
             snap = self.snapshot(include_frames=True)
+        if back:
+            self._event("watcher_ok", None, "windows are flowing again")
         self.publish("window", snap)
         return results
 
@@ -286,6 +322,20 @@ class Watcher:
                                   self.frozen_for)
         self._event("armed", tw, f"{tw.name}: armed · μ₀ {th.mu0:+.4f} · σ₀ {th.sigma0:.4f} over "
                     f"{len(tw.capture_margins)} windows")
+
+    def _rearm_or_hold(self, tw: Tripwire, why_text: str) -> None:
+        """Re-arm with the stored reference if the gate allows (call under self.lock)."""
+        why = self._arm_blocker(tw)
+        if why:
+            tw.unarm(why)
+            self.db.set_armed(tw.tripwire_id, False, why)
+            if why == "too dark to see":
+                self.dark_unarmed.add(tw.slot)
+            self._event("unarmed", tw, f"{tw.name}: {why_text}, but {why}")
+            return
+        tw.rearm()
+        self.db.set_armed(tw.tripwire_id, True)
+        self._event("rearmed", tw, f"RESET · {why_text} — {tw.name} re-armed with its stored reference")
 
     def _guards_act(self, ts: float, g: GuardResult) -> None:
         live = [tw for tw in self.tripwires.values() if tw.state in ("armed", "holding", "capturing")]
@@ -306,10 +356,7 @@ class Watcher:
                     for slot in sorted(self.dark_unarmed):
                         tw = self.tripwires[slot]
                         if tw.threshold.theta is not None and tw.threshold.mu0 is not None:
-                            tw.rearm()
-                            self.db.set_armed(tw.tripwire_id, True)
-                            self._event("rearmed", tw,
-                                        f"{tw.name}: light returned — re-armed with its stored reference")
+                            self._rearm_or_hold(tw, "light returned")
                     self.dark_unarmed.clear()
             else:
                 self.light_streak = 0
@@ -321,6 +368,8 @@ class Watcher:
                 self._event("suspend", None, f"sudden light change — trips suspended for {self.t.suspend_s:.0f} s")
         if g.camera_moved:
             moved = [tw for tw in self.tripwires.values() if tw.state in ("armed", "holding", "capturing")]
+            for tw in self.tripwires.values():
+                tw.stale_ref = True  # every stored reference predates the move, tripped tripwires' too
             for tw in moved:
                 tw.unarm("camera moved — re-arm")
                 self.capture_slots.discard(tw.slot)
@@ -334,8 +383,10 @@ class Watcher:
     def _on_trip(self, tw: Tripwire, ts: float, r) -> None:
         held = r.dwell_s
         self._event("trip", tw, f"{tw.name}: tripped · {r.count}/{r.k} windows above in {held:.0f} s"
-                    + (f" · margin {r.m:+.4f}" if tw.threshold.mode == "labelled-m" else f" · z {r.z:+.2f}"))
+                    + (f" · margin {r.m:+.4f}" if tw.threshold.mode == "labelled-m" else f" · z {r.z:+.2f}"), ts=ts)
         if tw.action == "plug_off":
+            tw.off_acked = False
+            self.plug["state"] = "unknown"  # a cached "off" must never stand in for THIS trip's acknowledgement (I3)
             self.actions.put(("off", tw.slot, ts, held))
         else:
             self.actions.put(("notify", tw.slot, ts, held))
@@ -343,37 +394,51 @@ class Watcher:
     def _actions_worker(self) -> None:
         while True:
             job = self.actions.get()
-            if job is None or self.stop_evt.is_set():
+            if job is None:
                 return
             kind, slot, ts, held = job
             tw = self.tripwires.get(slot)
-            if tw is None:
+            if tw is None or (kind == "notify" and self.stop_evt.is_set()):
                 continue
-            clock = time.strftime("%H:%M:%S", time.localtime(ts))
-            if kind == "notify":
-                text = f"jaga · {slot} {tw.name} · tripped {clock} · held {held:.0f} s"
-                self.notifier.notify(text)
-                self._event("notify", tw, text)
-                continue
-            self._turn_off(tw, ts, held, first=True)
+            try:
+                if kind == "notify":
+                    clock = time.strftime("%H:%M:%S", time.localtime(ts))
+                    text = f"jaga · {slot} {tw.name} · tripped {clock} · held {held:.0f} s"
+                    self._push(text)
+                    self._event("notify", tw, text)
+                else:
+                    self._turn_off(tw, ts, held, first=True)
+            except Exception as e:  # the cut path must never die: show it, push it, retry the OFF
+                print(f"jaga: action worker error: {type(e).__name__}: {e}", file=sys.stderr, flush=True)
+                if kind == "off":
+                    with self.lock:
+                        self.plug.update(failed=True, detail=f"unexpected error ({type(e).__name__})",
+                                         last_action="off-failed")
+                        self.retry = {"slot": slot, "left": self.t.action_retries, "next": time.monotonic()
+                                      + self.t.action_retry_s, "ts": ts, "held": held, "tries": 1}
+                self._event("action_failed", tw, f"ACTION FAILED: unexpected error ({type(e).__name__}) · retrying",
+                            notify=True)
 
     def _turn_off(self, tw: Tripwire, ts: float, held: float, first: bool) -> bool:
         clock = time.strftime("%H:%M:%S", time.localtime(ts))
         try:
-            ack = self.driver.turn_off()  # returns only after the plug acknowledges OFF (I3)
-        except act_mod.ActionFailed as e:
+            with self.driver_lock:
+                ack = self.driver.turn_off()  # returns only after the plug acknowledges OFF (I3)
+        except Exception as e:  # ActionFailed, or anything a driver did not expect: never "done"
+            reason = str(e) if isinstance(e, act_mod.ActionFailed) else f"unexpected error ({type(e).__name__})"
             with self.lock:
-                self.plug.update(failed=True, detail=str(e)[:200], last_action="off-failed")
+                self.plug.update(failed=True, detail=reason[:200], last_action="off-failed")
                 if first:
                     self.retry = {"slot": tw.slot, "left": self.t.action_retries, "next": time.monotonic()
                                   + self.t.action_retry_s, "ts": ts, "held": held, "tries": 1}
             if first:
-                text = f"jaga · {tw.slot} {tw.name} · tripped {clock} · ACTION FAILED — plug did not switch off"
-                self.notifier.notify(text)
-                self._event("action_failed", tw, f"ACTION FAILED: {str(e)[:120]} · push sent · retrying OFF")
+                self._push(f"jaga · {tw.slot} {tw.name} · tripped {clock} · ACTION FAILED — plug did not switch off")
+                self._event("action_failed", tw, f"ACTION FAILED: {reason[:120]} · push sent · retrying OFF")
             self.publish("window", self.snapshot())
             return False
         with self.lock:
+            tw.off_acked = True
+            self.last_off_ack_mono = time.monotonic()
             self.plug.update(state="off", failed=False, detail=ack.detail, last_action="off",
                              latency_ms=round(ack.latency_ms, 1))
             self.plug_seen_off = True
@@ -381,92 +446,140 @@ class Watcher:
             self.retry = None
         note = f" after {tries} retries" if not first else ""
         self._event("action", tw, f"plug OFF acknowledged in {ack.latency_ms:.0f} ms{note}", latency_ms=ack.latency_ms)
-        self.notifier.notify(f"jaga · {tw.slot} {tw.name} · tripped {clock} · plug OFF · held {held:.0f} s")
-        self.publish("tripped", {"slot": tw.slot, "ts": ts, "plug": self.plug})
+        self._push(f"jaga · {tw.slot} {tw.name} · tripped {clock} · plug OFF · held {held:.0f} s")
+        self.publish("tripped", {"slot": tw.slot, "ts": ts, "plug": dict(self.plug)})
         self.publish("window", self.snapshot())
         return True
 
     def _plug_poll(self) -> None:
-        """Read-only status poll while a plug_off tripwire is tripped; retries a failed OFF (never ON)."""
-        next_poll = 0.0
+        """Read the plug's state every few seconds (read only); retry a failed OFF (never ON); re-arm on OFF → ON."""
         while not self.stop_evt.wait(0.5):
-            with self.lock:
-                retry = dict(self.retry) if self.retry else None
-            if retry and time.monotonic() >= retry["next"]:
-                tw = self.tripwires.get(retry["slot"])
-                if tw is None or tw.state != "tripped":
-                    with self.lock:
-                        self.retry = None
-                elif not self._turn_off(tw, retry["ts"], retry["held"], first=False):
-                    with self.lock:
-                        if self.retry:
-                            self.retry["tries"] += 1
-                            self.retry["left"] -= 1
-                            self.retry["next"] = time.monotonic() + self.t.action_retry_s
-                            if self.retry["left"] <= 0:
-                                self.retry = None
-                                self._event("action_failed", tw, "OFF retries exhausted — check the plug", notify=True)
-                continue
-            with self.lock:
-                tripped = [tw for tw in self.tripwires.values() if tw.action == "plug_off" and tw.state == "tripped"]
-                force, self._poll_now = self._poll_now, False
-            if not tripped or (not force and time.monotonic() < next_poll):
-                continue
-            next_poll = time.monotonic() + self.t.rearm_poll_s
+            try:
+                self._poll_once()
+            except Exception as e:  # a poll error must not end polling
+                print(f"jaga: plug poll error: {type(e).__name__}: {e}", file=sys.stderr, flush=True)
+
+    def _poll_once(self) -> None:
+        with self.lock:
+            retry = dict(self.retry) if self.retry else None
+        if retry and time.monotonic() >= retry["next"]:
+            tw = self.tripwires.get(retry["slot"])
+            if tw is None or tw.state != "tripped":
+                with self.lock:
+                    self.retry = None
+            elif not self._turn_off(tw, retry["ts"], retry["held"], first=False):
+                with self.lock:
+                    if self.retry:
+                        self.retry["tries"] += 1
+                        self.retry["left"] -= 1
+                        self.retry["next"] = time.monotonic() + self.t.action_retry_s
+                        if self.retry["left"] <= 0:
+                            self.retry = None
+                            self._event("action_failed", tw, "OFF retries exhausted — check the plug", notify=True)
+            return
+        with self.lock:
+            force, self._poll_now = self._poll_now, False
+            if not force and time.monotonic() < self._next_poll:
+                return
+            self._next_poll = time.monotonic() + self.t.rearm_poll_s
+        with self.driver_lock:
+            started = time.monotonic()
             st = self.driver.status()
-            with self.lock:
-                if st is False:
+        if st is None:
+            return
+        with self.lock:
+            if started < self.last_off_ack_mono:
+                return  # this read began before the latest OFF landed: stale, never acted on
+            tripped = [tw for tw in self.tripwires.values()
+                       if tw.action == "plug_off" and tw.state == "tripped" and tw.off_acked]
+            if st is False:
+                self.plug["state"] = "off"
+                if tripped:
                     self.plug_seen_off = True
-                    self.plug["state"] = "off"
-                elif st is True:
-                    self.plug["state"] = "on"
-                    if self.plug_seen_off:  # an observed OFF → ON: someone switched it back on
-                        self.plug_seen_off = False
-                        for tw in tripped:
-                            tw.rearm()
-                            self.db.set_armed(tw.tripwire_id, True)
-                            self._event("rearmed", tw, f"RESET · plug switched back on — {tw.name} re-armed "
-                                        "with its stored reference")
-            self.publish("window", self.snapshot())
+            else:
+                self.plug["state"] = "on"
+                if tripped and self.plug_seen_off:  # an observed OFF → ON: someone switched it back on
+                    self.plug_seen_off = False
+                    for tw in tripped:
+                        self._rearm_or_hold(tw, "plug switched back on")
+        self.publish("window", self.snapshot())
 
     def plug_test(self) -> dict:
-        """Operator-only (POST /plug/test): OFF then ON with latencies. The only ON path (I1)."""
+        """Operator action (POST /plug/test): OFF then ON, timed. ON exists only in operator_on.py (I1).
+
+        It holds the driver lock across both calls, so a trip's OFF can never land between them and be undone:
+        a trip during the test cuts power right after it."""
         from . import operator_on
 
-        res = operator_on.plug_test(self.driver)
+        with self.driver_lock:
+            res = operator_on.plug_test(self.driver)
         with self.lock:
             self.plug.update(state="on", failed=False, last_action="operator-on", latency_ms=res["on_ms"],
                              detail=f"test: off {res['off_ms']:.0f} ms · on {res['on_ms']:.0f} ms")
-            self.plug_seen_off = True  # the test passed through OFF: a tripped tripwire re-arms on the next poll
+            self.plug_seen_off = True  # the test passed through OFF: a tripped tripwire re-arms on the next read
+            self.last_off_ack_mono = time.monotonic()
             self._poll_now = True
         self._event("operator_on", None, f"operator test: OFF {res['off_ms']:.0f} ms → ON {res['on_ms']:.0f} ms",
                     latency_ms=res["on_ms"])
         return res
 
-    # ------------------------------------------------------------------ watchdog
+    # ------------------------------------------------------------------ watchdog + notifications
     def _watchdog(self) -> None:
         while not self.stop_evt.wait(1.0):
+            reason = None
             with self.lock:
-                if self.last_window_mono is None or not any(
+                dead = [t.name for t in self.threads if not t.is_alive()]
+                if dead and self.watcher_ok:
+                    reason = f"WATCHER STOPPED — a watcher thread ended: {', '.join(dead)}"
+                elif self.last_window_mono is not None and any(
                         tw.state in ("armed", "holding", "capturing", "tripped") for tw in self.tripwires.values()):
-                    continue
-                _, p95 = window_period(self.ts_hist)
-                limit = max(self.t.watchdog_factor * (p95 or 1.0), self.t.watchdog_floor_s)
-                stale = time.monotonic() - self.last_window_mono
-                if stale > limit and self.watcher_ok:
+                    _, p95 = window_period(self.ts_hist)
+                    limit = max(self.t.watchdog_factor * (p95 or 1.0), self.t.watchdog_floor_s)
+                    stale = time.monotonic() - self.last_window_mono
+                    if stale > limit and self.watcher_ok:
+                        reason = f"WATCHER STOPPED — no window for {stale:.0f} s"
+                if reason:
                     self.watcher_ok = False
-                    self._event("watcher_stopped", None, f"WATCHER STOPPED — no window for {stale:.0f} s", notify=True)
+            if reason:
+                self._event("watcher_stopped", None, reason, notify=True)
             if not self.watcher_ok:
                 self.publish("window", self.snapshot())
 
+    def _push(self, text: str) -> None:
+        """Queue a notification; the OS banner and ntfy run on their own thread, never under the lock."""
+        try:
+            self.notify_q.put_nowait(text)
+        except queue.Full:
+            pass
+
+    def _notify_loop(self) -> None:
+        while not self.stop_evt.is_set() or not self.notify_q.empty():
+            try:
+                text = self.notify_q.get(timeout=0.5)
+            except queue.Empty:
+                continue
+            try:
+                self.notifier.notify(text)
+            except Exception as e:
+                print(f"jaga: notify failed: {type(e).__name__}", file=sys.stderr, flush=True)
+
     # ------------------------------------------------------------------ events and state
     def _event(self, kind: str, tw: Tripwire | None, detail: str, latency_ms: float | None = None,
-               notify: bool = False) -> int:
-        eid = self.db.add_event(kind, detail, tw.tripwire_id if tw else None, latency_ms, self.session, ts=self._now())
+               notify: bool = False, ts: float | None = None) -> int:
+        """Log, publish and (optionally) push one event. Never raises: an event must not kill a watcher thread."""
+        ts = self._now() if ts is None else ts
+        try:
+            eid = self.db.add_event(kind, detail, tw.tripwire_id if tw else None, latency_ms, self.session, ts=ts)
+        except Exception as e:
+            print(f"jaga: event not logged ({type(e).__name__}): {kind} {detail}", file=sys.stderr, flush=True)
+            eid = -1
         if notify:
-            self.notifier.notify(f"jaga · {detail}")
-        self.publish("event", {"id": eid, "kind": kind, "slot": tw.slot if tw else None, "detail": detail,
-                               "ts": self._now(), "latency_ms": latency_ms})
+            self._push(f"jaga · {detail}")
+        try:
+            self.publish("event", {"id": eid, "kind": kind, "slot": tw.slot if tw else None, "detail": detail,
+                                   "ts": ts, "latency_ms": latency_ms})
+        except Exception:
+            pass
         return eid
 
     def snapshot(self, include_frames: bool = False) -> dict:
@@ -491,6 +604,7 @@ class Watcher:
                     "above": None if r is None else r.above, "progress": 0.0 if r is None else r.progress,
                     "count": 0 if r is None else r.count, "k": 0 if r is None else r.k, "n": 0 if r is None else r.n,
                     "capture_left_s": left, "capture_windows": len(tw.capture_margins),
+                    "off_acked": tw.off_acked, "stale_ref": tw.stale_ref,
                     "tf_request_id": self.meta.get(slot, {}).get("tf_request_id"),
                     "positives": self.meta.get(slot, {}).get("spec", {}).get("positives", []),
                     "hard_negatives": self.meta.get(slot, {}).get("spec", {}).get("hard_negatives", []),

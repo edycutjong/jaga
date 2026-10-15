@@ -55,9 +55,24 @@ NEVER_CUT = re.compile(r"\b(fridge|refrigerator|freezer|kulkas|lemari es|aquariu
                        re.I)
 
 
+# A trip may cut power only for an appliance that is dangerous to leave on: an allow-list, with NEVER_CUT as a veto.
+HEATS = re.compile(r"\b(iron(?:ing)?|stove|hob|cooktop|oven|heater|kettle|toaster|hot ?plate|grill|fryer|rice cooker"
+                   r"|straightener|curling iron|hair ?dryer|electric blanket|soldering|setrika|kompor|pemanas|catok"
+                   r"|magic ?com|penanak nasi)\b", re.I)
+
+
+def may_cut(sentence: str, name: str = "") -> bool:
+    text = f"{sentence} {name}"
+    return bool(HEATS.search(text)) and not NEVER_CUT.search(text)
+
+
 def apply_action_policy(sentence: str, spec: dict) -> tuple[dict, str | None]:
-    if spec.get("action") == "plug_off" and NEVER_CUT.search(sentence + " " + spec.get("name", "")):
-        return {**spec, "action": "notify"}, "plug_off coerced to notify: this appliance must keep its power"
+    if spec.get("action") == "plug_off" and not may_cut(sentence, spec.get("name", "")):
+        if NEVER_CUT.search(sentence + " " + spec.get("name", "")):
+            why = "plug_off coerced to notify: this appliance must keep its power"
+        else:
+            why = "plug_off coerced to notify: cutting power is only for heating or cooking appliances"
+        return {**spec, "action": "notify"}, why
     return spec, None
 
 # Order tried by compile_sentence(). Day-0 stage T measured that Token Factory rejects the docs' example shape

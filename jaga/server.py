@@ -13,6 +13,7 @@ import asyncio
 import html
 import json
 import math
+import re
 import secrets
 import time
 from contextlib import asynccontextmanager
@@ -26,6 +27,7 @@ from fastapi.staticfiles import StaticFiles
 from . import config, receipts
 
 STATIC = Path(__file__).resolve().parent / "static"
+SLOT_RE = re.compile(r"\d{2}")
 
 
 def _default(o):
@@ -39,8 +41,21 @@ def _default(o):
     return str(o)
 
 
+def clean(o):
+    """Non-finite floats → null, recursively (np.float64 subclasses float, so `default=` never sees it)."""
+    if isinstance(o, float):
+        return o if math.isfinite(o) else None
+    if isinstance(o, dict):
+        return {k: clean(v) for k, v in o.items()}
+    if isinstance(o, (list, tuple)):
+        return [clean(v) for v in o]
+    if isinstance(o, np.ndarray):
+        return clean(o.tolist())
+    return o
+
+
 def dumps(obj) -> str:
-    return json.dumps(obj, default=_default, allow_nan=False, ensure_ascii=False)
+    return json.dumps(clean(obj), default=_default, allow_nan=False, ensure_ascii=False)
 
 
 class Broadcaster:
@@ -57,8 +72,8 @@ class Broadcaster:
             return
         try:
             data = dumps(payload)
-        except ValueError:
-            data = json.dumps(json.loads(json.dumps(payload, default=_default)), default=_default)
+        except (TypeError, ValueError):
+            return  # never put anything but valid JSON on the wire
         for q in list(self.clients):
             loop.call_soon_threadsafe(self._put, q, (kind, data))
 
@@ -97,7 +112,8 @@ def create_app(watcher, *, compile_fn=None, embed_text_fn=None, broadcaster: Bro
                 return JSONResponse({"error": "cross-origin request refused"}, status_code=403)
             if request.headers.get("sec-fetch-site") == "cross-site":
                 return JSONResponse({"error": "cross-site request refused"}, status_code=403)
-            if not secrets.compare_digest(request.headers.get("x-jaga-session", ""), token):
+            given = request.headers.get("x-jaga-session", "").encode("latin-1", "replace")
+            if not secrets.compare_digest(given, token.encode()):
                 return JSONResponse({"error": "missing or wrong session token"}, status_code=403)
         resp = await call_next(request)
         resp.headers["Cache-Control"] = "no-store"
@@ -115,18 +131,20 @@ def create_app(watcher, *, compile_fn=None, embed_text_fn=None, broadcaster: Bro
 
     @app.get("/api/state")
     async def state() -> Response:
-        snap = watcher.snapshot(include_frames=True)
-        body = {"snapshot": snap, "traces": watcher.traces(), "events": watcher.db.recent_events(8, watcher.session),
-                "info": app.state.info, "receipt": receipts.footer_line()}
-        return Response(dumps(body), media_type="application/json")
+        def build() -> str:  # off the event loop: it waits on the watcher lock and reads the DB
+            return dumps({"snapshot": watcher.snapshot(include_frames=True), "traces": watcher.traces(),
+                          "events": watcher.db.recent_events(8, watcher.session), "info": app.state.info,
+                          "receipt": receipts.footer_line()})
+
+        return Response(await asyncio.to_thread(build), media_type="application/json")
 
     @app.get("/stream")
     async def stream(request: Request) -> StreamingResponse:
         q: asyncio.Queue = asyncio.Queue(maxsize=bc.maxsize)
-        bc.clients.add(q)
 
         async def gen():
             try:
+                bc.clients.add(q)  # registered only once streaming starts, so `finally` always removes it
                 yield "retry: 1500\n\n"
                 while True:
                     if await request.is_disconnected():
@@ -159,6 +177,8 @@ def create_app(watcher, *, compile_fn=None, embed_text_fn=None, broadcaster: Bro
         if len(sentence) > 240:
             raise HTTPException(422, "keep it to one sentence (240 characters)")
         slot = str(body.get("slot") or _slot_free()).zfill(2)
+        if not SLOT_RE.fullmatch(slot):
+            raise HTTPException(422, "slot must be one or two digits")
         if compile_fn is None or embed_text_fn is None:
             raise HTTPException(503, "compiler not configured")
         try:
@@ -184,7 +204,7 @@ def create_app(watcher, *, compile_fn=None, embed_text_fn=None, broadcaster: Bro
 
         await asyncio.to_thread(watcher.load_tripwire, slot, sentence, spec, pos, neg, fresh_threshold(watcher.t),
                                 {k: res.get(k) for k in ("tf_request_id", "tf_response_id", "model", "created",
-                                                         "temperature")} | {"compiled_live": True})
+                                                         "temperature")} | {"compiled_live": not res.get("cached")})
         return Response(dumps({"ok": True, "state": "cached" if res.get("cached") else "compiled", "slot": slot,
                                "spec": spec, "tf_request_id": res.get("tf_request_id"), "model": res.get("model"),
                                "latency_s": res.get("latency_s")}), media_type="application/json")
@@ -247,7 +267,7 @@ def create_app(watcher, *, compile_fn=None, embed_text_fn=None, broadcaster: Bro
 
     @app.get("/receipts", response_class=HTMLResponse)
     async def receipts_view(request: Request):
-        data = receipts.collect(watcher)
+        data = await asyncio.to_thread(receipts.collect, watcher)
         if request.query_params.get("format") == "json":
             return Response(dumps(data), media_type="application/json")
         return HTMLResponse(receipts.render_html(data), headers={"Content-Security-Policy": CSP})

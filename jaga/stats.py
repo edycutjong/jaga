@@ -22,7 +22,10 @@ def auc(pos, neg) -> float:
     return float(((p > n).sum() + 0.5 * (p == n).sum()) / (p.size * n.size))
 
 
-def hanley_mcneil(a: float, n_pos: int, n_neg: int, z: float = Z95) -> tuple[float, float]:
+def hanley_mcneil(a: float, n_pos: int, n_neg: int, z: float = Z95) -> tuple[float, float] | None:
+    """95 % CI for an AUC; None at AUC 0 or 1, where the formula's variance collapses to 0 (reported as undefined)."""
+    if a <= 1e-12 or a >= 1 - 1e-12:
+        return None
     q1 = a / (2 - a)
     q2 = 2 * a * a / (1 + a)
     var = (a * (1 - a) + (n_pos - 1) * (q1 - a * a) + (n_neg - 1) * (q2 - a * a)) / (n_pos * n_neg)

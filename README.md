@@ -93,7 +93,11 @@ The Cosmos-Embed1 card documents Linux, CUDA and BF16 only; jaga runs it on macO
   (`jobs/calibrate.py`, standard library only): a per-tripwire ROC over labelled margins → the threshold at
   recall 0.9. The work is light; running it off the laptop keeps the watcher from pausing and leaves a receipt for
   every run ([`docs/RUNS.md`](docs/RUNS.md)).
-* **Object Storage** carries the Job's input and result through presigned URLs, so the Job never holds a credential.
+* **Object Storage** carries the Job's input and result through presigned URLs: the Job holds no account
+  credential, only two single-object URLs that expire after 2 hours. A result is adopted only if it matches the input
+  that was sent (run ID, input hash, row count) and its threshold is finite and in range.
+* The overlay's **✗ wrong** marks on a trip are kept as labelled negatives. They change the precision and AUC the
+  calibration reports; the threshold itself stays the highest margin that keeps recall ≥ 0.9.
 
 ## What leaves the laptop
 
@@ -102,7 +106,7 @@ The Cosmos-Embed1 card documents Linux, CUDA and BF16 only; jaga runs it on macO
 | the typed sentence | Token Factory | no |
 | labelled margins (numbers and labels; no vectors) | Object Storage → the calibration Job | no |
 | thresholds | back from Object Storage | no |
-| one text line, if you turn on the optional push | ntfy | no |
+| one text line (the tripwire's name and the time), only if you turn on the optional push — anyone who knows the topic can read it, so jaga refuses topics shorter than 20 characters | ntfy | no |
 
 **Video frames never leave this laptop.** The overlay is served on `127.0.0.1` only. The Tuya plug's own firmware
 may talk to Tuya's cloud by itself; that is outside jaga's control, and the Shelly path can be fully local.
@@ -110,14 +114,18 @@ may talk to Tuya's cloud by itself; that is outside jaga's control, and the Shel
 ## Safety (it switches mains power)
 
 * **I1** — a trip can only cut power or notify. The only code that can switch a plug on is `jaga/operator_on.py`,
-  reachable only from the operator's `POST /plug/test` (localhost + same-origin + a per-run token). Tests check
-  this statically and by running repeated trips against a fake plug.
+  used only by operator actions: the overlay's `POST /plug/test` (localhost + same-origin + a per-run token) and the
+  hand-run plug check `scripts/day0_plug.py`. Tests check statically that nothing else in the package reaches it,
+  and run repeated trips against a fake plug to count zero ON calls.
 * **I2** — one bad window cannot cut power: a trip needs most windows over the dwell above the threshold, including
-  the newest, and the dwell is never shorter than twice the measured window period.
-* **I3** — the overlay shows OFF only after the plug acknowledges; a failed call is shown and pushed as
-  **ACTION FAILED** and retried (off only).
-* Guards: a sudden light change suspends trips; too dark unarms ("too dark to see"); a moved camera unarms; a
-  watchdog shows **WATCHER STOPPED** if windows stop. A fridge or freezer can never be set to cut power.
+  the newest, never fewer than two, and the dwell is never shorter than twice the measured window period.
+* **I3** — the overlay shows OFF only after the plug acknowledges this trip's OFF (a remembered plug state never
+  stands in for it); a failed call is shown and pushed as **ACTION FAILED** and retried (off only). Every plug call —
+  a trip's OFF, a status read, the operator test — takes one lock, so they never interleave.
+* Guards: a sudden light change suspends trips; too dark unarms ("too dark to see") and nothing re-arms in the dark;
+  a moved camera unarms and nothing re-arms until a new capture; a watchdog shows **WATCHER STOPPED** if windows stop,
+  keep failing, or a watcher thread ends. Cutting power is only allowed for heating or cooking appliances (an iron, a
+  stove, a heater, a kettle…); a fridge or a freezer can never be cut.
 
 ## Repository
 

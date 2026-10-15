@@ -12,6 +12,7 @@ import csv
 import hashlib
 import io
 import json
+import math
 import os
 import re
 import subprocess
@@ -35,6 +36,7 @@ REGION = "eu-west1"
 # and a higher price seen earlier (4×0.015 + 16×0.0045)
 PRICE_DOCS, PRICE_HIGH = 0.0992, 0.132
 INJECT_LIMIT = 64 * 1024
+MIN_POS = 5  # engineering guard: a threshold from fewer positive clips is recorded, never adopted
 TERMINAL = {"COMPLETED", "FAILED", "CANCELLED", "CANCELED", "ERROR", "DELETED", "TERMINATED", "STOPPED"}
 
 
@@ -62,17 +64,20 @@ def clip_rows() -> list[dict]:
             if vec is None:
                 continue
             pos, neg = cache[slot]
-            rows.append({"item_id": r["clip_id"], "tripwire": slot, "m": f"{margin(vec, pos, neg):.6f}",
+            rows.append({"item_id": r["clip_id"], "tripwire": slot, "m": f"{margin(vec, pos, neg):.9f}",
                          "label": int(r["label"]), "source": "clip"})
     return rows
 
 
 def wrong_rows(db) -> list[dict]:
     """A trip the user marked "✗ wrong" is a labelled negative at its trip margin (unscored sessions only)."""
+    # the trip's own window: the latest window of that tripwire at or before the trip (the trip event carries the
+    # window's timestamp; the "at or before" also covers events logged by older versions a few ms later)
     q = ("SELECT e.id, t.slot, w.margin FROM event e JOIN tripwire t ON t.id = e.tripwire_id "
-         "JOIN session s ON s.name = e.session JOIN win w ON w.tripwire_id = e.tripwire_id AND w.ts = e.ts "
+         "JOIN session s ON s.name = e.session JOIN win w ON w.tripwire_id = e.tripwire_id "
+         "AND w.ts = (SELECT MAX(w2.ts) FROM win w2 WHERE w2.tripwire_id = e.tripwire_id AND w2.ts <= e.ts) "
          "WHERE e.kind = 'trip' AND e.wrong = 1 AND s.scored = 0")
-    return [{"item_id": f"wrong-{r['id']}", "tripwire": r["slot"], "m": f"{r['margin']:.6f}", "label": 0,
+    return [{"item_id": f"wrong-{r['id']}", "tripwire": r["slot"], "m": f"{r['margin']:.9f}", "label": 0,
              "source": "wrong-mark"} for r in db.query(q)]
 
 
@@ -84,9 +89,18 @@ def labelled_rows(db=None) -> list[dict]:
 
 
 # ------------------------------------------------------------------------------------- nebius CLI
+def nebius_out(args: list[str], timeout: float = 180) -> tuple[int, str, str]:
+    """Run the nebius CLI. A timeout raises a message without the argv (it carries presigned URLs)."""
+    try:
+        p = subprocess.run(["nebius", *args], capture_output=True, text=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        raise RuntimeError(f"nebius {' '.join(args[:3])} timed out after {timeout:.0f} s") from None
+    return p.returncode, p.stdout.strip(), p.stderr.strip()
+
+
 def nebius(args: list[str], timeout: float = 180) -> tuple[int, str]:
-    p = subprocess.run(["nebius", *args], capture_output=True, text=True, timeout=timeout)
-    return p.returncode, (p.stdout + p.stderr).strip()
+    rc, out, err = nebius_out(args, timeout)
+    return rc, (out + "\n" + err).strip()
 
 
 def create_job(name: str, env: dict, inject: list[tuple[Path, str]], dry_run: bool = False,
@@ -123,15 +137,23 @@ def wait_job(job_id: str, timeout_s: float = 2400) -> dict:
     deadline = time.monotonic() + timeout_s
     last = {}
     while time.monotonic() < deadline:
-        rc, out = nebius(["ai", "job", "get", job_id, "--format", "json"], timeout=120)
-        if rc == 0:
-            try:
-                last = json.loads(out[out.index("{"):])
+        try:
+            rc, out, _ = nebius_out(["ai", "job", "get", job_id, "--format", "json"], timeout=120)
+        except RuntimeError:
+            rc, out = 1, ""
+        if rc == 0 and "{" in out:
+            try:  # parse the JSON object only; tolerate anything printed after it
+                last = json.JSONDecoder().raw_decode(out[out.index("{"):])[0]
             except (ValueError, json.JSONDecodeError):
                 last = {}
             if (last.get("status") or {}).get("state") in TERMINAL:
                 return last
         time.sleep(15)
+    try:  # never leave a stuck Job holding one of the region's two shared instances
+        nebius(["ai", "job", "cancel", job_id], timeout=120)
+        last["cancelled_by_dispatcher"] = True
+    except RuntimeError:
+        pass
     return last
 
 
@@ -165,9 +187,10 @@ def dispatch(smoke: bool = False, input_csv: str | None = None, wait: bool = Tru
     if smoke:
         data = SMOKE_FIXTURE.read_bytes()
         n_rows = sum(1 for _ in csv.DictReader(io.StringIO(data.decode())))
-    elif input_csv:
-        data = Path(input_csv).read_bytes()
-        n_rows = sum(1 for _ in csv.DictReader(io.StringIO(data.decode())))
+    elif input_csv:  # the same egress allowlist as the default path: margins and labels only
+        raw = list(csv.DictReader(io.StringIO(Path(input_csv).read_text())))
+        data = sync.margins_csv(raw)
+        n_rows = len(raw)
     else:
         if db is None:
             from .db import DB
@@ -217,15 +240,22 @@ def dispatch(smoke: bool = False, input_csv: str | None = None, wait: bool = Tru
     st = info.get("status") or {}
     state = st.get("state")
     result, result_via = None, None
+    sha = hashlib.sha256(data).hexdigest()
+
+    def matches(res) -> bool:  # adopt only the result of THIS input: schema, run, input hash and size must match
+        return (isinstance(res, dict) and res.get("schema") == "jaga.calibration.v1" and res.get("run_id") == run_id
+                and res.get("input_sha256") == sha and int(res.get("n_rows", -1)) + int(res.get("dropped", 0)) == n_rows)
+
     if client and state == "COMPLETED":
         try:
             body = client.get_object(Bucket=loc.bucket, Key=loc.key(f"runs/{run_id}/thresholds.json"))["Body"].read()
             result, result_via = json.loads(body), "object storage (presigned PUT by the Job)"
         except Exception:
             result = None
-    if result is None:
+    if not matches(result):
         result = result_from_logs(job_id)
         result_via = "nebius ai job logs" if result else None
+    result_ok = matches(result)
     t_start, t_end = _ts(st.get("started_at")), _ts(st.get("finished_at"))
     wall = round(t_end - t_start, 1) if t_start and t_end else None
     created = (info.get("metadata") or {}).get("created_at")
@@ -241,14 +271,15 @@ def dispatch(smoke: bool = False, input_csv: str | None = None, wait: bool = Tru
           "cost_usd_docs_price": None if wall is None else round(wall / 3600 * PRICE_DOCS, 6),
           "cost_usd_high_price": None if wall is None else round(wall / 3600 * PRICE_HIGH, 6),
           "billed_usd": None, "billed_note": "read the billed amount from the Nebius console (the formula has no disk "
-                                              "or provisioning term)", "result": result}
+                                              "or provisioning term)", "result_matches_input": result_ok,
+          "cancelled_by_dispatcher": bool(info.get("cancelled_by_dispatcher")), "result": result}
     EVIDENCE.mkdir(parents=True, exist_ok=True)
     (EVIDENCE / f"{job_id}.json").write_text(json.dumps(ev, indent=2, ensure_ascii=False) + "\n")
     write_runs_md()
-    if kind == "calibration" and state == "COMPLETED" and result:
+    if kind == "calibration" and state == "COMPLETED" and result_ok:
         store_thresholds(job_id, result, db)
-    print(f"{job_id}: {state} · wall {wall} s · result via {result_via}")
-    return 0 if state == "COMPLETED" and result else 1
+    print(f"{job_id}: {state} · wall {wall} s · result via {result_via} · matches the input: {result_ok}")
+    return 0 if state == "COMPLETED" and result_ok else 1
 
 
 def _usd(x) -> str:
@@ -307,6 +338,10 @@ def store_thresholds(job_id: str, result: dict, db=None) -> None:
         tw = db.tripwire(slot)
         if not tw:
             continue
+        th = r.get("theta_m")
+        sane = (isinstance(th, (int, float)) and math.isfinite(th) and -1.0 <= th <= 1.0
+                and int(r.get("n_pos") or 0) >= MIN_POS)
         prev = db.query("SELECT MAX(version) AS v FROM threshold WHERE tripwire_id=?", (tw["id"],))[0]["v"] or 0
-        db.add_threshold(tw["id"], int(prev) + 1, "labelled-m", r["theta_m"], None, None, f"nebius-job:{job_id}",
-                         None, r.get("recall"))
+        # a threshold that fails the checks is kept on record as "proposed" and never adopted by the watcher
+        db.add_threshold(tw["id"], int(prev) + 1, "labelled-m", float(th) if sane else None, None, None,
+                         f"nebius-job:{job_id}" if sane else f"nebius-job-proposed:{job_id}", None, r.get("recall"))

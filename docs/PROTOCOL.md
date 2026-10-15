@@ -24,7 +24,7 @@ Both halves matter. A system that never cuts is useless; a system that cuts on e
 | Action | `plug_off` on the real Wi-Fi plug; a desk lamp on the same plug is the visible load; the iron is an **unplugged prop** |
 | Threshold | θ_m **v1**, frozen before B1 (rule in §6); the same θ for B1 and B2; never refitted on a scored session |
 | Dwell | **120 s primary** (the default); the 30-s demo dwell is computed offline from the same logs as a secondary row |
-| k-of-n | k = ⌈P7 · n⌉, n = dwell ÷ window period |
+| k-of-n | k = max(2, ⌈P7 · n⌉), n = max(2, dwell ÷ window period) — never fewer than two windows (I2) |
 | Cool-down | 600 s; a re-arm (the plug switched back on) ends it |
 | Suspend | a jump in mean luma > P1 (25 %) suspends trips for P2 (60 s) |
 | Sessions | **B1** and **B2**, each ≥ 2 h, on different days |

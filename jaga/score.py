@@ -58,8 +58,9 @@ def zscore(m: float, mu0: float | None, sigma0: float | None, floor: float = TUN
 def normal_reference(ms: list[float] | np.ndarray, floor: float = TUNING.sigma0_floor) -> tuple[float, float]:
     """μ₀, σ₀ over the normal-state windows (the non-event), with the σ₀ floor P5 applied."""
     a = np.asarray(ms, dtype=np.float64)
+    a = a[np.isfinite(a)]  # one bad window must not poison σ₀ (max(nan, floor) is nan)
     if a.size == 0:
-        raise ValueError("no normal-state windows")
+        raise ValueError("no finite normal-state windows")
     sd = float(a.std(ddof=1)) if a.size > 1 else 0.0
     return float(a.mean()), max(sd, floor)
 
@@ -93,6 +94,9 @@ def window_period(ts: list[float] | np.ndarray) -> tuple[float | None, float | N
 
 
 # --- the shared decision rule ----------------------------------------------------------------------
+MIN_WINDOWS = 2  # I2, structural: whatever the dwell, the stride or the k fraction, one window can never trip
+
+
 @dataclass
 class Decision:
     fire: bool
@@ -120,8 +124,9 @@ class DecisionRule:
         self.cooldown_until = -math.inf
 
     def kn(self, stride_s: float) -> tuple[int, int]:
-        n = max(1, int(math.floor(self.dwell_s / max(stride_s, 1e-6) + 1e-9)))
-        k = max(1, int(math.ceil(self.k_fraction * n - 1e-9)))
+        """n windows in the dwell, k of them above θ — never fewer than MIN_WINDOWS (I2: one window never trips)."""
+        n = max(MIN_WINDOWS, int(math.floor(self.dwell_s / max(stride_s, 1e-6) + 1e-9)))
+        k = max(MIN_WINDOWS, int(math.ceil(self.k_fraction * n - 1e-9)))
         return k, n
 
     def suspend(self, ts: float, seconds: float) -> None:
@@ -245,6 +250,8 @@ class Tripwire:
     capture_s: float = 120.0
     capture_margins: list = field(default_factory=list)
     last: WindowResult | None = None
+    off_acked: bool = False  # I3: True only once the plug acknowledged OFF for THIS trip
+    stale_ref: bool = False  # the camera moved since this tripwire's normal-state capture
 
     def __post_init__(self):
         self.rule = DecisionRule(self.dwell_s, self.cooldown_s, self.tuning.k_fraction)
@@ -256,15 +263,18 @@ class Tripwire:
         self.capture_s = float(seconds)
         self.capture_until = None
         self.capture_margins = []
+        self.off_acked = False
 
     def arm(self) -> None:
         if self.threshold.theta is None:
             raise ValueError("no threshold: capture a normal state (fresh) or freeze θ (labelled) first")
         self.state, self.unarmed_reason = "armed", None
+        self.off_acked = False
         self.rule.reset()
 
     def unarm(self, reason: str) -> None:
         self.state, self.unarmed_reason = "unarmed", reason
+        self.off_acked = False
         self.rule.reset()
 
     def rearm(self) -> None:
@@ -274,6 +284,7 @@ class Tripwire:
         """
         self.tripped_at = None
         self.state, self.unarmed_reason = "armed", None
+        self.off_acked = False
         self.rule.reset()
 
     def noise_floor_ok(self, example_margins: list[float]) -> bool:
@@ -286,7 +297,9 @@ class Tripwire:
         return clamp_dwell(self.dwell_s, period_p95)
 
     # one window ----------------------------------------------------------------------------------
-    def step(self, ts: float, v: np.ndarray, *, stride_s: float, period_p95: float | None) -> WindowResult:
+    def step(self, ts: float, v: np.ndarray, *, stride_s: float, period_p95: float | None,
+             blocked: bool = False) -> WindowResult:
+        """One window. `blocked` (too dark to see) makes the window count as not-above, whatever its margin."""
         m = margin(v, self.pos, self.neg)
         th = self.threshold
         z = zscore(m, th.mu0, th.sigma0, self.tuning.sigma0_floor)
@@ -303,7 +316,7 @@ class Tripwire:
                 self._finish_capture()
             d = Decision(False, 0, *self.rule.kn(stride_s), False)
         elif self.state in ("armed", "holding"):
-            above = th.above(m, z)
+            above = False if blocked else th.above(m, z)
             d = self.rule.push(ts, bool(above), stride_s)
             if d.fire:
                 fired = True
@@ -330,6 +343,7 @@ class Tripwire:
             self.state = "armed"
 
     def _finish_capture(self) -> None:
+        self.stale_ref = False
         mu0, sigma0 = normal_reference(self.capture_margins, self.tuning.sigma0_floor)
         self.threshold.mu0, self.threshold.sigma0 = mu0, sigma0
         if self.threshold.mode == "fresh-z":

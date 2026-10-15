@@ -122,6 +122,7 @@ def cmd_speed(a) -> int:
         emb = Embedder(dev)
         for _ in range(5):
             emb.embed_video(window)
+        load_before = os.getloadavg()[0] if hasattr(os, "getloadavg") else None
         times = []
         for _ in range(a.n):
             t0 = time.perf_counter()
@@ -131,7 +132,9 @@ def cmd_speed(a) -> int:
         rows.append({"device": dev, "dtype": "float32", "n": a.n, "p50_s": round(statistics.median(times), 4),
                      "p95_s": round(pct(times, 0.95), 4), "mean_s": round(statistics.mean(times), 4),
                      "min_s": round(min(times), 4), "max_s": round(max(times), 4), "torch": info["torch"],
-                     "threads": info["torch_threads"], "input": src.name, "load_s": info["load_s"]})
+                     "threads": info["torch_threads"], "input": src.name, "load_s": info["load_s"],
+                     "loadavg_1m_before": None if load_before is None else round(load_before, 2),
+                     "loadavg_1m_after": round(os.getloadavg()[0], 2) if hasattr(os, "getloadavg") else None})
         print(f"{dev}: p50 {rows[-1]['p50_s']} s · p95 {rows[-1]['p95_s']} s over {a.n} windows")
         del emb
     write_csv("speed.csv", rows)
@@ -211,9 +214,9 @@ def system_row(name, sp, sn) -> dict:
     if not sp or not sn:
         return {"system": name, "n_pos": len(sp), "n_neg": len(sn), "status": "not enough clips"}
     a = S.auc(sp, sn)
-    lo, hi = S.hanley_mcneil(a, len(sp), len(sn))
-    return {"system": name, "n_pos": len(sp), "n_neg": len(sn), "auc": round(a, 4), "auc_ci95": [round(lo, 4),
-            round(hi, 4)], **loo_counts(sp, sn)}
+    ci = S.hanley_mcneil(a, len(sp), len(sn))
+    return {"system": name, "n_pos": len(sp), "n_neg": len(sn), "auc": round(a, 4),
+            "auc_ci95": None if ci is None else [round(ci[0], 4), round(ci[1], 4)], **loo_counts(sp, sn)}
 
 
 def cmd_clips(a) -> int:
@@ -654,11 +657,13 @@ def write_demo() -> None:
     L += ["## 1. Speed — Cosmos-Embed1-224p on this laptop", ""]
     sp = s.get("speed")
     if sp and sp.get("rows"):
-        L += ["| device | precision | windows | p50 s/clip | p95 s/clip | torch | threads |",
-              "|---|---|---|---|---|---|---|"]
+        L += ["| device | precision | windows | p50 s/clip | p95 s/clip | torch | threads | machine load (1-min avg) |",
+              "|---|---|---|---|---|---|---|---|"]
         for r in sp["rows"]:
+            load = (f"{r['loadavg_1m_before']} → {r['loadavg_1m_after']}" if r.get("loadavg_1m_before") is not None
+                    else "not recorded")
             L.append(f"| {r['device'].upper()} | fp32 | {r['n']} | {r['p50_s']} | {r['p95_s']} | {r['torch']} | "
-                     f"{r['threads']} |")
+                     f"{r['threads']} | {load} |")
         L += ["", f"One window = 8 frames → `preprocess` + `get_video_embeddings`, after 5 warm-up calls; input "
               f"`{sp['input']}` (the model card's own sample video). {stamp(sp)}", "",
               "Reproduce: `python scripts/bench.py speed --n 200`", ""]
@@ -686,8 +691,10 @@ def write_demo() -> None:
                 if "auc" not in r:
                     L.append(f"| {r['system']} | {r['n_pos']} / {r['n_neg']} | {r.get('status')} | | |")
                     continue
-                L.append(f"| {r['system']} | {r['n_pos']} / {r['n_neg']} | {r['auc']:.3f} ({r['auc_ci95'][0]:.3f}–"
-                         f"{r['auc_ci95'][1]:.3f}) | {r['tp']} / {r['fp']} | {fmt(r['precision'])} |")
+                ci = (f"{r['auc_ci95'][0]:.3f}–{r['auc_ci95'][1]:.3f}" if r.get("auc_ci95")
+                      else "interval undefined at AUC 0 or 1")
+                L.append(f"| {r['system']} | {r['n_pos']} / {r['n_neg']} | {r['auc']:.3f} ({ci}) | "
+                         f"{r['tp']} / {r['fp']} | {fmt(r['precision'])} |")
             for key in ("iron-inview", "iron-day2"):
                 if key in d:
                     e = d[key]

@@ -38,14 +38,20 @@ def read_input():
 
 
 def parse(data):
-    rows = []
+    """Rows with a finite margin and a 0/1 label; anything else is dropped and counted."""
+    rows, dropped = [], 0
     for r in csv.DictReader(io.StringIO(data.decode("utf-8"))):
         try:
-            rows.append({"item_id": r["item_id"], "tripwire": r["tripwire"], "m": float(r["m"]),
-                         "label": int(r["label"]), "source": r.get("source", "")})
-        except (KeyError, ValueError):
+            m, y = float(r["m"]), int(r["label"])
+        except (KeyError, ValueError, TypeError):
+            dropped += 1
             continue
-    return rows
+        if not math.isfinite(m) or y not in (0, 1):
+            dropped += 1
+            continue
+        rows.append({"item_id": r["item_id"], "tripwire": r["tripwire"], "m": m, "label": y,
+                     "source": r.get("source", "")})
+    return rows, dropped
 
 
 def auc(pos, neg):
@@ -59,6 +65,9 @@ def auc(pos, neg):
 
 
 def hanley_mcneil(a, n1, n2, z=1.959963984540054):
+    """95 % CI for an AUC; undefined (None) at AUC 0 or 1, where the formula's variance collapses to 0."""
+    if a <= 1e-12 or a >= 1 - 1e-12:
+        return None
     q1, q2 = a / (2 - a), 2 * a * a / (1 + a)
     var = (a * (1 - a) + (n1 - 1) * (q1 - a * a) + (n2 - 1) * (q2 - a * a)) / (n1 * n2)
     se = math.sqrt(max(var, 0.0))
@@ -97,11 +106,14 @@ def summarise(pos, neg, recall):
         out["status"] = "no positives"
         return out
     theta = theta_at_recall(pos, recall)
-    out.update(theta_m=round(theta, 6), at_recall=recall, **confusion(pos, neg, theta))
+    out.update(theta_m=theta, at_recall=recall, **confusion(pos, neg, theta))  # unrounded: the boundary clip stays in
     if neg:
         a = auc(pos, neg)
-        lo, hi = hanley_mcneil(a, len(pos), len(neg))
-        out.update(auc=round(a, 4), auc_ci95=[round(lo, 4), round(hi, 4)], roc=roc(pos, neg))
+        ci = hanley_mcneil(a, len(pos), len(neg))
+        out.update(auc=round(a, 4), auc_ci95=None if ci is None else [round(ci[0], 4), round(ci[1], 4)],
+                   roc=roc(pos, neg))
+        if ci is None:
+            out["auc_ci95_note"] = "undefined at AUC 0 or 1 (Hanley-McNeil variance is 0)"
     out["status"] = "ok"
     return out
 
@@ -126,12 +138,13 @@ def main():
     t0 = time.time()
     started = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t0))
     data, transport, errors = read_input()
-    rows = parse(data)
+    rows, dropped = parse(data)
     recall = float(os.environ.get("JAGA_RECALL", "0.9"))
     per, pooled = calibrate(rows, recall)
     result = {"schema": SCHEMA, "kind": os.environ.get("JAGA_RUN_KIND", "calibration"),
               "run_id": os.environ.get("JAGA_RUN_ID", ""), "input_sha256": hashlib.sha256(data).hexdigest(),
-              "input_bytes": len(data), "n_rows": len(rows), "transport_in": transport, "transport_errors": errors,
+              "input_bytes": len(data), "n_rows": len(rows), "dropped": dropped, "transport_in": transport,
+              "transport_errors": errors,
               "recall_target": recall, "tripwires": per, "global_theta": pooled, "python": sys.version.split()[0],
               "platform": platform.platform(), "cpu_count": os.cpu_count(), "started_at": started,
               "elapsed_s": round(time.time() - t0, 3)}

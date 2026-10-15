@@ -21,11 +21,10 @@ def test_auc_counts_ties_as_half():
     assert S.auc([2, 1], [1, 0]) == pytest.approx(0.875)
 
 
-def test_hanley_mcneil_interval_contains_auc_and_is_clipped():
+def test_hanley_mcneil_interval_contains_auc_and_is_undefined_at_the_edges():
     lo, hi = S.hanley_mcneil(0.9, 10, 10)
     assert lo < 0.9 < hi <= 1.0
-    lo, hi = S.hanley_mcneil(1.0, 10, 10)
-    assert hi == 1.0
+    assert S.hanley_mcneil(1.0, 10, 10) is None and S.hanley_mcneil(0.0, 10, 10) is None  # never "[1.0, 1.0]"
 
 
 def test_clopper_pearson_known_values():
@@ -89,6 +88,21 @@ def test_job_matches_the_laptop_statistics(tmp_path):
     assert r["auc"] == pytest.approx(round(S.auc(pos, neg), 4))
     lo, hi = S.hanley_mcneil(S.auc(pos, neg), 10, 10)
     assert r["auc_ci95"] == pytest.approx([round(lo, 4), round(hi, 4)])
+
+
+def test_job_drops_non_finite_rows_and_counts_them(tmp_path):
+    rows = ("item_id,tripwire,m,label,source\na,01,0.2,1,clip\nb,01,nan,1,clip\nc,01,inf,0,clip\n"
+            "d,01,0.1,0,clip\ne,01,0.15,1,clip\nf,01,x,1,clip\n")
+    r = run_job(tmp_path, rows)
+    assert r["n_rows"] == 3 and r["dropped"] == 3
+    assert r["tripwires"]["01"]["n_pos"] == 2 and r["tripwires"]["01"]["n_neg"] == 1
+
+
+def test_job_reports_an_undefined_interval_at_auc_one(tmp_path):
+    rows = "item_id,tripwire,m,label,source\n" + "".join(f"p{i},01,{0.5 + i / 100},1,clip\n" for i in range(5)) + \
+        "".join(f"n{i},01,{-0.5 + i / 100},0,clip\n" for i in range(5))
+    t = run_job(tmp_path, rows)["tripwires"]["01"]
+    assert t["auc"] == 1.0 and t["auc_ci95"] is None and "undefined" in t["auc_ci95_note"]
 
 
 def test_sync_refuses_columns_outside_the_egress_table():

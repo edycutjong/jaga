@@ -129,6 +129,8 @@ def make_watcher(home, tuning, plug_url: str | None = None, caps: Captions | Non
     spec = {**SPEC, "action": action, "dwell_s": dwell_s}
     th = theta or Threshold("labelled-m", 0.0, version=1, source="test")
     w.load_tripwire("01", "nobody is at the ironing board", spec, caps.pos, caps.neg, th, {"tf_request_id": "test"})
+    # as if a normal-state capture had already run: arming with the stored reference needs a camera reference
+    w.guards.set_reference([frame(140, seed=k) for k in range(8)])
     w.published = events
     return w, emb
 

@@ -96,9 +96,10 @@
     const [l, r] = splitSentence(row.sentence);
     if ($("tape-l").textContent !== l) $("tape-l").textContent = l;
     if ($("tape-r").textContent !== r) $("tape-r").textContent = r;
-    // The snap plays once, when the trip is acknowledged (plug OFF for plug_off; the trip itself for notify).
+    // The snap plays once, when THIS trip is acknowledged (the plug confirmed OFF for plug_off; the trip itself for
+    // notify). A cached plug state never stands in for the acknowledgement (I3).
     let state = row.state;
-    if (state === "tripped" && row.action === "plug_off" && !(snap.plug && snap.plug.state === "off")) state = "holding";
+    if (state === "tripped" && row.action === "plug_off" && !row.off_acked) state = "holding";
     tw.classList.toggle("static", reduced.matches || S.snapped[row.slot] === "done");
     if (state === "tripped" && !S.snapped[row.slot]) { S.snapped[row.slot] = "playing"; setTimeout(() => { S.snapped[row.slot] = "done"; }, 300); }
     if (state !== "tripped") delete S.snapped[row.slot];
@@ -161,11 +162,13 @@
   function renderBreaker(snap) {
     const p = snap.plug || {};
     const b = $("breaker");
-    b.dataset.state = p.state || "unknown";
+    const rows = snap.windows || [];
+    const tripped = rows.some((w) => w.action === "plug_off" && w.state === "tripped");
+    const acked = rows.some((w) => w.action === "plug_off" && w.state === "tripped" && w.off_acked);
+    b.dataset.state = tripped && !acked ? "unknown" : (p.state || "unknown");
     $("plug-label").textContent = p.label || "Wi-Fi plug";
     $("plug-addr").textContent = p.address || "—";
-    const tripped = (snap.windows || []).some((w) => w.action === "plug_off" && w.state === "tripped");
-    $("flag").hidden = !(tripped && p.state === "off");
+    $("flag").hidden = !acked;
     $("failed").hidden = !p.failed;
     if (p.failed) $("failed-detail").textContent = `${(p.detail || "the plug did not confirm OFF").slice(0, 90)} · push sent · retrying OFF`;
     let last = "last action: —";
@@ -191,7 +194,7 @@
       const slot = e.slot ? `${e.slot} ` : "";
       const word = e.kind === "armed" && /capturing/.test(e.detail || "") ? "ARMING" : (KIND[e.kind] || e.kind);
       li.innerHTML = `<span class="t">${fmt.clock(e.ts)}</span><span class="k">${esc(slot + word)}</span>` +
-        (e.kind === "trip" ? `<button class="wrong" type="button" data-id="${e.id}" aria-pressed="${e.wrong ? "true" : "false"}" title="mark this trip as wrong (a label for the nightly calibration)">✗ wrong</button>` : "<span></span>") +
+        (e.kind === "trip" ? `<button class="wrong" type="button" data-id="${e.id}" aria-pressed="${e.wrong ? "true" : "false"}" title="mark this trip as wrong: kept as a labelled negative for the nightly calibration report">✗ wrong</button>` : "<span></span>") +
         `<span class="d">${esc(e.detail)}</span>`;
       ol.appendChild(li);
     });
@@ -275,6 +278,10 @@
 
   // ---------------------------------------------------------------- data in
   function absorbWindow(snap) {
+    // only a new window adds a trace point (the plug poll and the watchdog also publish snapshots)
+    const fresh = (snap.n_windows || 0) > (S.lastN || 0);
+    S.lastN = Math.max(S.lastN || 0, snap.n_windows || 0);
+    if (!fresh) { render(snap); return; }
     (snap.windows || []).forEach((w) => {
       const sc = scoreOf(w);
       if (sc === null || sc === undefined) return;
@@ -294,6 +301,7 @@
         S.traces[slot] = arr.map((p) => [p[0], p[1], p[2], p[3]]).filter((p) => p[1] !== null);
       });
       if (d.receipt) $("foot-job").textContent = d.receipt;
+      S.lastN = (d.snapshot && d.snapshot.n_windows) || 0;
       render(d.snapshot);
       renderEvents();
     } catch (e) { $("nosignal-text").textContent = `cannot reach the watcher: ${e.message}`; }

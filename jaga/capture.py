@@ -102,10 +102,10 @@ class CameraSource(threading.Thread):
         super().__init__(daemon=True, name="jaga-camera")
         self.ring, self.index, self.fps = ring, index, fps
         self.status = SourceStatus("camera", f"camera {index}")
-        self._stop = threading.Event()
+        self._halt = threading.Event()  # not `_stop`: Thread._stop is CPython's
 
     def stop(self) -> None:
-        self._stop.set()
+        self._halt.set()
 
     def run(self) -> None:
         import cv2
@@ -122,7 +122,7 @@ class CameraSource(threading.Thread):
         next_t = time.monotonic()
         fails = 0
         try:
-            while not self._stop.is_set():
+            while not self._halt.is_set():
                 if not cap.grab():
                     fails += 1
                     if fails > 50:
@@ -156,20 +156,20 @@ class FileSource(threading.Thread):
         self.ring, self.path, self.fps = ring, Path(path), fps
         self.realtime, self.loop, self.speed = realtime, loop, speed
         self.status = SourceStatus("file", self.path.name)
-        self._stop = threading.Event()
+        self._halt = threading.Event()  # not `_stop`: Thread._stop is CPython's
 
     def stop(self) -> None:
-        self._stop.set()
+        self._halt.set()
 
     def run(self) -> None:
         try:
-            while not self._stop.is_set():
+            while not self._halt.is_set():
                 start = time.monotonic()
                 wall0 = time.time()
                 first_t = None
                 n = 0
                 for t, frame in iter_1fps(self.path, fps=self.fps):
-                    if self._stop.is_set():
+                    if self._halt.is_set():
                         break
                     if first_t is None:
                         first_t = t

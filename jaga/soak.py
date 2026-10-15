@@ -38,10 +38,10 @@ class ScheduleRunner(threading.Thread):
         self.w, self.steps, self.say_enabled, self.warn_s = watcher, steps, say, warn_s
         self.started = started or threading.Event()
         self.t0: float | None = None
-        self._stop = threading.Event()
+        self._halt = threading.Event()  # not `_stop`: Thread._stop is CPython's
 
     def stop(self) -> None:
-        self._stop.set()
+        self._halt.set()
 
     def _say(self, text: str) -> None:
         self.w.publish("schedule", {"text": text, "ts": time.time()})
@@ -52,16 +52,16 @@ class ScheduleRunner(threading.Thread):
                 pass
 
     def run(self) -> None:
-        while not self._stop.is_set() and not self.started.wait(1.0):
+        while not self._halt.is_set() and not self.started.wait(1.0):
             pass
-        if self._stop.is_set():
+        if self._halt.is_set():
             return
         self.t0 = time.time()
         self.w.label("plan:session_start", f"schedule clock starts; {len(self.steps)} steps")
         warned: set[int] = set()
         done: set[int] = set()
         ended: set[int] = set()
-        while not self._stop.wait(0.5):
+        while not self._halt.wait(0.5):
             el = (time.time() - self.t0) / 60.0
             for s in self.steps:
                 if s.step not in warned and el >= s.start_min - self.warn_s / 60.0 and s.step not in done:
