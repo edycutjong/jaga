@@ -1,6 +1,6 @@
 """The sponsor-integration receipts: Token Factory request IDs and Nebius Serverless Job IDs.
 
-This track has no hosted URL (rules:140), so the receipts live in the local overlay (`/receipts`),
+jaga has no hosted URL (it runs on the laptop), so the receipts live in the local overlay (`/receipts`),
 in `docs/RUNS.md` and in `evidence/jobs/*.json`. Nothing on this page is typed by hand: it is read from
 the database and from the evidence files the dispatcher writes.
 """
@@ -100,6 +100,15 @@ def render_html(d: dict) -> str:
         f"<td>{_e(j.get('platform'))} {_e(j.get('preset'))}</td><td class=num>{_usd(j.get('cost_usd_docs_price'))}</td></tr>"
         for j in reversed(d["jobs"]))
     m = d.get("model") or {}
+    b = d.get("bench") or {}
+    sp = (b.get("speed") or {}).get("rows") or []
+    pe = b.get("period") or {}
+    rows_b = "".join(f"<tr><td>{_e(r['device']).upper()} fp32</td><td class=num>{_e(r['p50_s'])} s</td>"
+                     f"<td class=num>{_e(r['p95_s'])} s</td><td class=num>{_e(r['n'])}</td></tr>" for r in sp)
+    period = (f"<p class=muted>Live window period p50 {pe['period_p50_s']:.2f} s, p95 {pe['period_p95_s']:.2f} s over "
+              f"{pe['windows']} windows ({_e(pe.get('input'))}).</p>") if pe.get("windows") else ""
+    bench_html = (f"<section><h2>Measured · scripts/bench.py (DEMO.md)</h2><table><tr><th>device</th><th>p50 s/clip</th>"
+                  f"<th>p95 s/clip</th><th>timed calls</th></tr>{rows_b}</table>{period}</section>") if rows_b else ""
     return f"""<!doctype html><html lang=en><head><meta charset=utf-8><title>jaga · receipts</title>
 <link rel=stylesheet href="/static/overlay.css"></head><body class=receipts>
 <header class=strip><span class=name>JAGA</span><span class=meta>receipts · generated {_e(d['generated_at'])}</span>
@@ -115,4 +124,5 @@ def render_html(d: dict) -> str:
 <table><tr><th>job ID</th><th>kind</th><th>state</th><th>created</th><th>wall clock</th><th>compute</th><th>cost (docs price)</th></tr>
 {rows_j or '<tr><td colspan=7 class=muted>no Job run yet</td></tr>'}</table>
 <p class=muted>Every run is also listed in docs/RUNS.md with its cost at both prices.</p></section>
+{bench_html}
 </main><footer class=foot>Built on NVIDIA Cosmos · video frames never leave this laptop</footer></body></html>"""

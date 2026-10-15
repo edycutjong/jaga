@@ -45,7 +45,10 @@
     $("hdr-spc").textContent = fmt.s(snap.s_per_clip_p50);
     $("hdr-period").textContent = fmt.s(snap.period_p50);
     const badge = $("hdr-badge");
-    if (snap.frozen_for) { badge.hidden = false; badge.className = "badge frozen"; badge.textContent = `θ FROZEN FOR ${snap.frozen_for}`; }
+    if (snap.compiler_down) {
+      badge.hidden = false; badge.className = "badge degraded";
+      badge.textContent = "TOKEN FACTORY UNREACHABLE · new sentences wait; armed ones run";
+    } else if (snap.frozen_for) { badge.hidden = false; badge.className = "badge frozen"; badge.textContent = `θ FROZEN FOR ${snap.frozen_for}`; }
     else { badge.hidden = true; }
   }
 
@@ -138,16 +141,25 @@
     $("trace-fill").setAttribute("d", d);
   }
 
+  // Capture countdown, then (for 90 s after it, until 3 examples) the optional check: "make it happen, press 3 times".
   function renderCapture(snap) {
-    const row = (snap.windows || []).find((w) => w.state === "capturing");
+    const rows = snap.windows || [];
     const box = $("capture");
+    const capturing = rows.find((w) => w.state === "capturing");
+    const checking = !capturing && rows.find((w) => w.state === "armed" && w.armed_at && (snap.ts - w.armed_at) < 90
+      && (w.examples || 0) < 3);
+    const row = capturing || checking;
     if (!row) { box.hidden = true; return; }
     box.hidden = false;
-    $("cap-clock").textContent = fmt.mmss(row.capture_left_s || 0);
-    $("cap-text").textContent = captureHint(row.sentence);
-    const n = S.examples[row.slot] || 0;
-    $("cap-example").textContent = `it's happening now (optional, ${n}/3)`;
-    $("cap-example").dataset.slot = row.slot;
+    box.dataset.mode = capturing ? "capture" : "check";
+    $("cap-title").textContent = capturing ? "NORMAL STATE" : "CHECK · OPTIONAL";
+    $("cap-clock").textContent = capturing ? fmt.mmss(row.capture_left_s || 0) : `${row.examples || 0}/3`;
+    $("cap-text").textContent = capturing ? captureHint(row.sentence)
+      : "make it happen now, then press — three times — so jaga can check it can see it";
+    const btn = $("cap-example");
+    btn.hidden = !!capturing;
+    btn.textContent = `it's happening now (${row.examples || 0}/3)`;
+    btn.dataset.slot = row.slot;
   }
 
   function captureHint(sentence) {
@@ -187,14 +199,14 @@
   function renderEvents(fresh) {
     const ol = $("events");
     ol.innerHTML = "";
-    S.events.slice(0, 6).forEach((e) => {
+    S.events.slice(0, 5).forEach((e) => {  // five rows; the list fades out at the bottom if a narrow screen clips one
       const li = document.createElement("li");
       if (ALARM.has(e.kind)) li.classList.add("alarm");
       if (fresh && e.id === fresh) li.classList.add("fresh");
       const slot = e.slot ? `${e.slot} ` : "";
       const word = e.kind === "armed" && /capturing/.test(e.detail || "") ? "ARMING" : (KIND[e.kind] || e.kind);
       li.innerHTML = `<span class="t">${fmt.clock(e.ts)}</span><span class="k">${esc(slot + word)}</span>` +
-        (e.kind === "trip" ? `<button class="wrong" type="button" data-id="${e.id}" aria-pressed="${e.wrong ? "true" : "false"}" title="mark this trip as wrong: kept as a labelled negative for the nightly calibration report">✗ wrong</button>` : "<span></span>") +
+        (e.kind === "trip" ? `<button class="wrong" type="button" data-id="${e.id}" aria-pressed="${e.wrong ? "true" : "false"}" title="mark this trip as wrong: kept as a labelled negative for the calibration report">✗ wrong</button>` : "<span></span>") +
         `<span class="d">${esc(e.detail)}</span>`;
       ol.appendChild(li);
     });
@@ -257,9 +269,9 @@
     });
     [...tb.querySelectorAll("tr[data-slot]")].forEach((tr) => { if (!seen.has(tr.dataset.slot)) tr.remove(); });
     const soak = $("soak");
-    soak.hidden = !snap.scored;
-    if (snap.scored) {
-      $("soak-name").textContent = `${snap.session}${snap.frozen_for ? " · scored · θ frozen" : ""}`;
+    soak.hidden = !snap.labels;
+    if (snap.labels) {
+      $("soak-name").textContent = `${snap.session}${snap.scored ? " · scored" : " · unscored"}${snap.frozen_for ? " · θ frozen" : ""}`;
       $("soak-keys").textContent = "log: 1 still starts · 2 still ends · 3 leaves the room · 4 steps away, in view · 5 back at the board · 6 left open · 7 closed · 0 note";
     }
   }
@@ -335,6 +347,8 @@
     $("dr-sentence").innerHTML = d && d.sentence ? `You typed <b>“${esc(d.sentence)}”</b>` : "";
     $("dr-pos").innerHTML = (spec.positives || []).map((t) => `<li>${esc(t)}</li>`).join("");
     $("dr-neg").innerHTML = (spec.hard_negatives || []).map((t) => `<li>${esc(t)}</li>`).join("");
+    document.querySelector(".dr-cols").hidden = !(spec.positives || []).length;
+    $("dr-choose").hidden = !spec.visual;
     $("dr-rule").innerHTML = spec.dwell_s ? `Super proposed: dwell <span class="num">${esc(spec.dwell_s)}</span> s → ${spec.action === "plug_off" ? "plug OFF" : "notify"} · cool-down <span class="num">${esc(spec.cooldown_s)}</span> s · ${esc(spec.name)}` : "";
     if (spec.action) {
       document.querySelectorAll('input[name="dr-action"]').forEach((r) => { r.checked = r.value === spec.action; });
@@ -397,7 +411,10 @@
   $("cap-example").addEventListener("click", async (ev) => {
     const slot = ev.currentTarget.dataset.slot;
     if (!slot) return;
-    try { const d = await post(`/tripwires/${slot}/example`); if (d.examples) S.examples[slot] = d.examples; } catch (_) { /* ignore */ }
+    try {
+      const d = await post(`/tripwires/${slot}/example`);
+      if (d.ok === false && d.examples === 3) $("cap-text").textContent = "can't see that — name an object and where it is";
+    } catch (_) { /* the next window shows the state */ }
   });
   const SOAK_KEYS = { 1: "still_start", 2: "still_end", 3: "exit_leave", 4: "exit_inview", 5: "returned",
     6: "left_open", 7: "closed", 0: "note" };
@@ -405,7 +422,7 @@
     if (ev.target.tagName === "INPUT") { if (ev.key === "Escape") ev.target.blur(); return; }
     if (ev.key === "/") { ev.preventDefault(); $("sentence").focus(); return; }
     if (ev.key === "Escape" && !$("drawer").hidden) { closeDrawer(); return; }
-    if (S.snap && S.snap.scored && SOAK_KEYS[ev.key] !== undefined) {
+    if (S.snap && S.snap.labels && SOAK_KEYS[ev.key] !== undefined) {
       post("/labels", { kind: SOAK_KEYS[ev.key], note: "key" }).then(() => {
         $("soak-next").textContent = `logged: ${SOAK_KEYS[ev.key].replace("_", " ")} at ${fmt.clock(Date.now() / 1000)}`;
       }).catch(() => {});

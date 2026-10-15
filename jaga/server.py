@@ -161,7 +161,10 @@ def create_app(watcher, *, compile_fn=None, embed_text_fn=None, broadcaster: Bro
                                  headers={"X-Accel-Buffering": "no", "Cache-Control": "no-store"})
 
     def _slot_free() -> str:
-        used = set(watcher.tripwires)
+        """The first slot not loaded and not a frozen fixture's (a typed sentence never overwrites 01–03)."""
+        from .tripwires import FIXTURES
+
+        used = set(watcher.tripwires) | {p.stem for p in FIXTURES.glob("[0-9][0-9].json")}
         for i in range(1, 100):
             s = f"{i:02d}"
             if s not in used:
@@ -170,7 +173,7 @@ def create_app(watcher, *, compile_fn=None, embed_text_fn=None, broadcaster: Bro
 
     @app.post("/tripwires")
     async def add_tripwire(request: Request) -> Response:
-        body = await request.json()
+        body = await _json_or_422(request)
         sentence = " ".join(str(body.get("sentence", "")).split())
         if not sentence:
             raise HTTPException(422, "type a sentence first")
@@ -183,7 +186,9 @@ def create_app(watcher, *, compile_fn=None, embed_text_fn=None, broadcaster: Bro
             raise HTTPException(503, "compiler not configured")
         try:
             res = await asyncio.to_thread(compile_fn, sentence)
+            watcher.compiler_down = False
         except Exception as e:  # TF down or no valid spec: armed tripwires keep running
+            watcher.compiler_down = _unreachable(e)
             cached = watcher.db.cached_spec(sentence)
             if cached is None:
                 watcher.db.log_compile(sentence, False, f"{type(e).__name__}: {str(e)[:300]}")
@@ -258,7 +263,7 @@ def create_app(watcher, *, compile_fn=None, embed_text_fn=None, broadcaster: Bro
 
     @app.post("/labels")
     async def label(request: Request) -> dict:
-        body = await request.json()
+        body = await _json_or_422(request)
         kind = str(body.get("kind", "")).strip()[:40]
         if not kind:
             raise HTTPException(422, "kind required")
@@ -283,6 +288,24 @@ def config_version() -> str:
     from . import __version__
 
     return __version__
+
+
+def _unreachable(e: Exception) -> bool:
+    """Token Factory down or unreachable (as opposed to a sentence that produced no valid spec)."""
+    kind = getattr(e, "kind", "")
+    attempts = getattr(e, "attempts", []) or []
+    names = " ".join(str(a.get("error", "")) for a in attempts) + f" {type(e).__name__} {e}"
+    return kind == "no_key" or any(w in names for w in ("Connection", "Timeout", "APIConnection", "502", "503", "504"))
+
+
+async def _json_or_422(request: Request) -> dict:
+    try:
+        body = await request.json()
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        raise HTTPException(422, "the body must be JSON") from None
+    if not isinstance(body, dict):
+        raise HTTPException(422, "the body must be a JSON object")
+    return body
 
 
 async def _json_or_empty(request: Request) -> dict:
