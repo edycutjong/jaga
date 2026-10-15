@@ -118,6 +118,7 @@ def render_html(d: dict) -> str:
     bench_html = (f"<section><h2>Measured · scripts/bench.py (DEMO.md)</h2><table><tr><th>device</th><th>p50 s/clip</th>"
                   f"<th>p95 s/clip</th><th>timed calls</th></tr>{rows_b}</table>{period}</section>") if rows_b else ""
     return f"""<!doctype html><html lang=en><head><meta charset=utf-8><title>jaga · receipts</title>
+<meta name=viewport content="width=device-width,initial-scale=1"><link rel=icon href="data:,">
 <link rel=stylesheet href="/static/overlay.css"></head><body class=receipts>
 <header class=strip><span class=name>JAGA</span><span class=meta>receipts · generated {_e(d['generated_at'])}</span>
 <a class=back href="/">← overlay</a></header>

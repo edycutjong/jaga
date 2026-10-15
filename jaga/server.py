@@ -247,7 +247,7 @@ def create_app(watcher, *, compile_fn=None, embed_text_fn=None, broadcaster: Bro
         try:
             await asyncio.to_thread(watcher.disarm, slot)
         except KeyError as e:
-            raise HTTPException(404, str(e)) from e
+            raise HTTPException(404, str(e.args[0] if e.args else e)) from e
         return {"ok": True}
 
     @app.post("/tripwires/{slot}/example")
@@ -255,7 +255,7 @@ def create_app(watcher, *, compile_fn=None, embed_text_fn=None, broadcaster: Bro
         try:
             return await asyncio.to_thread(watcher.add_example, slot)
         except KeyError as e:
-            raise HTTPException(404, str(e)) from e
+            raise HTTPException(404, str(e.args[0] if e.args else e)) from e
 
     @app.post("/plug/test")
     async def plug_test() -> Response:
@@ -270,6 +270,8 @@ def create_app(watcher, *, compile_fn=None, embed_text_fn=None, broadcaster: Bro
 
     @app.post("/events/{event_id}/wrong")
     async def wrong(event_id: int) -> dict:
+        if not 0 < event_id < 2**63:  # SQLite integers: anything else is simply not an event
+            raise HTTPException(404, "no such event")
         ok = await asyncio.to_thread(watcher.db.mark_wrong, event_id)
         if not ok:
             raise HTTPException(404, "no such event")

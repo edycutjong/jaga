@@ -85,9 +85,16 @@ def build_watcher(a, *, scored: bool = False, session: str | None = None):
     missing = [s for s in _slots(getattr(a, "arm", None)) if s not in _slots(a.load)]
     if missing:
         raise SystemExit(f"--arm {','.join(missing)}: arm only tripwires you --load (loaded: {a.load or 'none'})")
+    dwells = parse_dwells(getattr(a, "dwell", None), _slots(a.load))
+    cap = getattr(a, "capture_s", None)
+    if cap is not None and not (0 <= cap <= 600):
+        raise SystemExit("--capture-s must be between 0 and 600 seconds")
     fixtures = []
     for slot in _slots(a.load):  # every refusal happens before the model loads and before the session is opened
-        fx = load(slot)
+        try:
+            fx = load(slot)
+        except FileNotFoundError:
+            raise SystemExit(f"--load {slot}: no frozen tripwire {slot} in fixtures/tripwires/") from None
         th = frozen_threshold(fx)
         if scored and th is None:
             raise SystemExit(f"tripwire {slot}: a scored session needs a frozen θ (scripts/seed.py freeze-theta)")
@@ -119,10 +126,27 @@ def build_watcher(a, *, scored: bool = False, session: str | None = None):
         w.load_tripwire(slot, fx["sentence"], fx["spec"], pos, neg, th or fresh_threshold(TUNING),
                         {k: fx.get(k) for k in ("tf_request_id", "tf_response_id", "model", "created", "temperature",
                                                 "operating")})
-    for item in a.dwell or []:
-        slot, sec = item.split("=")
-        w.override_dwell(slot.zfill(2), float(sec), "demo")
+    for slot, sec in dwells:
+        w.override_dwell(slot, sec, "demo")
     return w, src, bc, emb
+
+
+def parse_dwells(items, loaded: list[str]) -> list[tuple[str, float]]:
+    """--dwell 01=30 … → [(slot, seconds)], checked before anything starts."""
+    out = []
+    for item in items or []:
+        slot, _, sec = str(item).partition("=")
+        slot = slot.strip().zfill(2)
+        try:
+            x = float(sec)
+        except ValueError:
+            raise SystemExit(f"--dwell {item}: write it as <slot>=<seconds>, e.g. 01=30") from None
+        if slot not in loaded:
+            raise SystemExit(f"--dwell {item}: tripwire {slot} is not loaded (--load {','.join(loaded) or '…'})")
+        if not (2 <= x <= 600):
+            raise SystemExit(f"--dwell {item}: the dwell must be 2–600 s")
+        out.append((slot, x))
+    return out
 
 
 def cmd_serve(a, *, scored: bool = False, session: str | None = None, on_started=None) -> int:
@@ -147,6 +171,7 @@ def cmd_serve(a, *, scored: bool = False, session: str | None = None, on_started
         raise KeyboardInterrupt
 
     signal.signal(signal.SIGTERM, _term)
+    signal.signal(signal.SIGHUP, _term)  # closing the terminal ends it cleanly too
     try:
         run(app, a.port, on_ready=ready)
     except KeyboardInterrupt:
@@ -166,6 +191,8 @@ def cmd_soak(a) -> int:
     if a.kind == "B":
         if not a.schedule:
             raise SystemExit("Soak B needs its pre-registered schedule: --schedule docs/protocol/<session>.csv")
+        if not Path(a.schedule).exists():
+            raise SystemExit(f"--schedule {a.schedule}: no such file (run from build/, e.g. docs/protocol/B1.csv)")
         a.load = a.load or "01"
         a.arm = a.arm or a.load
     else:
