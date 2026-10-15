@@ -209,6 +209,8 @@ class Watcher:
         left = self._unacked_cuts()
         if left:
             self.retry["slot"] = left[0].slot
+            ts, held = getattr(left[0], "trip_info", (self.retry.get("ts"), self.retry.get("held")))
+            self.retry.update(ts=ts, held=held)
         else:
             self.retry = None
             if self.plug.get("failed"):
@@ -427,6 +429,7 @@ class Watcher:
         if tw.action == "plug_off":
             tw.off_acked = False
             tw.tripped_mono = time.monotonic()
+            tw.trip_info = (ts, held)
             self.plug["state"] = "unknown"  # a cached "off" must never stand in for THIS trip's acknowledgement (I3)
             self.actions.put(("off", tw.slot, ts, held))
         else:
@@ -464,6 +467,7 @@ class Watcher:
         clock = time.strftime("%H:%M:%S", time.localtime(ts))
         try:
             with self.driver_lock:
+                t_call = time.monotonic()  # the plug's answer can only vouch for trips before this moment
                 ack = self.driver.turn_off()  # returns only after the plug acknowledges OFF (I3)
         except Exception as e:  # ActionFailed, or anything a driver did not expect: never "done"
             reason = str(e) if isinstance(e, act_mod.ActionFailed) else f"unexpected error ({type(e).__name__})"
@@ -478,16 +482,17 @@ class Watcher:
             self.publish("window", self.snapshot())
             return False
         with self.lock:
-            # one plug: an OFF acknowledged now is a fresh confirmation for every tripwire tripped before it
+            # one plug: this acknowledgement confirms power is off for every trip that happened before the call
+            # began; a trip after that moment (the plug may have been switched on since) waits for its own OFF
             for t2 in self._unacked_cuts():
-                t2.off_acked = True
-            tw.off_acked = True
+                if t2.tripped_mono is not None and t2.tripped_mono < t_call:
+                    t2.off_acked = True
             self.last_off_ack_mono = time.monotonic()
             self.plug.update(state="off", failed=False, detail=ack.detail, last_action="off",
                              latency_ms=round(ack.latency_ms, 1))
             self.plug_seen_off = True
             tries = (self.retry or {}).get("tries", 0)
-            self.retry = None
+            self._retarget_retry()  # stops it, unless a later trip still waits for its own OFF
         note = f" after {tries} retries" if not first else ""
         self._event("action", tw, f"plug OFF acknowledged in {ack.latency_ms:.0f} ms{note}", latency_ms=ack.latency_ms)
         self._push(f"jaga · {tw.slot} {tw.name} · tripped {clock} · plug OFF · held {held:.0f} s")
@@ -548,11 +553,15 @@ class Watcher:
                     t.off_acked = True
                 if confirmed:
                     self.last_off_ack_mono = started
-                    self.plug.update(failed=False, detail="OFF confirmed by a status read", last_action="off")
+                    self.plug.update(failed=False, detail="OFF confirmed by a status read", last_action="off-confirmed",
+                                     latency_ms=None)
                     self._retarget_retry()
             tripped = [tw for tw in self.tripwires.values()
                        if tw.action == "plug_off" and tw.state == "tripped" and tw.off_acked]
-            if st is False:
+            newer = [t for t in self._unacked_cuts() if t.tripped_mono is not None and t.tripped_mono >= started]
+            if st is False and newer:
+                pass  # this read began before a trip that still waits for its OFF: it cannot describe the plug now
+            elif st is False:
                 self.plug["state"] = "off"
                 if tripped:
                     self.plug_seen_off = True
@@ -563,7 +572,8 @@ class Watcher:
                     for tw in tripped:
                         self._rearm_or_hold(tw, "plug switched back on")
         for t in confirmed:
-            self._event("action", t, "plug OFF confirmed by a status read (the OFF's acknowledgement was lost)")
+            self._event("action", t, f"{t.name}: plug OFF confirmed by a status read (the OFF's acknowledgement "
+                                     "was lost) — earlier ACTION FAILED no longer applies", notify=True)
         self.publish("window", self.snapshot())
 
     def plug_test(self) -> dict:

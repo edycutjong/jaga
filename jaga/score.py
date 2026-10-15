@@ -252,6 +252,7 @@ class Tripwire:
     last: WindowResult | None = None
     off_acked: bool = False  # I3: True only once the plug acknowledged OFF for THIS trip
     tripped_mono: float | None = None  # monotonic time of the trip: a plug read must start after it to count
+    trip_info: tuple | None = None  # (window ts, seconds held) of the latest trip, for its OFF messages
     stale_ref: bool = False  # the camera moved since this tripwire's normal-state capture
 
     def __post_init__(self):
