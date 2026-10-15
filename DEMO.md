@@ -5,18 +5,18 @@ A section that has not run says so; nothing here is estimated.
 
 ## 1. Speed — Cosmos-Embed1-224p on this laptop
 
-| device | precision | windows | p50 s/clip | p95 s/clip | torch | threads | machine load (1-min avg) |
+| device | precision | timed calls | p50 s/clip | p95 s/clip | torch | threads | 1-min load average before → after |
 |---|---|---|---|---|---|---|---|
-| MPS | fp32 | 200 | 0.8616 | 0.9182 | 2.14.1 | 8 | not recorded |
-| CPU | fp32 | 200 | 3.5283 | 7.3793 | 2.14.1 | 8 | not recorded |
+| MPS | fp32 | 200 | 2.6988 | 5.6765 | 2.14.1 | 8 | 3.82 → 57.29 |
+| CPU | fp32 | 200 | 4.288 | 12.1067 | 2.14.1 | 8 | 42.26 → 13.42 |
 
-One window = 8 frames → `preprocess` + `get_video_embeddings`, after 5 warm-up calls; input `javelin_throw.webm` (the model card's own sample video). *ran 2026-10-15T07:22:02+0700 at commit `4697826` on Apple M1 Max (macOS-26.5.2-arm64-arm-64bit); 1-min load average 37.1*
+200 timed calls on one window (8 frames → `preprocess` + `get_video_embeddings`), after 5 warm-up calls; input `javelin_throw.webm` (the model card's own sample video). Other processes on the machine were not stopped; the load column shows how busy it was. *ran 2026-10-15T10:23:31+0700 at commit `58f3768` on Apple M1 Max (macOS-26.5.2-arm64-arm-64bit); 1-min load average when the result was written: 13.42*
 
 Reproduce: `python scripts/bench.py speed --n 200`
 
 ### Live window period N (every dwell clamp and the watchdog use it)
 
-p50 **1.11 s**, p95 2.44 s over 114 windows of session `p1-liveloop-file` (source: live; a recorded file played in real time through the live loop (the autopilot's process has no camera permission); machine shared with two other build sessions). *ran 2026-10-15T07:29:47+0700 at commit `e3e02bf` on Apple M1 Max (macOS-26.5.2-arm64-arm-64bit); 1-min load average 12.16*
+p50 **1.07 s**, p95 1.34 s over 283 windows of session `p1-period` (source: live; a recorded clip looped in real time through the live loop (no camera in this run); other processes were running on the machine). *ran 2026-10-15T10:29:51+0700 at commit `58f3768` on Apple M1 Max (macOS-26.5.2-arm64-arm-64bit); 1-min load average when the result was written: 10.57*
 
 ## 2. Labelled clips (one 8-s clip = one window)
 
@@ -30,6 +30,10 @@ Not yet run: needs the 2-minute normal-state captures (`normal/<tripwire>`).
 
 Not yet run: Soak B1/B2 have not been recorded. Protocol and schedules: `docs/PROTOCOL.md`.
 
+## 4b. Soak A — one night, tripwires 02 and 03 (supporting)
+
+Not yet run: the Soak A night has not been recorded.
+
 ## 5. Self-ablation
 
 Not yet run: needs the labelled clips.
@@ -42,7 +46,13 @@ Not yet run: no outside people's clips received yet.
 
 ```bash
 pip install -e .
-jaga score --replay data/clips/iron/pos_03.mp4 --tripwire fixtures/tripwires/01.json   # no model download
+python scripts/bench.py speed      # downloads Cosmos-Embed1 once (public on Hugging Face on 2026-10-15)
+python scripts/bench.py period --session <name>   # from any logged session
+```
+
+Once the labelled clips are recorded and their vectors committed, these run without the model:
+
+```bash
 python scripts/bench.py clips      # AUC / precision from the committed vectors
-python scripts/bench.py speed      # needs the gated Cosmos-Embed1 weights (accept the licence on HF)
+jaga score --replay iron/pos_03 --tripwire fixtures/tripwires/01.json   # a clip id from fixtures/clips.csv
 ```
