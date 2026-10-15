@@ -197,36 +197,67 @@
     });
   }
 
+  function scheduleRow(slot) {
+    const tr = document.createElement("tr");
+    tr.dataset.slot = slot;
+    tr.innerHTML = '<td class="slot"></td><td class="what"><span class="sent"></span><span class="reason"></span></td>' +
+      '<td class="rule"></td><td class="st"></td><td class="score num"></td><td class="act"><button type="button"></button></td>';
+    return tr;
+  }
+
+  function setText(el, text) { if (el.textContent !== text) el.textContent = text; }
+
+  // Rows are updated in place (never re-created each window), so a button under the cursor or holding keyboard
+  // focus stays the same element.
   function renderSchedule(snap) {
     const tb = $("sch-rows");
     const rows = snap.windows || [];
     if (!rows.length) {
-      tb.innerHTML = '<tr class="empty"><td colspan="6">No tripwire yet. Type what to watch for above — Nemotron 3 Super compiles it, you check it, then arm it.</td></tr>';
+      if (!tb.querySelector("tr.empty")) {
+        tb.innerHTML = '<tr class="empty"><td colspan="6">No tripwire yet. Type what to watch for above — Nemotron 3 Super compiles it, you check it, then arm it.</td></tr>';
+      }
       return;
     }
+    tb.querySelector("tr.empty")?.remove();
     const now = Date.now() / 1000;
-    tb.innerHTML = rows.map((w) => {
+    const seen = new Set();
+    rows.forEach((w, i) => {
+      seen.add(w.slot);
+      let tr = tb.querySelector(`tr[data-slot="${w.slot}"]`);
+      if (!tr) { tr = scheduleRow(w.slot); }
+      if (tb.children[i] !== tr) tb.insertBefore(tr, tb.children[i] || null);
       let word = { armed: "ARMED", holding: "HOLDING", tripped: "TRIPPED", capturing: "CAPTURING", unarmed: "UNARMED" }[w.state] || w.state.toUpperCase();
-      let cls = w.state;
-      if (w.state === "armed" && S.resetUntil[w.slot] > now) { word = "RESET"; }
-      const action = w.action === "plug_off" ? "plug OFF" : "notify";
+      if (w.state === "armed" && S.resetUntil[w.slot] > now) word = "RESET";
+      tr.className = w.state;
+      setText(tr.querySelector(".slot"), w.slot);
+      setText(tr.querySelector(".sent"), w.sentence);
+      setText(tr.querySelector(".reason"), w.state === "unarmed" && w.unarmed_reason ? w.unarmed_reason : "");
       const dwell = Math.round(w.effective_dwell_s || w.dwell_s);
+      const rule = `dwell <span class="num">${dwell}</span> s → ${w.action === "plug_off" ? "plug OFF" : "notify"}` +
+        (w.dwell_note ? ` <span class="muted">(${esc(w.dwell_note)})</span>` : "");
+      const ruleTd = tr.querySelector(".rule");
+      if (ruleTd.innerHTML !== rule) ruleTd.innerHTML = rule;
+      setText(tr.querySelector(".st"), word + (w.state === "capturing" ? ` ${fmt.mmss(w.capture_left_s || 0)}` : ""));
       const sc = scoreOf(w);
-      const score = sc === null || sc === undefined ? "—" : `${scoreName(w)} ${fmt.signed(sc, w.mode === "labelled-m" ? 4 : 2)}`;
-      const reason = w.state === "unarmed" && w.unarmed_reason ? `<span class="reason">${esc(w.unarmed_reason)}</span>` : "";
-      const cap = w.state === "capturing" ? ` <span class="num">${fmt.mmss(w.capture_left_s || 0)}</span>` : "";
-      const btn = ["armed", "holding", "capturing", "tripped"].includes(w.state)
-        ? `<button class="btn ghost small" data-act="disarm" data-slot="${w.slot}" type="button">disarm</button>`
-        : `<button class="btn small" data-act="arm" data-slot="${w.slot}" type="button">arm</button>`;
-      return `<tr class="${cls}"><td class="slot">${esc(w.slot)}</td><td class="what">${esc(w.sentence)}${reason}</td>` +
-        `<td class="rule">dwell <span class="num">${dwell}</span> s → ${action}${w.dwell_note ? ` <span class="muted">(${esc(w.dwell_note)})</span>` : ""}</td>` +
-        `<td class="st">${word}${cap}</td><td class="score num">${score}</td><td class="act">${btn}</td></tr>`;
-    }).join("");
+      setText(tr.querySelector(".score"), sc === null || sc === undefined ? "—" : `${scoreName(w)} ${fmt.signed(sc, w.mode === "labelled-m" ? 4 : 2)}`);
+      const live = ["armed", "holding", "capturing", "tripped"].includes(w.state);
+      const btn = tr.querySelector("button");
+      const act = live ? "disarm" : "arm";
+      if (btn.dataset.act !== act || btn.dataset.slot !== w.slot) {
+        btn.dataset.act = act;
+        btn.dataset.slot = w.slot;
+        btn.className = live ? "btn ghost small" : "btn small";
+        btn.textContent = act;
+        btn.disabled = false;
+        btn.setAttribute("aria-label", `${act} tripwire ${w.slot}`);
+      }
+    });
+    [...tb.querySelectorAll("tr[data-slot]")].forEach((tr) => { if (!seen.has(tr.dataset.slot)) tr.remove(); });
     const soak = $("soak");
     soak.hidden = !snap.scored;
     if (snap.scored) {
       $("soak-name").textContent = `${snap.session}${snap.frozen_for ? " · scored · θ frozen" : ""}`;
-      $("soak-keys").textContent = "log: 1 still starts · 2 still ends · 3 leaves the room · 4 steps away, in view · 5 back at the board · 0 note";
+      $("soak-keys").textContent = "log: 1 still starts · 2 still ends · 3 leaves the room · 4 steps away, in view · 5 back at the board · 6 left open · 7 closed · 0 note";
     }
   }
 
@@ -336,7 +367,11 @@
     if (!b) return;
     b.disabled = true;
     try { await post(`/tripwires/${b.dataset.slot}/${b.dataset.act}`, b.dataset.act === "arm" ? { capture_s: 120 } : {}); }
-    catch (e) { b.textContent = "failed"; }
+    catch (e) {
+      b.textContent = "failed";
+      b.title = e.message;
+      setTimeout(() => { b.disabled = false; b.textContent = b.dataset.act; }, 2000);
+    }
   });
   $("events").addEventListener("click", async (ev) => {
     const b = ev.target.closest("button.wrong");
@@ -356,7 +391,8 @@
     if (!slot) return;
     try { const d = await post(`/tripwires/${slot}/example`); if (d.examples) S.examples[slot] = d.examples; } catch (_) { /* ignore */ }
   });
-  const SOAK_KEYS = { 1: "still_start", 2: "still_end", 3: "exit_leave", 4: "exit_inview", 5: "returned", 0: "note" };
+  const SOAK_KEYS = { 1: "still_start", 2: "still_end", 3: "exit_leave", 4: "exit_inview", 5: "returned",
+    6: "left_open", 7: "closed", 0: "note" };
   document.addEventListener("keydown", (ev) => {
     if (ev.target.tagName === "INPUT") { if (ev.key === "Escape") ev.target.blur(); return; }
     if (ev.key === "/") { ev.preventDefault(); $("sentence").focus(); return; }

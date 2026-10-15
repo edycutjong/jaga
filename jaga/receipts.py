@@ -71,6 +71,10 @@ def _e(x) -> str:
     return html.escape("—" if x is None or x == "" else str(x))
 
 
+def _usd(x) -> str:
+    return "—" if x is None else f"${x:.6f}"
+
+
 def _theta(t: dict) -> str:
     out = str(t["threshold_mode"])
     if t["theta"] is not None:
@@ -87,12 +91,13 @@ def render_html(d: dict) -> str:
         f"<td class=num>{_theta(t)}</td></tr>" for t in d["tripwires"])
     rows_c = "".join(
         f"<tr><td class=num>{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(c['ts']))}</td><td>{_e(c['sentence'])}</td>"
-        f"<td class=num>{_e(c['tf_request_id'])}</td><td>{'ok' if c['ok'] else 'failed'} {_e(c['detail'])}</td></tr>"
+        f"<td class=num>{_e(c['tf_request_id'])}</td><td>{'ok' if c['ok'] else 'failed'}"
+        f"{' · ' + html.escape(str(c['detail'])) if c['detail'] else ''}</td></tr>"
         for c in d["compiles"])
     rows_j = "".join(
         f"<tr><td class=num>{_e(j.get('job_id'))}</td><td>{_e(j.get('kind'))}</td><td>{_e(j.get('state'))}</td>"
         f"<td class=num>{_e(j.get('created_at'))}</td><td class=num>{_e(j.get('wall_clock_s'))} s</td>"
-        f"<td>{_e(j.get('platform'))} {_e(j.get('preset'))}</td><td class=num>{_e(j.get('cost_usd_docs_price'))}</td></tr>"
+        f"<td>{_e(j.get('platform'))} {_e(j.get('preset'))}</td><td class=num>{_usd(j.get('cost_usd_docs_price'))}</td></tr>"
         for j in reversed(d["jobs"]))
     m = d.get("model") or {}
     return f"""<!doctype html><html lang=en><head><meta charset=utf-8><title>jaga · receipts</title>
@@ -110,4 +115,4 @@ def render_html(d: dict) -> str:
 <table><tr><th>job ID</th><th>kind</th><th>state</th><th>created</th><th>wall clock</th><th>compute</th><th>cost (docs price)</th></tr>
 {rows_j or '<tr><td colspan=7 class=muted>no Job run yet</td></tr>'}</table>
 <p class=muted>Every run is also listed in docs/RUNS.md with its cost at both prices.</p></section>
-</main><footer>Built on NVIDIA Cosmos · video frames never leave this laptop</footer></body></html>"""
+</main><footer class=foot>Built on NVIDIA Cosmos · video frames never leave this laptop</footer></body></html>"""
