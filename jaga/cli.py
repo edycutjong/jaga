@@ -60,8 +60,8 @@ def port_free(port: int | None) -> None:
     try:
         s.bind((config.HOST, int(port)))
     except OSError:
-        raise SystemExit(f"port {port} is in use — another jaga is probably running: stop it (Ctrl-C in its "
-                         "terminal) or pass --port") from None
+        raise SystemExit(f"port {port} is in use — by another jaga (Ctrl-C in its terminal) or another local "
+                         f"server; stop it, or pass --port {int(port) + 1}") from None
     finally:
         s.close()
 
