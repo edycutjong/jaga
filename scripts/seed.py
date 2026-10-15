@@ -39,15 +39,16 @@ VARIANCE = TRIPWIRES / "variance"
 LOCAL_CLIPS = config.jaga_home() / "clips"  # every imported clip, local only
 PUBLIC_CLIPS = REPO / "data" / "clips"  # only clips listed in PUBLISH.txt
 
-# The three measured events (spec.md "Scope Constraint"). 02 is the fridge variant unless cat clips exist.
+# The three events to be measured. 02 is the fridge; cat clips, if recorded, get their own tripwire 04.
 SENTENCES = {
     "01": ("iron", "nobody is at the ironing board"),
     "02": ("fridge", "the fridge door is left open and nobody is there"),
     "03": ("door", "the door is left open and nobody is there"),
 }
 CAT_SENTENCE = ("cat", "the cat is on the kitchen counter")
-SET_TO_SLOT = {"iron": "01", "iron-inview": "01", "iron-day2": "01", "fridge": "02", "cat": "02", "door": "03"}
+SET_TO_SLOT = {"iron": "01", "iron-inview": "01", "iron-day2": "01", "fridge": "02", "cat": "04", "door": "03"}
 HELDOUT_SETS = {"iron-day2"}
+TEST_ONLY_SETS = {"iron-inview"}  # scored at the frozen θ, never used to fit it (a separate recall, per exit type)
 NAME_RE = re.compile(r"^(?P<label>pos|neg)_(?P<n>\d{1,3})_(?P<lighting>day|lamp|dusk)_(?P<pos>[a-z0-9-]+)$", re.I)
 CLIP_COLUMNS = ["clip_id", "set", "tripwire", "label", "recorded_at", "lighting", "camera_pos", "heldout",
                 "window_start_s", "source_duration_s", "source_fps", "published", "notes"]
@@ -89,9 +90,11 @@ def cmd_freeze_specs(a) -> int:
     TRIPWIRES.mkdir(parents=True, exist_ok=True)
     emb = shared(a.device)
     sentences = dict(SENTENCES)
-    if a.cat:
-        sentences["02"] = CAT_SENTENCE
-    for slot in [s.zfill(2) for s in a.slots.split(",")]:
+    slots = [s.zfill(2) for s in a.slots.split(",")]
+    if a.cat:  # cat clips instead of fridge: a new tripwire 04; the frozen 02 is never recompiled (leakage guard)
+        sentences["04"] = CAT_SENTENCE
+        slots = ["04"]
+    for slot in slots:
         out = TRIPWIRES / f"{slot}.json"
         if out.exists():
             print(f"{slot}: already frozen ({out.name}) — never recompiled (leakage guard)")
@@ -200,7 +203,8 @@ def cmd_import(a) -> int:
     if pl.exists():
         publish = {ln.strip() for ln in pl.read_text().splitlines() if ln.strip() and not ln.startswith("#")}
     rows = {r["clip_id"]: r for r in read_clips_csv()}
-    added = 0
+    added = collisions = 0
+    seen_now: dict[str, str] = {}
     for set_dir in sorted(p for p in raw.iterdir() if p.is_dir()):
         if set_dir.name in ("normal", "outside"):
             continue
@@ -215,8 +219,19 @@ def cmd_import(a) -> int:
                 print(f"skip {f.name}: expected <pos|neg>_<NN>_<day|lamp|dusk>_<camera_pos>")
                 continue
             cid = f"{set_dir.name}/{m['label'].lower()}_{int(m['n']):02d}"
-            if cid in rows and not a.force:
+            if cid in seen_now:
+                print(f"ERROR {f.name}: {cid} is also {seen_now[cid]} — every clip needs its own number within a set "
+                      "and label; rename one and import again")
+                collisions += 1
                 continue
+            seen_now[cid] = f.name
+            if cid in rows and not a.force:
+                old = rows[cid]
+                if (old.get("lighting"), old.get("camera_pos")) != (m["lighting"].lower(), m["pos"].lower()):
+                    print(f"ERROR {f.name}: {cid} was already imported from a {old.get('lighting')} clip at "
+                          f"{old.get('camera_pos')} — give this one its own number")
+                    collisions += 1
+                continue  # the same clip, imported before
             info = probe(f)
             if info.duration_s < 8.0:
                 print(f"skip {f.name}: {info.duration_s:.1f} s is shorter than the 8-s window")
@@ -248,8 +263,9 @@ def cmd_import(a) -> int:
                 shutil.copy2(f, dst_dir / f"{tag}{f.suffix.lower()}")
                 print(f"normal/{tag}: copied for the fresh-mode row ({probe(f).duration_s:.0f} s)")
     write_clips_csv(list(rows.values()))
-    print(f"{added} clip(s) imported · {len(rows)} in fixtures/clips.csv")
-    return 0
+    print(f"{added} clip(s) imported · {len(rows)} in fixtures/clips.csv" + (f" · {collisions} name collision(s)"
+                                                                            if collisions else ""))
+    return 1 if collisions else 0
 
 
 # ----------------------------------------------------------------------------------- embed / freeze / verify
@@ -289,6 +305,8 @@ def clip_margins(slot: str, include_heldout: bool = False) -> list[tuple[str, in
     out = []
     for r in read_clips_csv():
         if r["tripwire"].zfill(2) != slot or (r["heldout"] == "1" and not include_heldout):
+            continue
+        if r["set"] in TEST_ONLY_SETS and not include_heldout:
             continue
         v = committed_vector(r["clip_id"])
         if v is not None:
@@ -358,7 +376,7 @@ def main() -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("freeze-specs")
     p.add_argument("--slots", default="01,02,03")
-    p.add_argument("--cat", action="store_true", help="tripwire 02 is the cat variant (only if cat clips exist)")
+    p.add_argument("--cat", action="store_true", help="freeze the cat variant as tripwire 04 (only if cat clips exist)")
     p.set_defaults(fn=cmd_freeze_specs)
     p = sub.add_parser("freeze-ablation")
     p.set_defaults(fn=cmd_freeze_ablation)

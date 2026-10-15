@@ -32,8 +32,8 @@ PROJECT = os.environ.get("JAGA_NEBIUS_PROJECT", "project-e01phrcvpa003r6v2aep14"
 SUBNET = os.environ.get("JAGA_NEBIUS_SUBNET", "vpcsubnet-e01mdp8yxx4t2hccw5")
 PLATFORM, PRESET, IMAGE, DISK, TIMEOUT = "cpu-d3", "4vcpu-16gb", "python:3.11", "16Gi", "1h"
 REGION = "eu-west1"
-# $/hour for 4 vCPU + 16 GiB: the docs list price (4×0.012 + 16×0.0032)
-# and a higher price seen earlier (4×0.015 + 16×0.0045)
+# $/hour for 4 vCPU + 16 GiB: the listed cpu-d3 price (4×0.012 + 16×0.0032, docs.nebius.com/compute/resources/pricing)
+# and a higher rate kept as a margin (4×0.015 + 16×0.0045; not a listed price)
 PRICE_DOCS, PRICE_HIGH = 0.0992, 0.132
 INJECT_LIMIT = 64 * 1024
 MIN_POS = 5  # engineering guard: a threshold from fewer positive clips is recorded, never adopted
@@ -53,8 +53,8 @@ def clip_rows() -> list[dict]:
     with CLIPS_CSV.open() as f:
         for r in csv.DictReader(f):
             slot = r["tripwire"].zfill(2)
-            if r.get("heldout") in ("1", "true"):
-                continue  # held-out day-2 clips never calibrate
+            if r.get("heldout") in ("1", "true") or r.get("set") == "iron-inview":
+                continue  # held-out day-2 clips and the in-view test set never calibrate
             try:
                 if slot not in cache:
                     cache[slot] = load_vectors(load(slot))
@@ -313,9 +313,11 @@ RUNS_HEADER = """# Calibration runs — Nebius AI Cloud Serverless Jobs
 
 Every row is written by `jaga calibrate` (`jaga/calibrate.py`) from the Job's own status and output; the
 evidence file for each run is `evidence/jobs/<job-id>.json`. Compute: `cpu-d3` · `4vcpu-16gb` · stock
-`python:3.11` · `--disk-size 16Gi` (the smallest size the API accepted on day 0) · region eu-west1. Input: labelled margins
-only (no vectors, no frames). Cost = container wall clock × hourly price for 4 vCPU + 16 GiB, at the docs list
-price ($0.0992/h) and at a higher price seen earlier ($0.132/h); the billed amount is read from the console.
+`python:3.11` · `--disk-size 16Gi` (the smallest size we probed that validated; the API's minimum for the image is
+10 GiB) · region eu-west1. Input: labelled margins only (no vectors, no frames). Cost = container wall clock × hourly
+price for 4 vCPU + 16 GiB: at the listed price for this platform (AMD Epyc Genoa, $0.012 per vCPU-hour + $0.0032 per
+GiB-hour = $0.0992/h, <https://docs.nebius.com/compute/resources/pricing>) and, as a margin, at a higher rate of
+$0.132/h (4 × $0.015 + 16 × $0.0045; not a listed price). Both are computed, not billed amounts.
 
 A **smoke** run checks the plumbing on a committed synthetic test fixture. It is not a calibration and its
 numbers mean nothing about any tripwire.
