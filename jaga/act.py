@@ -208,6 +208,14 @@ def load_driver(cfg_dir: Path | None = None) -> PlugDriver:
     return NullPlug()
 
 
+def banner_argv(text: str, title: str = "jaga") -> list[str]:
+    """osascript argv for a macOS banner. The text travels as an argument, never inside the script source, so
+    "·", "—", quotes or backslashes cannot break the AppleScript (json.dumps escapes became \\uXXXX, which
+    AppleScript cannot parse: no banner ever appeared)."""
+    return ["osascript", "-e", "on run argv", "-e", "display notification (item 1 of argv) with title (item 2 of argv)",
+            "-e", "end run", "--", text, title]
+
+
 class Notifier:
     """The overlay event row is the notification on screen. Optional extras: a macOS banner (off with
     --no-os-banner while filming) and one ntfy text line (off unless JAGA_NTFY_TOPIC is set)."""
@@ -224,9 +232,8 @@ class Notifier:
     def notify(self, text: str, title: str = "jaga") -> None:
         self.sent.append(text)
         if self.os_banner and os.uname().sysname == "Darwin":
-            script = f"display notification {json.dumps(text)} with title {json.dumps(title)}"
             try:
-                subprocess.Popen(["osascript", "-e", script], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                subprocess.Popen(banner_argv(text, title), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             except OSError:
                 pass
         if self.ntfy_topic:
