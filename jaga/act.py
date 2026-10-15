@@ -52,7 +52,7 @@ class Ack:
 
 class PlugDriver:
     kind = "none"
-    label = "Wi-Fi plug"  # no third-party brand on the filmed UI (rules:160)
+    label = "Wi-Fi plug"  # no third-party brand on the filmed UI
     address = ""
 
     def turn_off(self) -> Ack:  # pragma: no cover - interface
@@ -84,7 +84,9 @@ class TuyaPlug(PlugDriver):
 
     def __init__(self, dev_id: str, ip: str, local_key: str, version: float | str = 3.3, dps: str = "1"):
         if not ip or ip == "Auto":  # never run LAN discovery inside the action path: resolve once, here
-            ip = resolve_tuya_ip(dev_id)
+            found = resolve_tuya(dev_id)
+            ip = found.get("ip")
+            version = version if version not in (None, "", 3.3) else (found.get("version") or version)
         if not ip:
             raise ActionFailed("plug IP unknown: run `python -m tinytuya scan` and add \"ip\" to devices.json")
         self.dev_id, self.ip, self.local_key = dev_id, ip, local_key
@@ -127,14 +129,15 @@ class TuyaPlug(PlugDriver):
         raise ActionFailed("the plug did not confirm OFF")
 
 
-def resolve_tuya_ip(dev_id: str) -> str | None:
+def resolve_tuya(dev_id: str) -> dict:
+    """{ip, version} from a one-time LAN scan (tinytuya.find_device), or {} if the plug is not found."""
     try:
         import tinytuya
 
         found = tinytuya.find_device(dev_id=dev_id) if hasattr(tinytuya, "find_device") else None
     except Exception:
-        return None
-    return (found or {}).get("ip") or None
+        return {}
+    return {k: v for k, v in (found or {}).items() if k in ("ip", "version") and v}
 
 
 class ShellyPlug(PlugDriver):

@@ -107,12 +107,18 @@ class CameraSource(threading.Thread):
     def stop(self) -> None:
         self._halt.set()
 
+    def _open(self):
+        import cv2
+
+        backend = getattr(cv2, "CAP_AVFOUNDATION", cv2.CAP_ANY)
+        cap = cv2.VideoCapture(self.index, backend)
+        return cap if cap.isOpened() else None
+
     def run(self) -> None:
         import cv2
 
-        cap = cv2.VideoCapture(self.index, cv2.CAP_AVFOUNDATION) if hasattr(cv2, "CAP_AVFOUNDATION") \
-            else cv2.VideoCapture(self.index)
-        if not cap.isOpened():
+        cap = self._open()
+        if cap is None:
             self.status.error = ("camera unavailable — on macOS, allow camera access for the terminal app "
                                  "(System Settings → Privacy & Security → Camera)")
             self.ring.close()
@@ -125,9 +131,13 @@ class CameraSource(threading.Thread):
             while not self._halt.is_set():
                 if not cap.grab():
                     fails += 1
-                    if fails > 50:
-                        self.status.ok, self.status.error = False, "camera stopped delivering frames"
-                        time.sleep(0.5)
+                    if fails > 50:  # unplugged or asleep: release and reopen, so a night soak survives a USB hiccup
+                        self.status.ok, self.status.error = False, "camera stopped delivering frames — reopening"
+                        cap.release()
+                        time.sleep(2.0)
+                        cap = self._open() or cap
+                        self.status.extra["reopens"] = self.status.extra.get("reopens", 0) + 1
+                        fails = 0
                     time.sleep(0.02)
                     continue
                 fails = 0

@@ -33,17 +33,25 @@ from .vectors import VectorStore
 TRACE_S = 120.0  # the overlay's margin trace covers the last two minutes
 FAILED_WINDOWS_STOP = 3  # this many failed windows in a row = WATCHER STOPPED
 MIN_DWELL_S = 2.0
+SLOW_RETRY_S = 60.0  # after the fast OFF retries, a failed OFF is retried this often, for as long as it stays tripped
+SLOW_RETRY_NOTIFY_EVERY = 10  # … and pushed again every this many tries
+DARK_REMINDER_S = 600.0  # while a plug_off tripwire is unarmed in the dark and the plug is ON, remind this often
+FIRST_WINDOW_S = 60.0  # no window at all this long after start = WATCHER STOPPED
 
 
 class Watcher:
     def __init__(self, *, db: DB, embedder, ring: Ring, driver: act_mod.PlugDriver, notifier: act_mod.Notifier,
                  session: str, camera_pos: str | None = None, scored: bool = False, tuning: Tuning = TUNING,
                  guards: Guards | None = None, publish=None, source=None, frozen_for: str | None = None,
-                 offline: bool = False):
+                 offline: bool = False, labels: bool = False):
         self.db, self.embedder, self.ring, self.driver, self.notifier = db, embedder, ring, driver, notifier
         self.session, self.camera_pos, self.scored, self.t = session, camera_pos, scored, tuning
         self.frozen_for = frozen_for
         self.offline = offline  # media-time windows (recorded file, no pacing)
+        self.labels = labels or scored  # the label keys (exits, still episodes) are on in soaks and when asked for
+        self.started_mono = time.monotonic()
+        self.dark_reminded_mono = 0.0
+        self.compiler_down = False  # set by the server when Token Factory is unreachable (header: degraded)
         self.guards = guards or Guards(tuning)
         self.publish = publish or (lambda kind, payload: None)
         self.source = source
@@ -153,6 +161,8 @@ class Watcher:
             return "camera moved — re-arm to capture a new reference"
         if not self.guards.has_reference:
             return "no camera reference — re-arm to capture the normal state"
+        if tw.threshold.mode == "fresh-z" and (tw.threshold.mu0 is None or tw.threshold.sigma0 is None):
+            return "no normal state yet — arm with a 2-minute capture"
         return None
 
     def arm(self, slot: str, capture_s: float | None = None) -> None:
@@ -314,6 +324,8 @@ class Watcher:
 
     def _capture_done(self, tw: Tripwire) -> None:
         th = tw.threshold
+        self.meta.setdefault(tw.slot, {})["armed_at"] = self._now()  # opens the optional "show me" check
+        self.meta[tw.slot]["examples"] = []
         if self.guards.end_reference():
             self.guards.begin_reference()  # another tripwire may still be capturing
         self.db.set_armed(tw.tripwire_id, True)
@@ -341,6 +353,7 @@ class Watcher:
         live = [tw for tw in self.tripwires.values() if tw.state in ("armed", "holding", "capturing")]
         if g.too_dark and not self.dark:
             self.dark, self.light_streak = True, 0
+            self.dark_reminded_mono = time.monotonic()  # the entry push below counts as the first reminder
             for tw in live:
                 tw.unarm("too dark to see")
                 self.capture_slots.discard(tw.slot)
@@ -473,9 +486,14 @@ class Watcher:
                         self.retry["tries"] += 1
                         self.retry["left"] -= 1
                         self.retry["next"] = time.monotonic() + self.t.action_retry_s
-                        if self.retry["left"] <= 0:
-                            self.retry = None
-                            self._event("action_failed", tw, "OFF retries exhausted — check the plug", notify=True)
+                        if self.retry["left"] <= 0:  # never give up on an OFF: slow down, keep telling people
+                            self.retry["left"] = 1
+                            self.retry["next"] = time.monotonic() + SLOW_RETRY_S
+                            if self.retry["tries"] % SLOW_RETRY_NOTIFY_EVERY == 0 or not self.retry.get("slow"):
+                                self.retry["slow"] = True
+                                self._event("action_failed", tw,
+                                            f"plug still not OFF after {self.retry['tries']} tries — retrying every "
+                                            f"{SLOW_RETRY_S:.0f} s; check the plug", notify=True)
             return
         with self.lock:
             force, self._poll_now = self._poll_now, False
@@ -538,10 +556,22 @@ class Watcher:
                     stale = time.monotonic() - self.last_window_mono
                     if stale > limit and self.watcher_ok:
                         reason = f"WATCHER STOPPED — no window for {stale:.0f} s"
+                elif (self.last_window_mono is None and self.watcher_ok
+                      and time.monotonic() - self.started_mono > FIRST_WINDOW_S):
+                    reason = f"WATCHER STOPPED — no window since start ({FIRST_WINDOW_S:.0f} s): check the camera"
                 if reason:
                     self.watcher_ok = False
+                remind = None
+                dark_cut = [self.tripwires[s] for s in self.dark_unarmed if self.tripwires[s].action == "plug_off"]
+                if (self.dark and dark_cut and self.plug.get("state") == "on"
+                        and time.monotonic() - self.dark_reminded_mono > DARK_REMINDER_S):
+                    self.dark_reminded_mono = time.monotonic()
+                    remind = dark_cut[0]
             if reason:
                 self._event("watcher_stopped", None, reason, notify=True)
+            if remind is not None:
+                self._event("too_dark", remind, f"still too dark to see — {remind.name} is unarmed and its plug is ON",
+                            notify=True)
             if not self.watcher_ok:
                 self.publish("window", self.snapshot())
 
@@ -609,6 +639,8 @@ class Watcher:
                     "positives": self.meta.get(slot, {}).get("spec", {}).get("positives", []),
                     "hard_negatives": self.meta.get(slot, {}).get("spec", {}).get("hard_negatives", []),
                     "cooldown_s": tw.cooldown_s, "dwell_note": self.meta.get(slot, {}).get("dwell_note"),
+                    "armed_at": self.meta.get(slot, {}).get("armed_at"),
+                    "examples": len(self.meta.get(slot, {}).get("examples", [])),
                     "proposed": {k: self.meta.get(slot, {}).get("spec", {}).get(k) for k in ("action", "dwell_s")},
                     "operating_set_by": (self.meta.get(slot, {}).get("operating") or {}).get("set_by"),
                 })
@@ -621,6 +653,7 @@ class Watcher:
                 "s_per_clip_p95": None if not emb else float(np.percentile(emb, 95)),
                 "period_p50": p50, "period_p95": p95, "plug": dict(self.plug),
                 "device": getattr(self.embedder, "device", None), "frozen_for": self.frozen_for,
+                "labels": self.labels, "compiler_down": self.compiler_down,
                 "source": None if self.source is None else asdict(self.source.status),
             }
             if include_frames:
