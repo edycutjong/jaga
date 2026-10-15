@@ -83,6 +83,16 @@ def probe(path: str | Path) -> VideoInfo:
                          creation_time=meta.get("creation_time") or meta.get("com.apple.quicktime.creationdate"))
 
 
+def upright(frame) -> np.ndarray:
+    """A decoded PyAV frame as RGB, turned upright using its rotation flag (phones record portrait this way)."""
+    img = frame.to_ndarray(format="rgb24")
+    rot = int(getattr(frame, "rotation", 0) or 0) % 360
+    if rot:
+        # PyAV reports the display rotation in degrees counter-clockwise; np.rot90 turns counter-clockwise
+        img = np.ascontiguousarray(np.rot90(img, k=rot // 90))
+    return img
+
+
 def iter_frames_at(path: str | Path, times_s: list[float]):
     """Yield (t, rgb_frame) for the decoded frame nearest each requested time (times ascending)."""
     import av
@@ -102,15 +112,15 @@ def iter_frames_at(path: str | Path, times_s: list[float]):
             while i < len(want) and t >= want[i]:
                 # nearest of the previous frame and this one
                 if prev is not None and abs(prev[0] - want[i]) < abs(t - want[i]):
-                    yield want[i], prev[1].to_ndarray(format="rgb24")
+                    yield want[i], upright(prev[1])
                 else:
-                    yield want[i], fr.to_ndarray(format="rgb24")
+                    yield want[i], upright(fr)
                 i += 1
             if i >= len(want):
                 return
             prev = (t, fr)
         while i < len(want) and prev is not None:  # requested times past the last frame: use the last one
-            yield want[i], prev[1].to_ndarray(format="rgb24")
+            yield want[i], upright(prev[1])
             i += 1
 
 
