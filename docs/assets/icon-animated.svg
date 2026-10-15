@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="jaga — A typed sentence stretched across a live camera snaps — and the plug beneath it clicks to OFF.">
+<!-- STORYBOARD (dur 6s — must equal this file's single master dur)
+  0-10%   steady state: enamel plate, camera viewfinder, hazard wire, the sentence-tape INTACT across it, breaker lever UP (ON).
+  10-38%  trigger:      the dwell squares under the tape fill one by one (the room has stayed empty)      data-story="beat-2"
+  38-60%  mechanism:    A typed sentence stretched across a live camera snaps — and the plug beneath it clicks to OFF.      data-story="beat-3"
+  60-94%  resolution:   tape stays snapped, red break breathes once, lever stays DOWN (OFF) — the held state (residue ≥ 40% of loop)   data-story="beat-4"
+  94-100% breathe + seam: story crossfades back to the intact, ON poster by 97.5%; 97.5-100% identical to frame 0
+-->
+<style>@media (prefers-reduced-motion: reduce) { * { animation: none !important; } }</style>
+<defs>
+  <linearGradient id="en" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#F5F2EA"/><stop offset="100%" stop-color="#E9E5DA"/></linearGradient>
+  <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="10"/></filter>
+</defs>
+<rect x="7" y="7" width="498" height="498" rx="104" fill="none" stroke="#BDB6A6" stroke-width="8"/>
+<rect x="22" y="22" width="468" height="468" rx="90" fill="url(#en)" stroke="#1A1916" stroke-width="22"/>
+<g fill="none" stroke="#1A1916" stroke-width="20" stroke-linecap="square">
+  <path d="M68 124 V78 H114"/><path d="M398 78 H444 V124"/><path d="M68 254 V300 H114"/><path d="M398 300 H444 V254"/>
+</g>
+<rect x="68" y="182" width="376" height="16" fill="#F0B323"/>
+<!-- INTACT tape (poster) -->
+<g>
+  <animate attributeName="opacity" values="1;1;0;0;1;1" keyTimes="0;0.38;0.40;0.95;0.975;1" dur="6s" repeatCount="indefinite"/>
+  <path d="M80 152 L430 172 L432 252 L84 236 Z" fill="#1D4E89"/>
+  <g fill="#FFFFFF"><rect x="104" y="182" width="40" height="18" rx="4"/><rect x="156" y="185" width="56" height="18" rx="4"/><rect x="250" y="190" width="50" height="18" rx="4"/><rect x="314" y="194" width="40" height="18" rx="4"/><rect x="364" y="197" width="44" height="18" rx="4"/></g>
+</g>
+<!-- dwell squares (beat 2) -->
+<g fill="#1D4E89">
+  <rect x="170" y="268" width="28" height="14" opacity="0" data-story="beat-2"><animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.12;0.14;0.95;0.975;1" dur="6s" repeatCount="indefinite"/></rect>
+  <rect x="206" y="268" width="28" height="14" opacity="0" data-story="beat-2"><animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.18;0.20;0.95;0.975;1" dur="6s" repeatCount="indefinite"/></rect>
+  <rect x="242" y="268" width="28" height="14" opacity="0" data-story="beat-2"><animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.24;0.26;0.95;0.975;1" dur="6s" repeatCount="indefinite"/></rect>
+  <rect x="278" y="268" width="28" height="14" opacity="0" data-story="beat-2"><animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.30;0.32;0.95;0.975;1" dur="6s" repeatCount="indefinite"/></rect>
+  <rect x="314" y="268" width="28" height="14" opacity="0" data-story="beat-2"><animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.36;0.38;0.95;0.975;1" dur="6s" repeatCount="indefinite"/></rect>
+</g>
+<!-- SNAPPED tape (beat 3) -->
+<g opacity="0" data-story="beat-3">
+  <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.38;0.40;0.95;0.975;1" dur="6s" repeatCount="indefinite"/>
+  <g><animateTransform attributeName="transform" type="rotate" values="0 80 196;0 80 196;-7 80 196;-4 80 196;-4 80 196;0 80 196" keyTimes="0;0.38;0.43;0.48;0.95;1" dur="6s" repeatCount="indefinite"/>
+    <path d="M80 158 L232 146 L246 162 L232 176 L250 192 L234 206 L248 222 L86 240 Z" fill="#1D4E89"/>
+    <g fill="#FFFFFF"><rect x="104" y="186" width="40" height="18" rx="4"/><rect x="156" y="182" width="56" height="18" rx="4"/></g></g>
+  <g><animateTransform attributeName="transform" type="rotate" values="0 432 218;0 432 218;9 432 218;5 432 218;5 432 218;0 432 218" keyTimes="0;0.38;0.43;0.48;0.95;1" dur="6s" repeatCount="indefinite"/>
+    <path d="M286 186 L272 202 L288 216 L272 232 L290 248 L432 258 L428 180 Z" fill="#1D4E89"/>
+    <g fill="#FFFFFF"><rect x="306" y="210" width="50" height="18" rx="4"/><rect x="366" y="214" width="40" height="18" rx="4"/></g></g>
+  <path d="M232 128 L276 156 L258 178 L296 196 L274 214 L304 248 L262 258 L236 230 L254 210 L218 194 L238 172 L206 150 Z" fill="#D2281C" opacity="0.55" filter="url(#glow)" data-story="beat-4"><animate attributeName="opacity" values="0;0;0;0.8;0;0;0" keyTimes="0;0.38;0.60;0.70;0.80;0.95;1" dur="6s" repeatCount="indefinite"/></path>
+  <path d="M232 128 L276 156 L258 178 L296 196 L274 214 L304 248 L262 258 L236 230 L254 210 L218 194 L238 172 L206 150 Z" fill="#D2281C"/>
+</g>
+<!-- breaker toggle -->
+<rect x="186" y="318" width="140" height="150" rx="16" fill="#F5F2EA" stroke="#1A1916" stroke-width="18"/>
+<rect x="216" y="338" width="80" height="12" rx="4" fill="#BDB6A6"/>
+<rect x="208" y="336" width="96" height="58" rx="8" fill="#1A1916"><animate attributeName="opacity" values="1;1;0;0;1;1" keyTimes="0;0.44;0.46;0.95;0.975;1" dur="6s" repeatCount="indefinite"/></rect>
+<rect x="208" y="392" width="96" height="58" rx="8" fill="#1A1916" opacity="0" data-story="beat-3"><animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.44;0.46;0.95;0.975;1" dur="6s" repeatCount="indefinite"/></rect>
+</svg>

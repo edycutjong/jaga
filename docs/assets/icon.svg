@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="jaga — A typed sentence stretched across a live camera snaps — and the plug beneath it clicks to OFF.">
+  <style>@media (max-width: 64px) { .fine { display: none; } .tile-ring { stroke-width: 0; } }</style>
+  <defs>
+    <linearGradient id="enamel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="var(--panel, #F5F2EA)"/>
+      <stop offset="100%" stop-color="var(--bg, #E9E5DA)"/>
+    </linearGradient>
+  </defs>
+  <!-- outer light ring: keeps the silhouette on GitHub #0d1117; near-invisible on white -->
+  <rect class="tile-ring" x="7" y="7" width="498" height="498" rx="104" fill="none" stroke="var(--rule, #BDB6A6)" stroke-width="8"/>
+  <!-- plate: self-plated so the mark holds on GitHub white AND dark -->
+  <rect x="22" y="22" width="468" height="468" rx="90" fill="url(#enamel)" stroke="var(--ink, #1A1916)" stroke-width="22"/>
+  <!-- camera viewfinder corners: the tripwire lives ON a live camera -->
+  <g class="fine" fill="none" stroke="var(--ink, #1A1916)" stroke-width="20" stroke-linecap="square">
+    <path d="M68 124 V78 H114"/><path d="M398 78 H444 V124"/>
+    <path d="M68 254 V300 H114"/><path d="M398 300 H444 V254"/>
+  </g>
+  <!-- the wire (hazard yellow) -->
+  <rect class="fine" x="68" y="182" width="376" height="16" fill="var(--wire, #F0B323)"/>
+  <!-- left half of the sentence-tape, snapped end on the right (.fine details drop below 64 px: favicon = tile + snapped bar + toggle) -->
+  <path d="M80 158 L232 146 L246 162 L232 176 L250 192 L234 206 L248 222 L86 240 Z" fill="var(--primary, #1D4E89)"/>
+  <g class="fine" fill="#FFFFFF"><rect x="104" y="186" width="40" height="18" rx="4"/><rect x="156" y="182" width="56" height="18" rx="4"/></g>
+  <!-- right half, recoiled -->
+  <path d="M286 186 L272 202 L288 216 L272 232 L290 248 L432 258 L428 180 Z" fill="var(--primary, #1D4E89)"/>
+  <g class="fine" fill="#FFFFFF"><rect x="306" y="210" width="50" height="18" rx="4"/><rect x="366" y="214" width="40" height="18" rx="4"/></g>
+  <!-- the break: breaker red — the ONLY red in the mark -->
+  <path d="M232 128 L276 156 L258 178 L296 196 L274 214 L304 248 L262 258 L236 230 L254 210 L218 194 L238 172 L206 150 Z" fill="var(--accent, #D2281C)"/>
+  <!-- the plug's breaker toggle, lever DOWN = OFF -->
+  <rect x="186" y="318" width="140" height="150" rx="16" fill="var(--panel, #F5F2EA)" stroke="var(--ink, #1A1916)" stroke-width="18"/>
+  <rect x="208" y="392" width="96" height="58" rx="8" fill="var(--ink, #1A1916)"/>
+  <rect class="fine" x="216" y="338" width="80" height="12" rx="4" fill="var(--rule, #BDB6A6)"/>
+</svg>
