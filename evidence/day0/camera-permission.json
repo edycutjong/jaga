@@ -1,0 +1,15 @@
+{
+  "check": "camera permission for a process started outside a GUI terminal (macOS TCC)",
+  "measured_at": "2026-10-15T11:39:32+0700",
+  "how": "cv2.VideoCapture(0, cv2.CAP_AVFOUNDATION).isOpened() from a process started without a GUI terminal; no frame is read",
+  "result": {
+    "opened": false,
+    "seconds": 0.27,
+    "opencv": "4.14.0"
+  },
+  "stderr": [
+    "OpenCV: not authorized to capture video (status 0), requesting...",
+    "OpenCV: camera failed to properly initialize!",
+    "[ WARN:0@0.276] global cap.cpp:477 open VIDEOIO(AVFOUNDATION): backend is generally available but can't be used to capture by index"
+  ]
+}

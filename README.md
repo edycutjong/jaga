@@ -39,8 +39,9 @@ The software is complete; the measurements are being made.
 * **Not run on the real hardware yet:** so far the live loop has run on recorded files played through the same
   capture path, and the plug path against a fake LAN plug in the tests. The first runs with a real webcam and a real
   plug are pending.
-* The calibration Job has run once, as a smoke test on synthetic numbers (`docs/RUNS.md`); a scheduled run
-  (`scripts/dispatch_calibrate.sh`) starts once labelled margins exist.
+* The calibration Job has run once, as a smoke test on synthetic numbers (`docs/RUNS.md`). Once labelled margins
+  exist, a calibration run is started by hand (`jaga calibrate`, or `scripts/dispatch_calibrate.sh`); no scheduler is
+  installed.
 
 ## Quick start
 
@@ -48,7 +49,7 @@ The software is complete; the measurements are being made.
 git clone https://github.com/edycutjong/jaga && cd jaga
 python3.11 -m venv .venv && source .venv/bin/activate
 pip install -e ".[test]"
-pytest       # 138 tests: the safety invariants, the decision rule and the measurement rules; no model or key needed
+pytest       # 161 tests: the safety invariants, the decision rule and the measurement rules; no model or key needed
 ```
 
 **The model:** [`nvidia/Cosmos-Embed1-224p`](https://huggingface.co/nvidia/Cosmos-Embed1-224p), under the NVIDIA Open
@@ -98,9 +99,9 @@ The Cosmos-Embed1 card documents Linux, CUDA and BF16 only; jaga runs it on macO
 
 ## Where Nebius is used
 
-* **Token Factory** compiles every sentence (one request per compile attempt — a second shape is tried only if the
-  first is refused; the request ID that produced the spec is stored with the tripwire, shown in the compile drawer and
-  listed at `/receipts`). Each of the three tripwires to be measured was frozen from one compile made before any clip
+* **Token Factory** compiles every sentence (one request per compile attempt; a second request — another response
+  format, or a retry — is sent only if the first fails: an HTTP error, an empty reply or an invalid spec. The request
+  ID that produced the spec is stored with the tripwire, shown in the compile drawer and listed at `/receipts`). Each of the three tripwires to be measured was frozen from one compile made before any clip
   was recorded; earlier compiles are listed under `superseded` in its fixture (`fixtures/tripwires/`).
 * **Serverless Jobs** (`cpu-d3`, `4vcpu-16gb`, stock `python:3.11`) run the calibration (`jobs/calibrate.py`,
   standard library only): a per-tripwire ROC over labelled margins → the threshold at recall 0.9. The work is light;
@@ -153,8 +154,8 @@ may talk to Tuya's cloud by itself; that is outside jaga's control, and the Shel
 
 ## Limits
 
-* Three events are planned (iron, fridge, door), one room, one person — not "any event". No detection accuracy has
-  been measured yet (`DEMO.md` §2).
+* Three events are planned (iron, fridge, door) — plus a cat on the counter as tripwire 04 only if cat clips get
+  recorded — one room, one person; not "any event". No detection accuracy has been measured yet (`DEMO.md` §2).
 * In the soak protocol the plug's visible load is a desk lamp and the iron is an unplugged prop: no heated iron is
   left unattended for a measurement.
 * 224p is small: jaga watches scene states (a person present or not, a door open), not an iron's power light.

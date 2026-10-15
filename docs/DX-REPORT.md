@@ -55,16 +55,17 @@ where the evidence is. It feeds the hackathon's feedback form.
     (`--since`) (`evidence/day0/logs-check.json`).
 13. **Presigned PUT for Object Storage.** The docs show `aws s3 presign` for GET only; boto3
     `generate_presigned_url('put_object')` against `storage.eu-west1.nebius.cloud` works (`evidence/day0/s3-stage.json`).
-14. **Quota is per region and shared by every project on the tenant.** The dispatcher waits on `ResourceExhausted`
-    and never runs two jaga Jobs at once (`jaga/calibrate.py`).
+14. **Quota is per region** (the Nebius docs: quotas can be set per project within a region). The dispatcher waits
+    and retries on `ResourceExhausted`, and one `jaga calibrate` run creates one Job (`jaga/calibrate.py`).
 
 ## Local platform
 
 15. **OpenCV 5.0 removed `cv2.HOGDescriptor` from the main wheel.** The person-in-zone baseline needs OpenCV's built-in
     HOG pedestrian detector (no download), so `opencv-python` is pinned below 5 (`pyproject.toml`).
 16. **OpenCV and PyAV both bundle `libavdevice`.** macOS prints an objc duplicate-class warning when both load. The
-    duplicated classes belong to ffmpeg's avfoundation *input device*, which neither OpenCV's own camera backend nor
-    PyAV's file decoding uses; we note it rather than hide it.
-17. **macOS camera permission.** A process started outside a GUI terminal (a launch agent, a detached job) cannot get
-    camera permission: `VideoCapture(0)` fails. The live loop therefore also accepts a recorded file through the same
-    capture path (`jaga serve --source <file>`), and the error message names the fix.
+    duplicated classes belong to ffmpeg's avfoundation *input device*; it has caused no failure we could see, and we
+    note it rather than hide it.
+17. **macOS camera permission.** A process started outside a GUI terminal (a launch agent, a detached job) is not
+    given the camera: `VideoCapture(0)` does not open, and OpenCV prints "not authorized to capture video"
+    (`evidence/day0/camera-permission.json`). The live loop therefore also accepts a recorded file through the same
+    capture path (`jaga serve --source <file>`), and jaga's error message names the fix.
