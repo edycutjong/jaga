@@ -48,21 +48,21 @@
     }
   },
   "period": {
-    "session": "p1-period-3",
-    "windows": 167,
-    "period_p50_s": 2.016186475753784,
-    "period_p95_s": 2.8485193848609924,
-    "embed_p50_s": 1.9777209169988055,
-    "embed_p95_s": 2.8209468585999273,
+    "session": "p1-period-4",
+    "windows": 240,
+    "period_p50_s": 1.2670340538024902,
+    "period_p95_s": 1.7929581403732295,
+    "embed_p50_s": 1.2355040205020487,
+    "embed_p95_s": 1.7621479562518276,
     "source": "live",
     "input": "a recorded clip looped in real time through the live loop (no camera in this run); other processes were running on the machine",
-    "_commit": "827262a",
-    "_ran_at": "2026-10-15T13:28:57+0700",
+    "_commit": "76f2ca6",
+    "_ran_at": "2026-10-15T14:45:07+0700",
     "_machine": {
       "processor": "Apple M1 Max",
       "platform": "macOS-26.5.2-arm64-arm-64bit",
       "python": "3.11.15",
-      "loadavg_1m": 6.91,
+      "loadavg_1m": 6.85,
       "cpu_count": 10
     }
   }

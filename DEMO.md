@@ -18,7 +18,7 @@ Reproduce: `python scripts/bench.py speed --n 200`
 
 ### Live window period N (every dwell clamp and the watchdog use it)
 
-p50 **2.02 s**, p95 2.85 s over 167 windows of session `p1-period-3` (source: live; a recorded clip looped in real time through the live loop (no camera in this run); other processes were running on the machine). *ran 2026-10-15T13:28:57+0700 at commit `827262a` on Apple M1 Max (macOS-26.5.2-arm64-arm-64bit); 1-min load average when the result was written: 6.91*
+p50 **1.27 s**, p95 1.79 s over 240 windows of session `p1-period-4` (source: live; a recorded clip looped in real time through the live loop (no camera in this run); other processes were running on the machine). *ran 2026-10-15T14:45:07+0700 at commit `76f2ca6` on Apple M1 Max (macOS-26.5.2-arm64-arm-64bit); 1-min load average when the result was written: 6.85*
 
 ## 2. Labelled clips (one 8-s clip = one window)
 
