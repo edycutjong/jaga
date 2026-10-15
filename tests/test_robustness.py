@@ -841,3 +841,144 @@ def test_the_banner_text_travels_as_an_argument_not_as_script():
     scripts = [argv[i + 1] for i, a in enumerate(argv) if a == "-e"]
     assert all(text not in sc and "·" not in sc for sc in scripts)
     assert argv[argv.index("--") + 1:] == [text, "jaga"]
+
+
+# ------------------------------------------------------------------- the Tuya driver against a fake tinytuya device
+class FakeOutlet:
+    """Stands in for tinytuya.OutletDevice: remembers calls, answers like the firmware variants we expect."""
+
+    mode = "dps"  # "dps": the set reply carries dps · "bare": no dps (read back) · "error" · "raise" · "stuck"
+    on = True
+    calls: list = []
+
+    def __init__(self, dev_id, ip, key, version=3.3):
+        FakeOutlet.calls.append(("init", dev_id, ip, version))
+
+    def set_socketTimeout(self, s):
+        pass
+
+    def set_socketRetryLimit(self, n):
+        pass
+
+    def turn_off(self, switch=1):
+        FakeOutlet.calls.append(("turn_off", switch))
+        if FakeOutlet.mode == "raise":
+            raise OSError("socket timed out")
+        if FakeOutlet.mode == "error":
+            return {"Error": "Device Unreachable", "Err": "905"}
+        if FakeOutlet.mode != "stuck":
+            FakeOutlet.on = False
+        return {"dps": {str(switch): False}} if FakeOutlet.mode == "dps" else {}
+
+    def turn_on(self, switch=1):  # the trip path must never call this
+        FakeOutlet.calls.append(("turn_on", switch))
+        FakeOutlet.on = True
+
+    def status(self):
+        FakeOutlet.calls.append(("status",))
+        return {"dps": {"1": FakeOutlet.on}}
+
+
+@pytest.mark.parametrize("mode,acked", [("dps", True), ("bare", True), ("error", False), ("raise", False),
+                                        ("stuck", False)])
+def test_the_tuya_driver_acknowledges_only_a_confirmed_off(monkeypatch, mode, acked):
+    import types
+
+    from jaga.act import TuyaPlug
+
+    fake = types.SimpleNamespace(OutletDevice=FakeOutlet)
+    monkeypatch.setitem(__import__("sys").modules, "tinytuya", fake)
+    FakeOutlet.mode, FakeOutlet.on, FakeOutlet.calls = mode, True, []
+    plug = TuyaPlug("dev123", "192.168.1.50", "localkey", version="3.4")
+    assert plug.status() is True
+    if acked:
+        ack = plug.turn_off()
+        assert ack.off and plug.status() is False
+    else:
+        with pytest.raises(ActionFailed):
+            plug.turn_off()
+    assert not any(c[0] == "turn_on" for c in FakeOutlet.calls)  # I1: no ON from the driver's OFF path
+    assert ("init", "dev123", "192.168.1.50", 3.4) in FakeOutlet.calls
+
+
+def test_a_tuya_trip_through_the_watcher_cuts_once_and_never_switches_on(home, tuning, monkeypatch):
+    import types
+
+    from jaga.act import TuyaPlug
+
+    monkeypatch.setitem(__import__("sys").modules, "tinytuya", types.SimpleNamespace(OutletDevice=FakeOutlet))
+    FakeOutlet.mode, FakeOutlet.on, FakeOutlet.calls = "dps", True, []
+    w, emb = make_watcher(home, tuning)
+    w.driver = TuyaPlug("dev123", "192.168.1.50", "localkey")
+    w.start()
+    try:
+        w.arm("01", 0)
+        push_windows(w, emb, "pos", 10, 100.0)
+        assert wait_for(lambda: w.tripwires["01"].off_acked and w.plug["state"] == "off", timeout=5)
+        assert sum(1 for c in FakeOutlet.calls if c[0] == "turn_off") == 1
+        assert not any(c[0] == "turn_on" for c in FakeOutlet.calls)
+    finally:
+        w.stop()
+
+
+def test_an_off_reply_never_vouches_for_a_trip_that_came_after_the_call(home, tuning):
+    """I3 with two cutting tripwires: 02 trips while 01's OFF call is in flight (the plug may have been switched on
+    since). 01's acknowledgement must not mark 02 acknowledged; 02 waits for its own OFF."""
+    w, emb = _two_cut_tripwires(home, tuning, None)
+
+    class MidCallPlug(PlugDriver):
+        kind, label, address = "test", "Wi-Fi plug", "test"
+
+        def turn_off(self):
+            t2 = w.tripwires["02"]  # the second trip lands during this call
+            t2.state, t2.off_acked, t2.tripped_mono = "tripped", False, time.monotonic()
+            return Ack(True, 5.0, "test ack")
+
+        def status(self):
+            return False
+
+    w.driver = MidCallPlug()
+    t1 = w.tripwires["01"]
+    t1.state, t1.off_acked, t1.tripped_mono = "tripped", False, time.monotonic()
+    assert w._turn_off(t1, 100.0, 10.0, first=True)
+    assert t1.off_acked and not w.tripwires["02"].off_acked
+
+
+def test_the_breaker_waits_for_every_tripped_row():
+    from pathlib import Path
+
+    js = (Path(__file__).resolve().parents[1] / "jaga" / "static" / "overlay.js").read_text()
+    assert "cut.every((w) => w.off_acked)" in js
+
+
+def test_huge_numbers_and_head_requests_never_500(home, tuning, fakeplug):
+    from fastapi.testclient import TestClient
+
+    from jaga.server import create_app
+
+    w, emb = make_watcher(home, tuning, fakeplug.url)
+    c = TestClient(create_app(w, compile_fn=lambda s: None, embed_text_fn=emb.embed_text, token="t"),
+                   base_url="http://127.0.0.1:8765")
+    h = {"host": "127.0.0.1:8765", "x-jaga-session": "t", "content-type": "application/json"}
+    assert c.post("/tripwires/01/arm", content=b'{"capture_s": 1' + b"0" * 400 + b"}", headers=h).status_code == 422
+    assert c.post("/tripwires/01/arm", content=b'{"capture_s": 1' + b"0" * 5000 + b"}", headers=h).status_code == 422
+    r = c.post("/tripwires/07/arm", json={}, headers={"host": "127.0.0.1:8765", "x-jaga-session": "t"})
+    assert r.status_code == 404 and not r.json()["detail"].startswith("'")
+    for path in ("/", "/api/state", "/receipts"):
+        assert c.head(path, headers={"host": "127.0.0.1:8765"}).status_code == 200
+    assert "run_id" in c.get("/api/state", headers={"host": "127.0.0.1:8765"}).json()
+
+
+def test_arm_must_name_a_loaded_tripwire_and_soak_b_needs_its_schedule(home, monkeypatch):
+    from types import SimpleNamespace
+
+    from jaga import cli
+
+    monkeypatch.setattr("jaga.embed.shared", lambda *a, **k: (_ for _ in ()).throw(AssertionError("model loaded")))
+    a = SimpleNamespace(db=None, device="cpu", source="camera", camera=0, loop=False, offline=False, port=None,
+                        no_os_banner=True, session="x1", camera_pos="board", zone=None, load="01", arm="07",
+                        labels=False)
+    with pytest.raises(SystemExit, match="arm only tripwires you --load"):
+        cli.build_watcher(a)
+    with pytest.raises(SystemExit, match="schedule"):
+        cli.cmd_soak(SimpleNamespace(**{**vars(a), "kind": "B", "schedule": None, "session": "B9", "arm": None}))

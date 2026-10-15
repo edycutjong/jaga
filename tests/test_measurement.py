@@ -353,6 +353,7 @@ def test_readiness_staleness_follows_the_code_each_section_measured(monkeypatch,
         return ""  # git log -L: cmd_speed / cmd_period untouched
 
     monkeypatch.setattr(ck, "git", fake_git)
+    monkeypatch.setattr(ck, "git_ok", lambda *args: (not any("def5678" in x for x in args), fake_git(*args)))
     monkeypatch.setattr(ck, "REPO", tmp_path)
     (tmp_path / "bench" / "out").mkdir(parents=True)
     (tmp_path / "bench" / "out" / "summary.json").write_text(out.read_text())
@@ -399,3 +400,33 @@ def test_the_overlay_says_lost_contact_instead_of_looking_armed():
     assert "LOST CONTACT" in js and "S.lost = true" in js and "LOST_AFTER_MS" in js
     css = (REPO / "jaga" / "static" / "overlay.css").read_text()
     assert "body.lost .panel" in css
+
+
+
+def test_a_partly_mistyped_session_list_writes_nothing(bench, tmp_path):
+    import json
+
+    db = _soak_b_db(tmp_path)
+    a = SimpleNamespace(session=["B1"], tripwire="01", k_fraction=0.8, p8=0.5, r=None, db=str(tmp_path / "b.db"),
+                        dwell=120.0, secondary=False)
+    assert bench.cmd_soak(a) == 0
+    before = json.loads(bench.SUMMARY.read_text())["soak_b_dwell_120"]["sessions"]
+    a.session = ["B1", "B22"]
+    assert bench.cmd_soak(a) == 1
+    assert json.loads(bench.SUMMARY.read_text())["soak_b_dwell_120"]["sessions"] == before
+    del db
+
+
+def test_readiness_fails_closed_when_git_cannot_answer(monkeypatch, tmp_path):
+    import json
+
+    ck = load_script("check_submission_readiness")
+    (tmp_path / "bench" / "out").mkdir(parents=True)
+    (tmp_path / "bench" / "out" / "summary.json").write_text(json.dumps({"speed": {"_commit": "0000000"}}))
+    (tmp_path / "DEMO.md").write_text("This file is written by `scripts/bench.py`\n")
+    monkeypatch.setattr(ck, "REPO", tmp_path)
+    monkeypatch.setattr(ck, "git", lambda *a: "")
+    monkeypatch.setattr(ck, "git_ok", lambda *a: (False, ""))  # unknown commit / renamed function
+    monkeypatch.setattr(ck, "collected_tests", lambda: 0)
+    res = {n: (ok, why) for n, ok, why in ck.check(None, {"video"})}
+    assert not res["numbers"][0] and "speed@0000000" in res["numbers"][1]
