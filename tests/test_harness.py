@@ -161,5 +161,6 @@ def test_verify_offline_ci_variant_trips_with_egress_blocked():
                        timeout=120)
     out = json.loads(p.stdout[p.stdout.index("{"):])
     assert p.returncode == 0, out
-    assert out["tripped"] and out["plug_off_acknowledged"] and not out["internet_reachable_from_this_process"]
+    assert out["tripped"] and out["plug_off_acknowledged"] and out["outbound_after_block"] is False
+    assert "1.1.1.1" in out["blocked_attempts"]  # the probe really was refused by the block
     assert out["fake_plug_on_calls"] == 0

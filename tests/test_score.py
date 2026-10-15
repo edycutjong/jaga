@@ -40,18 +40,19 @@ def test_positives_only_margin_when_no_negatives():
     assert margin(v, caps.pos, np.zeros((0, 256))) == pytest.approx(float(np.max(caps.pos @ v)), abs=1e-6)
 
 
-@pytest.mark.parametrize("kind", ["absence", "presence"])
-def test_normal_reference_polarity_for_absence_and_presence(kind):
-    """μ₀/σ₀ come from the NON-event: someone at the board (absence tripwire) or the closed door in use (presence).
-
-    Either way the event moves the margin up from the normal state, so z > 0 means 'the sentence is true'."""
+def test_normal_reference_comes_from_the_non_event():
+    """μ₀/σ₀ come from the NON-event, whatever the sentence's polarity. The captions orient the margin ("nobody is at
+    the board" → the positives show the empty board; "the door is left open" → the open door), so the event moves the
+    margin up from the normal state and z > 0 means 'the sentence is true'. Fitting on the event instead flips the
+    sign — the failure this guards against."""
     caps = Captions(4)
     normal = [margin(caps.window("neg"), caps.pos, caps.neg) for _ in range(60)]
     event = [margin(caps.window("pos"), caps.pos, caps.neg) for _ in range(20)]
     mu0, sigma0 = normal_reference(normal)
-    z_event = [zscore(m, mu0, sigma0) for m in event]
-    z_normal = [zscore(m, mu0, sigma0) for m in normal]
-    assert min(z_event) > 3.0 and abs(np.mean(z_normal)) < 0.5, kind
+    assert min(zscore(m, mu0, sigma0) for m in event) > 3.0
+    assert abs(np.mean([zscore(m, mu0, sigma0) for m in normal])) < 0.5
+    mu_wrong, sigma_wrong = normal_reference(event)
+    assert max(zscore(m, mu_wrong, sigma_wrong) for m in normal) < -3.0
 
 
 def test_sigma0_floor_applies():

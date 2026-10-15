@@ -1,5 +1,6 @@
-"""Regression tests for the a2a round-03 architecture review: acknowledgement, liveness, plug I/O ordering,
-guards, the I2 floor, non-finite values, the Job dispatcher, the action allow-list and thread hygiene."""
+"""Regression tests from the architecture and QA reviews: acknowledgement, liveness, plug I/O ordering, guards,
+the I2 floor, non-finite values, the Job dispatcher, the action allow-list, thread hygiene, OFF retries that never
+give up, session names, the label keys, rotation of phone video and arming without a normal state."""
 import json
 import math
 import subprocess
@@ -407,3 +408,238 @@ def test_captions_are_still_scored_like_before():
     from jaga.score import margin
 
     assert margin(caps.window("pos"), caps.pos, caps.neg) > 0
+
+
+# ------------------------------------------------------------------- QA round: OFF retries, labels, sessions, rotation
+def test_a_failed_off_is_retried_for_as_long_as_it_stays_tripped(home, tuning, fakeplug, monkeypatch):
+    import jaga.daemon as d
+
+    monkeypatch.setattr(d, "SLOW_RETRY_S", 0.3)
+    fakeplug.fail_off = True
+    w, emb = make_watcher(home, tuning, fakeplug.url)
+    w.start()
+    try:
+        w.arm("01", 0)
+        push_windows(w, emb, "pos", 10, 100.0)
+        assert wait_for(lambda: any("plug still not OFF" in t for t in w.notifier.sent), timeout=10)
+        n = fakeplug.off_calls
+        assert n >= tuning.action_retries  # the fast budget is spent …
+        assert wait_for(lambda: fakeplug.off_calls >= n + 2, timeout=5)  # … and it keeps trying
+        fakeplug.fail_off = False
+        assert wait_for(lambda: w.plug["state"] == "off", timeout=5)
+        assert w.tripwires["01"].off_acked and fakeplug.on_calls == 0
+    finally:
+        w.stop()
+
+
+def test_label_keys_follow_the_labels_flag_not_only_scored_sessions(home, tuning):
+    from pathlib import Path
+
+    from jaga.cli import build_parser
+
+    w, _ = make_watcher(home, tuning)
+    assert w.snapshot()["labels"] is False
+    w.labels = True
+    assert w.snapshot()["labels"] is True and w.snapshot()["scored"] is False
+    a = build_parser().parse_args(["serve", "--labels", "--session", "U1"])
+    assert a.labels
+    js = (Path(__file__).resolve().parents[1] / "jaga" / "static" / "overlay.js").read_text()
+    assert "S.snap.labels && SOAK_KEYS" in js and "S.snap.scored && SOAK_KEYS" not in js
+
+
+def test_a_scored_session_name_is_never_reused(home, monkeypatch):
+    from types import SimpleNamespace
+
+    from jaga import cli
+    from jaga.db import DB
+
+    db = DB()
+    db.start_session("B1", True, "board", "live")
+
+    def boom(*a, **k):
+        raise AssertionError("the model must not load before the name check")
+
+    monkeypatch.setattr("jaga.embed.shared", boom)
+    a = SimpleNamespace(db=None, device="cpu", source="camera", camera=0, loop=False, offline=False,
+                        no_os_banner=True, session="B1", camera_pos="board", zone=None, load="01", labels=False)
+    with pytest.raises(SystemExit, match="already exists"):
+        cli.build_watcher(a, scored=True, session="B1")
+
+
+def test_portrait_phone_video_is_turned_upright():
+    from jaga.frames import upright
+
+    img = np.zeros((4, 6, 3), np.uint8)
+    img[0, 0] = 255  # top-left marker
+
+    class F:
+        rotation = 90
+
+        def to_ndarray(self, format):
+            return img
+
+    out = upright(F())
+    assert out.shape == (6, 4, 3)
+    assert tuple(out[-1, 0]) == (255, 255, 255)  # rotated 90° counter-clockwise: top-left → bottom-left
+
+    class G(F):
+        rotation = 0
+
+    assert upright(G()).shape == (4, 6, 3)
+
+
+def test_a_fresh_tripwire_never_shows_armed_without_its_normal_state(home, tuning):
+    from jaga.score import Threshold
+
+    w, emb = make_watcher(home, tuning, theta=Threshold("fresh-z", 3.0, version=0, source="default"))
+    with pytest.raises(ValueError, match="normal state"):
+        w.arm("01", 0)
+    assert w.tripwires["01"].state != "armed"
+
+
+def test_malformed_json_is_422_not_500(home, tuning, fakeplug):
+    from fastapi.testclient import TestClient
+
+    from jaga.server import create_app
+
+    w, emb = make_watcher(home, tuning, fakeplug.url)
+    c = TestClient(create_app(w, compile_fn=lambda s: None, embed_text_fn=emb.embed_text, token="t"),
+                   base_url="http://127.0.0.1:8765")
+    h = {"host": "127.0.0.1:8765", "x-jaga-session": "t", "content-type": "application/json"}
+    assert c.post("/labels", content=b"{not json", headers=h).status_code == 422
+    assert c.post("/tripwires", content=b"[1, 2]", headers=h).status_code == 422
+
+
+def test_a_typed_sentence_never_takes_a_frozen_fixture_slot(home, tuning, fakeplug):
+    from conftest import SPEC
+    from fastapi.testclient import TestClient
+
+    from jaga.server import create_app
+
+    w, emb = make_watcher(home, tuning, fakeplug.url)
+
+    def compile_fn(sentence):
+        return {"spec": {**SPEC, "action": "notify"}, "tf_request_id": "r", "tf_response_id": "r", "model": "m",
+                "created": "now", "temperature": 1.0, "latency_s": 0.1}
+
+    c = TestClient(create_app(w, compile_fn=compile_fn, embed_text_fn=emb.embed_text, token="t"),
+                   base_url="http://127.0.0.1:8765")
+    r = c.post("/tripwires", json={"sentence": "the kettle is left on and nobody is there"},
+               headers={"host": "127.0.0.1:8765", "x-jaga-session": "t"})
+    assert r.status_code == 200, r.text
+    assert r.json()["slot"] not in {"01", "02", "03"}
+
+
+def test_a_dropped_camera_is_reopened_not_abandoned(monkeypatch):
+    from jaga.capture import CameraSource, Ring
+
+    class Cap:
+        def __init__(self, live):
+            self.live = live
+
+        def grab(self):
+            return self.live
+
+        def retrieve(self):
+            return True, np.full((90, 160, 3), 120, np.uint8)
+
+        def get(self, prop):
+            return 160.0
+
+        def release(self):
+            pass
+
+    caps = [Cap(False), Cap(True)]  # unplugged, then back
+    monkeypatch.setattr(CameraSource, "_open", lambda self: caps.pop(0) if caps else None)
+    src = CameraSource(Ring(), 0)
+    src.start()
+    try:
+        assert wait_for(lambda: src.status.extra.get("reopens") == 1 and src.status.frames > 0, timeout=10)
+        assert src.status.ok and src.status.error is None
+    finally:
+        src.stop()
+        src.join(5)
+
+
+def test_a_watcher_that_never_sees_a_window_says_so(home, tuning, monkeypatch):
+    import jaga.daemon as d
+
+    monkeypatch.setattr(d, "FIRST_WINDOW_S", 0.5)
+    w, _ = make_watcher(home, tuning)
+    w.start()
+    try:
+        assert wait_for(lambda: not w.watcher_ok, timeout=5)
+        assert any("no window since start" in t for t in w.notifier.sent) or wait_for(
+            lambda: any("no window since start" in t for t in w.notifier.sent), timeout=3)
+    finally:
+        w.stop()
+
+
+def test_while_dark_a_cut_tripwire_with_its_plug_on_keeps_reminding(home, tuning, fakeplug, monkeypatch):
+    import jaga.daemon as d
+
+    monkeypatch.setattr(d, "DARK_REMINDER_S", 0.5)
+    w, emb = make_watcher(home, tuning, fakeplug.url)
+    w.start()
+    try:
+        w.arm("01", 0)
+        assert wait_for(lambda: w.plug.get("state") == "on")
+        push_windows(w, emb, "neg", 3, 100.0)
+        push_windows(w, emb, "neg", 2, 103.0, value=10)  # lights off: unarmed, plug still ON
+        assert w.tripwires["01"].unarmed_reason == "too dark to see"
+        assert wait_for(lambda: sum("still too dark to see" in t for t in w.notifier.sent) >= 2, timeout=6)
+        assert fakeplug.off_calls == 0 and fakeplug.on_calls == 0  # it reminds; it never acts in the dark
+    finally:
+        w.stop()
+
+
+
+@pytest.mark.skipif(not __import__("shutil").which("ffmpeg"), reason="needs ffmpeg")
+def test_a_dim_light_recording_is_retimed_to_real_time(tmp_path, monkeypatch, capsys):
+    """A camera that reports 30 fps but delivers ~10 (dim light) must not produce a sped-up clip."""
+    from types import SimpleNamespace
+
+    import cv2
+
+    from jaga import cli
+    from jaga.frames import probe
+
+    class SlowCam:
+        def __init__(self, *a):
+            pass
+
+        def isOpened(self):  # noqa: N802
+            return True
+
+        def get(self, prop):
+            return {cv2.CAP_PROP_FPS: 30.0, cv2.CAP_PROP_FRAME_WIDTH: 320.0, cv2.CAP_PROP_FRAME_HEIGHT: 180.0}[prop]
+
+        def read(self):
+            time.sleep(0.1)
+            return True, np.full((180, 320, 3), 128, np.uint8)
+
+        def release(self):
+            pass
+
+    monkeypatch.setattr(cv2, "VideoCapture", SlowCam)
+    a = SimpleNamespace(set="iron", label="pos", n=None, lighting="lamp", camera_pos="board", seconds=2.0,
+                        countdown=0, camera=0, out=str(tmp_path))
+    assert cli.cmd_record(a) == 0
+    f = tmp_path / "iron" / "pos_01_lamp_board.mp4"
+    assert f.exists() and not (tmp_path / "iron" / "pos_01_lamp_board.part.mp4").exists()
+    assert probe(f).duration_s == pytest.approx(2.0, abs=0.4)  # untouched it would last ~0.7 s
+    assert "retimed to real time" in capsys.readouterr().out
+    with pytest.raises(SystemExit, match="hyphens"):
+        cli.cmd_record(SimpleNamespace(**{**vars(a), "camera_pos": "kitchen_door"}))
+
+
+def test_the_optional_check_is_reachable_after_the_capture(home, tuning):
+    """The "it's happening now" examples need the normal state, so the overlay offers them right after the capture."""
+    w, emb = make_watcher(home, tuning, action="notify")
+    w.arm("01", 3)
+    push_windows(w, emb, "neg", 6, 100.0)
+    row = next(r for r in w.snapshot()["windows"] if r["slot"] == "01")
+    assert row["state"] == "armed" and row["armed_at"] is not None and row["examples"] == 0
+    assert w.add_example("01") == {"ok": True, "examples": 1}
+    js = (__import__("pathlib").Path(__file__).resolve().parents[1] / "jaga" / "static" / "overlay.js").read_text()
+    assert 'w.state === "armed" && w.armed_at' in js  # the check card follows the capture card

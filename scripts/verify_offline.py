@@ -70,7 +70,8 @@ def block_egress() -> None:
     os.environ["TRANSFORMERS_OFFLINE"] = "1"
 
 
-def internet_reachable() -> bool:
+def probe_outbound() -> bool:
+    """True if an outbound connection to a public address succeeds from this process."""
     try:
         socket.create_connection(("1.1.1.1", 443), timeout=3).close()
         return True
@@ -196,12 +197,14 @@ def main() -> int:
     ap.add_argument("--source", help="--real: a recorded clip that contains the event")
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args()
+    online = probe_outbound()  # the machine's own network, before the block (informational)
     block_egress()
-    reachable = internet_reachable()
+    leaked = probe_outbound()  # must be False: the block holds
     with tempfile.TemporaryDirectory() as tmp:
         res = run_real(a.source, Path(tmp)) if a.real else run_ci(Path(tmp))
-    res.update({"internet_reachable_from_this_process": reachable, "blocked_attempts": sorted(set(BLOCKED))})
-    ok = res["tripped"] and res["plug_off_acknowledged"] and not reachable and res.get("fake_plug_on_calls", 0) == 0
+    res.update({"machine_online_before_block": online, "outbound_after_block": leaked,
+                "blocked_attempts": sorted(set(BLOCKED))})
+    ok = res["tripped"] and res["plug_off_acknowledged"] and not leaked and res.get("fake_plug_on_calls", 0) == 0
     res["pass"] = bool(ok)
     print(json.dumps(res, indent=2))
     return 0 if ok else 1

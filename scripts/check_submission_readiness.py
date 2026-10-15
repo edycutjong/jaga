@@ -10,6 +10,7 @@ Checks (each prints PASS or FAIL with the reason):
   numbers       DEMO.md was written by bench.py, and no bench section is older than the scoring code
   video         a video URL (YouTube) is linked from README.md (or --submission file)
   kitchen       no planning files tracked in git (specs, progress, predictions, radar, CLAUDE/AGENTS, keys)
+  tests         the test count README.md states is the number pytest collects
 
     python scripts/check_submission_readiness.py [--submission <submission-text.md>] [--allow video]
 """
@@ -26,7 +27,8 @@ REPO = Path(__file__).resolve().parents[1]
 JUDGE_FILES = ["README.md", "DEMO.md", "ARCHITECTURE.md", "docs/PROTOCOL.md", "docs/RUNS.md", "docs/DX-REPORT.md"]
 SCORING_CODE = ["jaga/score.py", "jaga/embed.py", "jaga/frames.py", "jaga/offline.py", "scripts/bench.py"]
 KITCHEN = re.compile(r"spec|progress|predict|radar|CLAUDE|AGENTS|\.claude|\.env$|pem$|a2a|autopilot|devices\.json"
-                     r"|consent", re.I)
+                     r"|tinytuya\.json|snapshot\.json|tuya-raw\.json|consent", re.I)  # + the tinytuya wizard's files
+README_TESTS = re.compile(r"pytest\s+#\s*(\d+) tests")
 README_ELEMENTS = {
     "setup instructions": re.compile(r"pip install", re.I),
     "how the NVIDIA models are used": re.compile(r"Cosmos-Embed1.*?(Nemotron|Super)|(Nemotron|Super).*?Cosmos-Embed1",
@@ -86,7 +88,22 @@ def check(submission: Path | None, allow: set[str]) -> list[tuple[str, bool, str
 
     tracked = [f for f in git("ls-files").splitlines() if KITCHEN.search(f)]
     res.append(("kitchen", not tracked, ", ".join(tracked[:8]) if tracked else "clean"))
+
+    m = README_TESTS.search(readme)
+    n = collected_tests()
+    ok = bool(m) and n is not None and int(m.group(1)) == n
+    res.append(("tests", ok, f"README says {m.group(1) if m else '—'}, pytest collects {n}"))
     return res
+
+
+def collected_tests() -> int | None:
+    p = subprocess.run([sys.executable, "-m", "pytest", "--collect-only", "-q", "-p", "no:cacheprovider"], cwd=REPO,
+                       capture_output=True, text=True, timeout=300)
+    ids = [ln for ln in p.stdout.splitlines() if "::" in ln]
+    if ids:
+        return len(ids)
+    per_file = [int(m.group(1)) for m in re.finditer(r"^tests/\S+\.py: (\d+)$", p.stdout, re.M)]
+    return sum(per_file) if per_file else None
 
 
 def main() -> int:

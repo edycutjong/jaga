@@ -68,8 +68,8 @@ def test_i1_drivers_expose_off_and_status_only():
         assert not {n for n in public if "on" in n.split("_") or n in ("switch", "set", "toggle")}, (cls, public)
 
 
-def test_i1_fifty_trips_never_send_on(home, tuning, fakeplug):
-    """Dynamic check: many trips and re-arms through the real actuator never send an ON."""
+def test_i1_ten_trips_and_rearms_never_send_on(home, tuning, fakeplug):
+    """Dynamic check: ten trips and re-arms through the real actuator never send an ON."""
     w, emb = make_watcher(home, tuning, fakeplug.url, dwell_s=3)
     w.start()
     try:
