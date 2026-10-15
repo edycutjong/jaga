@@ -1,0 +1,11 @@
+item_id,tripwire,m,label,source
+smoke-01,00,0.0412,1,synthetic-test
+smoke-02,00,0.0365,1,synthetic-test
+smoke-03,00,0.0298,1,synthetic-test
+smoke-04,00,0.0251,1,synthetic-test
+smoke-05,00,0.0187,1,synthetic-test
+smoke-06,00,0.0213,0,synthetic-test
+smoke-07,00,0.0102,0,synthetic-test
+smoke-08,00,-0.0055,0,synthetic-test
+smoke-09,00,-0.0143,0,synthetic-test
+smoke-10,00,-0.0301,0,synthetic-test
