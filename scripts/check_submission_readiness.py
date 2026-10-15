@@ -30,9 +30,9 @@ SCORING_CODE = ["jaga/score.py", "jaga/embed.py", "jaga/frames.py", "jaga/offlin
 # the code each measurement depends on: (files, (file, function) pairs). A section is stale when any of it changed
 # after the section's commit. Speed and period measure the embedder and the live loop, not the scoring scripts.
 SECTION_CODE = {
-    "speed": (["jaga/embed.py", "jaga/frames.py"], [("scripts/bench.py", "cmd_speed")]),
+    "speed": (["jaga/embed.py", "jaga/frames.py", "jaga/config.py"], [("scripts/bench.py", "cmd_speed")]),
     "period": (["jaga/daemon.py", "jaga/capture.py", "jaga/embed.py", "jaga/frames.py", "jaga/score.py",
-                "jaga/guards.py"], [("scripts/bench.py", "cmd_period")]),
+                "jaga/guards.py", "jaga/config.py", "jaga/server.py"], [("scripts/bench.py", "cmd_period")]),
 }
 KITCHEN = re.compile(r"spec|progress|predict|radar|CLAUDE|AGENTS|\.claude|\.env$|pem$|a2a|autopilot|devices\.json"
                      r"|tinytuya\.json|snapshot\.json|tuya-raw\.json|consent", re.I)  # + the tinytuya wizard's files
@@ -52,6 +52,11 @@ PLACEHOLDER = re.compile(r"<bench:[^>]*>|<traction:[^>]*>|\bTODO\b|\bTBD\b")
 
 def git(*args: str) -> str:
     return subprocess.run(["git", "-C", str(REPO), *args], capture_output=True, text=True).stdout
+
+
+def git_ok(*args: str) -> tuple[bool, str]:
+    p = subprocess.run(["git", "-C", str(REPO), *args], capture_output=True, text=True)
+    return p.returncode == 0, p.stdout
 
 
 def check(submission: Path | None, allow: set[str]) -> list[tuple[str, bool, str]]:
@@ -89,9 +94,13 @@ def check(submission: Path | None, allow: set[str]) -> list[tuple[str, bool, str
                 stale.append(f"{name}@{c}")
                 continue
             files, funcs = SECTION_CODE.get(name, (SCORING_CODE, []))
-            changed = git("diff", "--name-only", c, "HEAD", "--", *files).strip()
+            ok, out = git_ok("diff", "--name-only", c, "HEAD", "--", *files)
+            changed = (not ok) or bool(out.strip())  # an unknown commit fails closed
             for f, fn in funcs:
-                changed = changed or git("log", "-L", f":{fn}:{f}", f"{c}..HEAD", "-s", "--format=%h").strip()
+                if changed:
+                    break
+                ok, out = git_ok("log", "-L", f":{fn}:{f}", f"{c}..HEAD", "-s", "--format=%h")
+                changed = (not ok) or bool(out.strip())  # a renamed function fails closed
             if changed:
                 stale.append(f"{name}@{c}")
     ok = "written by `scripts/bench.py`" in demo and not stale

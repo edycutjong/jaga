@@ -63,8 +63,8 @@ def git_head() -> str:
     try:
         head = subprocess.run(["git", "-C", str(REPO), "rev-parse", "--short", "HEAD"], capture_output=True,
                               text=True, timeout=10).stdout.strip() or "unknown"
-        dirty = subprocess.run(["git", "-C", str(REPO), "status", "--porcelain", "--untracked-files=no", "--", "jaga",
-                                "scripts", "jobs"], capture_output=True, text=True, timeout=10).stdout.strip()
+        dirty = subprocess.run(["git", "-C", str(REPO), "status", "--porcelain", "--", "jaga", "scripts", "jobs",
+                                "fixtures"], capture_output=True, text=True, timeout=10).stdout.strip()
         return head + ("+dirty" if dirty else "")
     except Exception:
         return "unknown"
@@ -499,6 +499,10 @@ def cmd_soak(a) -> int:
             continue
         results[sess] = r
     key = f"soak_b_dwell_{a.dwell:.0f}"  # one section per dwell: the 30-s row never overwrites the 120-s one
+    missing = [x for x in a.session if x not in results]
+    if results and missing:  # a typo must not quietly shrink the pooled result
+        print(f"session(s) {', '.join(missing)} have no windows — nothing written; check the names", file=sys.stderr)
+        return 1
     if not results:
         print(f"no windows for session(s) {', '.join(a.session)} — nothing written", file=sys.stderr)
         if not load_summary().get(key):
@@ -680,11 +684,17 @@ def cmd_soak_a(a) -> int:
 
     db = DB(a.db) if a.db else DB()
     per = {}
+    seen = set()
     for sess in a.session:
         for slot in a.tripwire.split(","):
             r = soak_a_rows(db, sess, slot.strip().zfill(2), a.p8, a.dwell)
             if r is not None:
                 per.setdefault(r["tripwire"], []).append(r)
+                seen.add(sess)
+    if per and set(a.session) - seen:
+        print(f"session(s) {', '.join(sorted(set(a.session) - seen))} have no windows — nothing written; check the "
+              "names", file=sys.stderr)
+        return 1
     if not per:
         print(f"no windows for session(s) {', '.join(a.session)} — nothing written", file=sys.stderr)
         if not load_summary().get("soak_a"):
