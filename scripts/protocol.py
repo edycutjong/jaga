@@ -4,7 +4,8 @@
 The order and length of every still episode, exit and activity is drawn here, not chosen during the
 session. Re-running with the same seed reproduces the committed files byte for byte (tests check it).
 
-    python scripts/protocol.py B1 B2
+    python scripts/protocol.py B1 B2      (re)write the files
+    python scripts/protocol.py --check    verify the committed files reproduce exactly; writes nothing
 """
 from __future__ import annotations
 
@@ -79,6 +80,35 @@ def summary(session: str) -> dict:
             "exit_inview": kinds.count("exit_inview")}
 
 
+def check(session: str) -> bool:
+    """True if the committed file is exactly what the seed produces (nothing is written)."""
+    import io
+
+    buf = io.StringIO()
+    w = csv.DictWriter(buf, fieldnames=["step", "start_min", "end_min", "kind", "text"], lineterminator="\n")
+    w.writeheader()
+    w.writerows(generate(session))
+    p = OUT / f"{session}.csv"
+    return p.exists() and p.read_text() == buf.getvalue()
+
+
+def main(argv: list[str]) -> int:
+    import argparse
+
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("sessions", nargs="*", choices=[*SEEDS, []], default=[], metavar="SESSION",
+                    help=f"one of {', '.join(SEEDS)} (default: all)")
+    ap.add_argument("--check", action="store_true", help="compare the committed files with the seed; write nothing")
+    a = ap.parse_args(argv)
+    sessions = a.sessions or list(SEEDS)
+    if a.check:
+        bad = [x for x in sessions if not check(x)]
+        print("reproduced exactly" if not bad else f"DIFFERS from the seed: {', '.join(bad)}")
+        return 1 if bad else 0
+    for x in sessions:
+        print(write(x), summary(x))
+    return 0
+
+
 if __name__ == "__main__":
-    for s in sys.argv[1:] or list(SEEDS):
-        print(write(s), summary(s))
+    sys.exit(main(sys.argv[1:]))

@@ -161,8 +161,12 @@ def cmd_period(a) -> int:
     from jaga.db import DB
 
     db = DB(a.db) if a.db else DB()
-    sess = a.session or db.query("SELECT session FROM embed ORDER BY id DESC LIMIT 1")[0]["session"]
-    rows = db.query("SELECT ts, embed_ms, source FROM embed WHERE session=? ORDER BY ts", (sess,))
+    last = db.query("SELECT session FROM embed ORDER BY id DESC LIMIT 1")
+    sess = a.session or (last[0]["session"] if last else None)
+    rows = db.query("SELECT ts, embed_ms, source FROM embed WHERE session=? ORDER BY ts", (sess,)) if sess else []
+    if len(rows) < 2:  # a typo or an empty database must never replace a measured period
+        print(f"no logged windows for session {sess!r} — nothing written", file=sys.stderr)
+        return 1
     ts = [r["ts"] for r in rows]
     p50, p95 = window_period(ts)
     emb = [r["embed_ms"] / 1000 for r in rows if r["embed_ms"]]
@@ -685,6 +689,7 @@ def cmd_soak_a(a) -> int:
     db = DB(a.db) if a.db else DB()
     per = {}
     seen = set()
+    a.session = list(dict.fromkeys(a.session))  # a name given twice counts once
     for sess in a.session:
         for slot in a.tripwire.split(","):
             r = soak_a_rows(db, sess, slot.strip().zfill(2), a.p8, a.dwell)
@@ -865,6 +870,12 @@ def cmd_outside(a) -> int:
 
     root = Path(a.root).expanduser()
     people = sorted(p for p in root.iterdir() if p.is_dir()) if root.exists() else []
+    if not people:  # a mistyped --root must never replace a computed result with "not yet run"
+        print(f"{root}: no outside people's folders — nothing written", file=sys.stderr)
+        if not load_summary().get("outside"):
+            save_section("outside", {"status": "not yet run", "why": "no outside people's clips received"})
+            write_demo()
+        return 1
     rows = []
     emb = None
     for i, p in enumerate(people, 1):
@@ -1005,15 +1016,18 @@ def write_demo() -> None:
                      f"{r['threads']} | {load} |")
         n = sp["rows"][0]["n"]
         cores = (sp.get("_machine") or {}).get("cpu_count") or 0
-        busy = [r["device"].upper() for r in sp["rows"] if cores and max(r.get("loadavg_1m_before") or 0,
-                                                                         r.get("loadavg_1m_after") or 0) > cores]
+        busy = [r for r in sp["rows"] if cores and max(r.get("loadavg_1m_before") or 0,
+                                                       r.get("loadavg_1m_after") or 0) > cores]
         L += ["", f"{n} timed calls on one window (8 frames → `preprocess` + `get_video_embeddings`), after 5 warm-up "
               f"calls; input `{sp['input']}` (the model card's own sample video). Other processes on the machine were "
               f"not stopped; the load column shows how busy it was. {stamp(sp)}", ""]
         if busy:
-            ctx = [f"**The {' and '.join(busy)} row{'s' if len(busy) > 1 else ''} ran while the 1-min load average "
-                   f"exceeded the machine's {cores} cores** — other processes were competing for it, so read "
-                   f"{'them' if len(busy) > 1 else 'it'} as a loaded machine, not an idle one."]
+            said = "; ".join(f"{r['device'].upper()} {r.get('loadavg_1m_before')} → {r.get('loadavg_1m_after')}"
+                             for r in busy)
+            ctx = [f"**The 1-min load average went above the machine's {cores} cores during the "
+                   f"{' and '.join(r['device'].upper() for r in busy)} row{'s' if len(busy) > 1 else ''}** ({said}) — "
+                   f"other processes were competing for it, so read {'them' if len(busy) > 1 else 'it'} as a loaded "
+                   f"machine, not an idle one."]
             pe0 = s.get("period") or {}
             if pe0.get("embed_p50_s") and pe0.get("_commit") == sp.get("_commit"):
                 ctx.append(f"At the same commit the live loop's own embed time was p50 {pe0['embed_p50_s']:.2f} s over "

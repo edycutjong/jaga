@@ -88,7 +88,10 @@ def check(submission: Path | None, allow: set[str]) -> list[tuple[str, bool, str
     if summary.exists():
         for name, sec in json.loads(summary.read_text()).items():
             c = sec.get("_commit")
-            if not c or c == "unknown":
+            if sec.get("status") == "not yet run":  # no number in it, so nothing can be stale
+                continue
+            if not c or c == "unknown":  # a result that cannot say which code made it is never current
+                stale.append(f"{name}@{c or 'no commit'}")
                 continue
             if c.endswith("+dirty"):  # measured on uncommitted code: never current
                 stale.append(f"{name}@{c}")
