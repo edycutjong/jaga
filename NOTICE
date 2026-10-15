@@ -4,8 +4,7 @@ Copyright 2026 Edy Cu. Licensed under the Apache License, Version 2.0 (see LICEN
 Built on NVIDIA Cosmos.
 jaga uses NVIDIA Cosmos-Embed1-224p (https://huggingface.co/nvidia/Cosmos-Embed1-224p), licensed by NVIDIA
 Corporation under the NVIDIA Open Model License. The model weights are not included in this repository: they are
-downloaded from Hugging Face after accepting that licence. The committed vectors under fixtures/ are outputs of
-the model.
+downloaded from Hugging Face under that licence. The committed vectors under fixtures/ are outputs of the model.
 
 jaga calls NVIDIA Nemotron 3 Super (nvidia/nemotron-3-super-120b-a12b) through Nebius Token Factory.
 

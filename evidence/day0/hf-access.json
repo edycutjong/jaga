@@ -1,0 +1,10 @@
+{
+  "check": "Hugging Face access to nvidia/Cosmos-Embed1-224p",
+  "checked_at": "2026-10-15T08:58:13+0700",
+  "api": "https://huggingface.co/api/models/nvidia/Cosmos-Embed1-224p",
+  "gated": false,
+  "sha": "787e0b996f5260a71ad474a283c90539a2e12986",
+  "card_still_has_licence_prompt": true,
+  "note": "gated=False on this date: files are served without a token; the model card still carries an extra_gated licence prompt, so gating may return",
+  "unauthenticated_file_request": "HEAD .../resolve/787e0b99.../config.json without a token \u2192 HTTP 307 (a redirect to the download), not 401/403"
+}

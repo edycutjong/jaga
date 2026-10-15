@@ -24,16 +24,23 @@ shop), and her CCTV stays silent — an empty room with a hot iron in it has no 
    dwell above the threshold, including the newest. A 2-minute "normal state" capture at arming (someone ironing as
    usual) sets the reference.
 5. The plug switches **off** over the home network, and the overlay shows OFF only after the plug confirms it.
-   A nightly **Nebius Serverless Job** recalibrates each tripwire's threshold from labelled margins.
+   A **Nebius Serverless Job** recalibrates each tripwire's threshold from labelled margins (`jaga calibrate`).
 
 The model chooses where to look; the code decides when to act.
 
 ## Status
 
-The software is complete; the measurements are being made. Everything measured so far is in [`DEMO.md`](DEMO.md),
-written by `scripts/bench.py` — no number appears anywhere before that script writes it. The labelled clips and the
-pre-registered soak sessions (protocol committed before any data: [`docs/PROTOCOL.md`](docs/PROTOCOL.md)) are
-recorded in the builder's own flat; their results are added to `DEMO.md` as they are measured.
+The software is complete; the measurements are being made.
+
+* Accuracy, speed and latency results appear only in [`DEMO.md`](DEMO.md), written by `scripts/bench.py`. Job
+  receipts are in [`docs/RUNS.md`](docs/RUNS.md) and the day-0 spikes in [`evidence/day0/`](evidence/day0/).
+* **Not recorded yet:** the labelled clips and the two pre-registered soak sessions (protocol committed before any
+  data: [`docs/PROTOCOL.md`](docs/PROTOCOL.md)). `DEMO.md` says "not yet run" for each until it is measured.
+* **Not run on the real hardware yet:** so far the live loop has run on recorded files played through the same
+  capture path, and the plug path against a fake LAN plug in the tests. The first runs with a real webcam and a real
+  plug are pending.
+* The calibration Job has run once, as a smoke test on synthetic numbers (`docs/RUNS.md`); a scheduled run
+  (`scripts/dispatch_calibrate.sh`) starts once labelled margins exist.
 
 ## Quick start
 
@@ -41,19 +48,22 @@ recorded in the builder's own flat; their results are added to `DEMO.md` as they
 git clone https://github.com/edycutjong/jaga && cd jaga
 python3.11 -m venv .venv && source .venv/bin/activate
 pip install -e ".[test]"
-pytest                                   # the safety invariants and the decision rule, no model or key needed
+pytest       # 138 tests: the safety invariants, the decision rule and the measurement rules; no model or key needed
 ```
 
-**The model (gated):** accept the licence at <https://huggingface.co/nvidia/Cosmos-Embed1-224p> and log in with a
-Hugging Face read token (`huggingface-cli login`). The first run downloads the weights; after that jaga loads them from
-the local cache with no network call.
+**The model:** [`nvidia/Cosmos-Embed1-224p`](https://huggingface.co/nvidia/Cosmos-Embed1-224p), under the NVIDIA Open
+Model License. On 2026-10-15 Hugging Face served it without a token (`evidence/day0/hf-access.json`); the card still
+carries a licence prompt, so if a download is refused, accept the licence there and run `huggingface-cli login`. The
+first run downloads the weights; after that jaga loads them from the local cache with no network call.
 
 **The compiler:** a Nebius Token Factory key in `~/.config/jaga/tokenfactory.env` (`TOKENFACTORY_API_KEY=…`).
 
-**The plug (optional for trying it):** a Tuya "Smart Life" Wi-Fi plug, paired in its app; run
-`python -m tinytuya wizard` once and save its output as `~/.config/jaga/devices.json` (never inside the repo).
-A Shelly Plug S Gen3 works too (`~/.config/jaga/shelly.json` with `{"ip": "…"}`). With no plug configured, a trip
-shows **ACTION FAILED** — never "done".
+**The plug (optional for trying it):** a Tuya "Smart Life" Wi-Fi plug, paired in its app; then run the wizard once
+inside `~/.config/jaga` (`cd ~/.config/jaga && python -m tinytuya wizard`). It writes `devices.json` (the plug's
+local key) and your Tuya cloud API secret into the folder it runs in, so never run it inside the repo. jaga also has a
+driver for the Shelly Plug S Gen3's local API (`~/.config/jaga/shelly.json` with `{"ip": "…"}`); like the Tuya path,
+it has so far been exercised only against the fake plug in the tests. With no plug configured, a trip shows
+**ACTION FAILED** — never "done".
 
 ```bash
 jaga serve --load 01 --arm 01                 # watch the webcam; open http://127.0.0.1:8765/
@@ -65,14 +75,16 @@ On macOS, allow camera access for your terminal (System Settings → Privacy & S
 
 ## Testing it without the hardware
 
+`pytest` runs the whole watcher — decision rule, guards, actuator, server — against scripted vectors and a fake LAN
+plug. Scoring a recording works today with the model:
+
 ```bash
-jaga score --replay data/clips/iron/pos_03.mp4 --tripwire fixtures/tripwires/01.json
+jaga score my-clip.mp4 --tripwire fixtures/tripwires/01.json    # embeds one 8-s window with Cosmos-Embed1
 ```
 
-`--replay` reads the clip's committed window vector (`fixtures/vecs/`), so it needs no model download, no key and no
-camera; it prints the clip's margin and whether it is above the frozen threshold, and checks it against
-`fixtures/decisions_frozen.csv`. The vectors and published decisions are committed with the labelled clips. Without
-`--replay`, the same command embeds the clip with Cosmos-Embed1 on your machine.
+**Available once the labelled clips are recorded:** each clip's window vector is committed under `fixtures/vecs/`,
+and `jaga score --replay iron/pos_03 --tripwire fixtures/tripwires/01.json` then scores it with no model download, no
+key and no camera. Until then `--replay` has nothing to read.
 
 ## How the NVIDIA models are used
 
@@ -86,13 +98,14 @@ The Cosmos-Embed1 card documents Linux, CUDA and BF16 only; jaga runs it on macO
 
 ## Where Nebius is used
 
-* **Token Factory** compiles every sentence (one request per tripwire; the request ID is stored with the tripwire,
-  shown in the compile drawer and listed at `/receipts`). The three measured tripwires were each compiled once and
-  frozen before any clip was recorded (`fixtures/tripwires/`).
-* **Serverless Jobs** (`cpu-d3`, `4vcpu-16gb`, stock `python:3.11`) run the nightly calibration
-  (`jobs/calibrate.py`, standard library only): a per-tripwire ROC over labelled margins → the threshold at
-  recall 0.9. The work is light; running it off the laptop keeps the watcher from pausing and leaves a receipt for
-  every run ([`docs/RUNS.md`](docs/RUNS.md)).
+* **Token Factory** compiles every sentence (one request per compile attempt — a second shape is tried only if the
+  first is refused; the request ID that produced the spec is stored with the tripwire, shown in the compile drawer and
+  listed at `/receipts`). Each of the three tripwires to be measured was frozen from one compile made before any clip
+  was recorded; earlier compiles are listed under `superseded` in its fixture (`fixtures/tripwires/`).
+* **Serverless Jobs** (`cpu-d3`, `4vcpu-16gb`, stock `python:3.11`) run the calibration (`jobs/calibrate.py`,
+  standard library only): a per-tripwire ROC over labelled margins → the threshold at recall 0.9. The work is light;
+  running it off the laptop keeps the watcher from pausing and leaves a receipt for every run
+  ([`docs/RUNS.md`](docs/RUNS.md)).
 * **Object Storage** carries the Job's input and result through presigned URLs: the Job holds no account
   credential, only two single-object URLs that expire after 2 hours. A result is adopted only if it matches the input
   that was sent (run ID, input hash, row count) and its threshold is finite and in range.
@@ -106,7 +119,7 @@ The Cosmos-Embed1 card documents Linux, CUDA and BF16 only; jaga runs it on macO
 | the typed sentence | Token Factory | no |
 | labelled margins (numbers and labels; no vectors) | Object Storage → the calibration Job | no |
 | thresholds | back from Object Storage | no |
-| one text line (the tripwire's name and the time), only if you turn on the optional push — anyone who knows the topic can read it, so jaga refuses topics shorter than 20 characters | ntfy | no |
+| one text line per alert, only if you turn on the optional push: a trip (tripwire slot and name, time, seconds held) or a guard's short status (too dark, camera moved, watcher stopped, action failed). Anyone who knows the topic can read it, so jaga refuses topics shorter than 20 characters | ntfy | no |
 
 **Video frames never leave this laptop.** The overlay is served on `127.0.0.1` only. The Tuya plug's own firmware
 may talk to Tuya's cloud by itself; that is outside jaga's control, and the Shelly path can be fully local.
@@ -140,7 +153,10 @@ may talk to Tuya's cloud by itself; that is outside jaga's control, and the Shel
 
 ## Limits
 
-* Three events are measured, one room, one person — not "any event".
+* Three events are planned (iron, fridge, door), one room, one person — not "any event". No detection accuracy has
+  been measured yet (`DEMO.md` §2).
+* In the soak protocol the plug's visible load is a desk lamp and the iron is an unplugged prop: no heated iron is
+  left unattended for a measurement.
 * 224p is small: jaga watches scene states (a person present or not, a door open), not an iron's power light.
 * Captions are English; other languages are only as good as Super's rewrite.
 * If the laptop sleeps or the camera is unplugged, nothing trips (the watchdog alerts while the process runs).

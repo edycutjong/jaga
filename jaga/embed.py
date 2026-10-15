@@ -4,8 +4,9 @@ The model card's sample hard-codes CUDA + BF16 and says it was only tested on Am
 jaga runs it on Apple silicon in fp32: MPS when available (with PYTORCH_ENABLE_MPS_FALLBACK=1), else CPU.
 Day-0 stage COSMOS ran the card's own javelin smoke test both ways (evidence/day0/cosmos-*.json).
 
-The weights are gated on Hugging Face (accept the licence once). Once cached, the model loads with
-`local_files_only=True`, so a running watcher makes no network call to load it.
+The weights come from Hugging Face under the NVIDIA Open Model License; the card carries a licence prompt, so a
+download may need the licence accepted and a read token. Once cached, the model loads with `local_files_only=True`,
+so a running watcher makes no network call to load it.
 """
 from __future__ import annotations
 
@@ -23,7 +24,7 @@ from .frames import window_batch  # noqa: E402
 
 
 class ModelUnavailable(RuntimeError):
-    """The gated weights could not be loaded (licence not accepted, no token, or offline with no cache)."""
+    """The weights could not be loaded (download refused — licence or token — or offline with no cache)."""
 
 
 def pick_device(requested: str = "auto") -> str:
@@ -55,13 +56,14 @@ class Embedder:
             try:
                 model = AutoModel.from_pretrained(model_id, local_files_only=True, **kw)
                 proc = AutoProcessor.from_pretrained(model_id, local_files_only=True, **kw)
-            except OSError:  # not cached yet: one download (needs the accepted licence + an HF read token)
+            except OSError:  # not cached yet: one download (if Hugging Face gates it: the licence + a read token)
                 model = AutoModel.from_pretrained(model_id, **kw)
                 proc = AutoProcessor.from_pretrained(model_id, **kw)
         except OSError as e:
             raise ModelUnavailable(
-                f"could not load {model_id}: accept the licence at https://huggingface.co/{model_id} and set an "
-                f"HF read token ({type(e).__name__}: {str(e)[:200]})") from e
+                f"could not load {model_id}: if the download was refused, accept the licence at "
+                f"https://huggingface.co/{model_id} and run `huggingface-cli login`; offline, it needs the cached "
+                f"weights ({type(e).__name__}: {str(e)[:200]})") from e
         self.model = model.to(self.device, dtype=torch.float32).eval()
         self.processor = proc
         self.load_s = time.perf_counter() - t0

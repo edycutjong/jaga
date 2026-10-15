@@ -1,4 +1,4 @@
-"""The deterministic trigger: margin → z → k-of-n over the dwell → act. No model runs here (W4).
+"""The deterministic trigger: margin → z → k-of-n over the dwell → act. No model runs here.
 
 The model chooses where to look; this code decides what is true.
 
