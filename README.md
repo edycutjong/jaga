@@ -33,8 +33,8 @@ The model chooses where to look; the code decides when to act.
 
 The software is built and tested against scripted vectors and fake plugs; the measurements are being made.
 
-* Accuracy, speed and latency results appear only in [`DEMO.md`](DEMO.md), written by `scripts/bench.py`. Job
-  receipts are in [`docs/RUNS.md`](docs/RUNS.md) and the day-0 spikes in [`evidence/day0/`](evidence/day0/).
+* Accuracy and speed results appear only in [`DEMO.md`](DEMO.md), written by `scripts/bench.py`. Job receipts and
+  their timings are in [`docs/RUNS.md`](docs/RUNS.md), and the day-0 spikes in [`evidence/day0/`](evidence/day0/).
 * **Not recorded yet:** the labelled clips and the pre-registered soaks — B1, B2 and the supporting Soak A night
   (protocol committed before any data: [`docs/PROTOCOL.md`](docs/PROTOCOL.md)). `DEMO.md` says "not yet run" for
   each until it is measured.
@@ -51,7 +51,7 @@ The software is built and tested against scripted vectors and fake plugs; the me
 git clone https://github.com/edycutjong/jaga && cd jaga
 python3.11 -m venv .venv && source .venv/bin/activate
 pip install -e ".[test]"
-pytest       # 173 tests: the safety invariants, the decision rule and the measurement rules; no model or key needed
+pytest       # 184 tests: the safety invariants, the decision rule and the measurement rules; no model or key needed
 ```
 
 **The model:** [`nvidia/Cosmos-Embed1-224p`](https://huggingface.co/nvidia/Cosmos-Embed1-224p), under the NVIDIA Open
@@ -70,7 +70,7 @@ Tuya driver through a fake `tinytuya` device. With no plug configured, a trip sh
 
 ```bash
 jaga serve --load 01 --arm 01                 # watch the webcam; open http://127.0.0.1:8765/
-jaga serve --source recording.mp4 --load 01   # or play a recording through the same loop
+jaga serve --source recording.mp4 --load 01   # or play a recording through the same loop (--loop repeats it)
 jaga compile "the door is left open and nobody is there"
 ```
 
@@ -109,7 +109,7 @@ in fp32, and the speeds in
   was recorded; earlier compiles are listed under `superseded` in its fixture (`fixtures/tripwires/`).
 * **Serverless Jobs** (`cpu-d3`, `4vcpu-16gb`, stock `python:3.11`) run the calibration (`jobs/calibrate.py`,
   standard library only): a per-tripwire ROC over labelled margins → the threshold at recall 0.9. The work is light;
-  running it off the laptop keeps the watcher from pausing and leaves a receipt for every run
+  running it as a Job keeps calibration off the watcher's machine and leaves a receipt for every run
   ([`docs/RUNS.md`](docs/RUNS.md)).
 * **Object Storage** carries the Job's input and result through presigned URLs: the Job holds no account
   credential, only two single-object URLs that expire after 2 hours. A result is adopted only if it matches the input
@@ -136,7 +136,7 @@ may talk to Tuya's cloud by itself; that is outside jaga's control, and the Shel
   hand-run plug check `scripts/day0_plug.py`. Tests check statically that nothing else in the package reaches it,
   and run repeated trips against a fake plug to count zero ON calls.
 * **I2** — one bad window cannot cut power: a trip needs most windows over the dwell above the threshold, including
-  the newest, never fewer than two, and the dwell is never shorter than twice the measured window period.
+  the newest, never fewer than two, and the dwell is never shorter than twice the p95 live window period (`DEMO.md` §1).
 * **I3** — the overlay shows OFF only after the plug acknowledges this trip's OFF (a remembered plug state never
   stands in for it); a failed call is shown and pushed as **ACTION FAILED** and retried (off only). Every plug call —
   a trip's OFF, a status read, the operator test — takes one lock, so they never interleave.

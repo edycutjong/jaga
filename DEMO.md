@@ -12,7 +12,7 @@ A section that has not run says so; nothing here is estimated.
 
 200 timed calls on one window (8 frames → `preprocess` + `get_video_embeddings`), after 5 warm-up calls; input `javelin_throw.webm` (the model card's own sample video). Other processes on the machine were not stopped; the load column shows how busy it was. *ran 2026-10-15T12:09:15+0700 at commit `6cfef48` on Apple M1 Max (macOS-26.5.2-arm64-arm-64bit); 1-min load average when the result was written: 15.74*
 
-**The CPU row ran while the 1-min load average exceeded the machine's 10 cores** — other processes were competing for it, so read it as a loaded machine, not an idle one. Day-0 stage COSMOS measured MPS p50 0.8617 s over 20 calls (`evidence/day0/cosmos-mps.json`).
+**The 1-min load average went above the machine's 10 cores during the CPU row** (CPU 8.42 → 15.74) — other processes were competing for it, so read it as a loaded machine, not an idle one. Day-0 stage COSMOS measured MPS p50 0.8617 s over 20 calls (`evidence/day0/cosmos-mps.json`).
 
 Reproduce: `python scripts/bench.py speed --n 200`
 

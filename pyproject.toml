@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "jaga"
 version = "0.1.0"
-description = "Type what to watch for: NVIDIA Cosmos-Embed1 watches a webcam and a smart plug acts. No training, no cloud video."
+description = "Type what to watch for: NVIDIA Cosmos-Embed1 watches a webcam and a smart plug acts. No model training, no cloud video."
 readme = "README.md"
 license = { text = "Apache-2.0" }
 requires-python = ">=3.11"

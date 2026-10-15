@@ -202,7 +202,7 @@ def compile_sentence(
     shapes: tuple[str, ...] = SHAPES,
     temperature: float = config.TF_TEMPERATURE,
 ) -> CompileResult:
-    """Compile one sentence. Tries the TF doc shape, then the OpenAI shape, then json_object + one retry."""
+    """Compile one sentence. Tries the OpenAI json_schema shape, then json_object with one retry."""
     sentence = " ".join(sentence.split())
     if not sentence:
         raise CompileError("empty_sentence", "type a sentence first")
