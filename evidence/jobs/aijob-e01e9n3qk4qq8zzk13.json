@@ -1,0 +1,184 @@
+{
+  "job_id": "aijob-e01e9n3qk4qq8zzk13",
+  "kind": "smoke",
+  "state": "COMPLETED",
+  "run_id": "20261015T070825",
+  "region": "eu-west1",
+  "platform": "cpu-d3",
+  "preset": "4vcpu-16gb",
+  "image": "python:3.11",
+  "disk_size": "16Gi",
+  "created_at": "2026-10-15T00:08:27.507563Z",
+  "started_at": "2026-10-15T00:12:46.424890062Z",
+  "finished_at": "2026-10-15T00:12:47.005895625Z",
+  "wall_clock_s": 0.6,
+  "provisioning_s": 258.9,
+  "transport": "object storage jaga-calib/runs/20261015T070825/ (presigned GET + PUT)",
+  "result_via": "object storage (presigned PUT by the Job)",
+  "input_rows": 10,
+  "input_bytes": 395,
+  "input_sha256": "ce159f720b0be00da6f649edda481e87c26c9a31d37130f7926bf27776226ace",
+  "input": "fixtures/test/smoke_margins.csv (synthetic test fixture — plumbing only)",
+  "cost_usd_docs_price": 1.7e-05,
+  "cost_usd_high_price": 2.2e-05,
+  "billed_usd": null,
+  "billed_note": "read the billed amount from the Nebius console (the formula has no disk or provisioning term)",
+  "result": {
+    "schema": "jaga.calibration.v1",
+    "kind": "smoke",
+    "run_id": "20261015T070825",
+    "input_sha256": "ce159f720b0be00da6f649edda481e87c26c9a31d37130f7926bf27776226ace",
+    "input_bytes": 395,
+    "n_rows": 10,
+    "transport_in": "presigned-get",
+    "transport_errors": [],
+    "recall_target": 0.9,
+    "tripwires": {
+      "00": {
+        "n_pos": 5,
+        "n_neg": 5,
+        "theta_m": 0.0187,
+        "at_recall": 0.9,
+        "tp": 5,
+        "fp": 1,
+        "fn": 0,
+        "tn": 4,
+        "precision": 0.8333333333333334,
+        "recall": 1.0,
+        "auc": 0.96,
+        "auc_ci95": [
+          0.8245,
+          1.0
+        ],
+        "roc": [
+          [
+            0.0412,
+            0.0,
+            0.2
+          ],
+          [
+            0.0365,
+            0.0,
+            0.4
+          ],
+          [
+            0.0298,
+            0.0,
+            0.6
+          ],
+          [
+            0.0251,
+            0.0,
+            0.8
+          ],
+          [
+            0.0213,
+            0.2,
+            0.8
+          ],
+          [
+            0.0187,
+            0.2,
+            1.0
+          ],
+          [
+            0.0102,
+            0.4,
+            1.0
+          ],
+          [
+            -0.0055,
+            0.6,
+            1.0
+          ],
+          [
+            -0.0143,
+            0.8,
+            1.0
+          ],
+          [
+            -0.0301,
+            1.0,
+            1.0
+          ]
+        ],
+        "status": "ok"
+      }
+    },
+    "global_theta": {
+      "n_pos": 5,
+      "n_neg": 5,
+      "theta_m": 0.0187,
+      "at_recall": 0.9,
+      "tp": 5,
+      "fp": 1,
+      "fn": 0,
+      "tn": 4,
+      "precision": 0.8333333333333334,
+      "recall": 1.0,
+      "auc": 0.96,
+      "auc_ci95": [
+        0.8245,
+        1.0
+      ],
+      "roc": [
+        [
+          0.0412,
+          0.0,
+          0.2
+        ],
+        [
+          0.0365,
+          0.0,
+          0.4
+        ],
+        [
+          0.0298,
+          0.0,
+          0.6
+        ],
+        [
+          0.0251,
+          0.0,
+          0.8
+        ],
+        [
+          0.0213,
+          0.2,
+          0.8
+        ],
+        [
+          0.0187,
+          0.2,
+          1.0
+        ],
+        [
+          0.0102,
+          0.4,
+          1.0
+        ],
+        [
+          -0.0055,
+          0.6,
+          1.0
+        ],
+        [
+          -0.0143,
+          0.8,
+          1.0
+        ],
+        [
+          -0.0301,
+          1.0,
+          1.0
+        ]
+      ],
+      "status": "ok"
+    },
+    "python": "3.11.17",
+    "platform": "Linux-6.11.0-1016-nvidia-x86_64-with-glibc2.41",
+    "cpu_count": 4,
+    "started_at": "2026-10-15T00:12:46Z",
+    "elapsed_s": 0.061
+  }
+}

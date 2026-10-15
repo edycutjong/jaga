@@ -232,7 +232,9 @@ def dispatch(smoke: bool = False, input_csv: str | None = None, wait: bool = Tru
     ev = {"job_id": job_id, "kind": kind, "state": state, "run_id": run_id, "region": REGION, "platform": PLATFORM,
           "preset": PRESET, "image": IMAGE, "disk_size": DISK, "created_at": created,
           "started_at": st.get("started_at"),
-          "finished_at": st.get("finished_at"), "wall_clock_s": wall, "transport": transport, "result_via": result_via,
+          "finished_at": st.get("finished_at"), "wall_clock_s": wall,
+          "provisioning_s": round(t_start - _ts(created), 1) if t_start and _ts(created) else None,
+          "transport": transport, "result_via": result_via,
           "input_rows": n_rows, "input_bytes": len(data), "input_sha256": hashlib.sha256(data).hexdigest(),
           "input": "fixtures/test/smoke_margins.csv (synthetic test fixture — plumbing only)" if smoke else
           (input_csv or "labelled clip margins + ✗ wrong marks (unscored sessions only)"),
@@ -242,26 +244,38 @@ def dispatch(smoke: bool = False, input_csv: str | None = None, wait: bool = Tru
                                               "or provisioning term)", "result": result}
     EVIDENCE.mkdir(parents=True, exist_ok=True)
     (EVIDENCE / f"{job_id}.json").write_text(json.dumps(ev, indent=2, ensure_ascii=False) + "\n")
-    append_runs_md(ev)
+    write_runs_md()
     if kind == "calibration" and state == "COMPLETED" and result:
         store_thresholds(job_id, result, db)
     print(f"{job_id}: {state} · wall {wall} s · result via {result_via}")
     return 0 if state == "COMPLETED" and result else 1
 
 
-def append_runs_md(ev: dict) -> None:
+def _usd(x) -> str:
+    return "—" if x is None else f"${x:.6f}"
+
+
+def write_runs_md() -> None:
+    """docs/RUNS.md is generated from evidence/jobs/*.json, so every row traces to a Job's own record."""
+    from .receipts import job_runs
+
+    lines = [RUNS_HEADER]
+    for ev in job_runs():
+        res = ev.get("result") or {}
+        if ev.get("kind") == "smoke":
+            summary = f"plumbing check: {res.get('n_rows', '?')} rows in, result out (synthetic numbers, not reported)"
+        else:
+            tws = res.get("tripwires") or {}
+            summary = "; ".join(f"{k}: θ_m {v.get('theta_m')} · AUC {v.get('auc')}" for k, v in tws.items()) or "—"
+        kind = "**smoke, not a calibration**" if ev.get("kind") == "smoke" else "calibration"
+        prov = ev.get("provisioning_s")
+        lines.append(
+            f"| {(ev.get('created_at') or '')[:19].replace('T', ' ')} | `{ev['job_id']}` | {kind} | {ev.get('state')} | "
+            f"{'—' if prov is None else round(prov)} | {ev.get('wall_clock_s')} | {_usd(ev.get('cost_usd_docs_price'))} | "
+            f"{_usd(ev.get('cost_usd_high_price'))} | {ev.get('input_rows')} rows · sha256 "
+            f"`{(ev.get('input_sha256') or '')[:12]}` | {summary} | {ev.get('result_via')} |")
     RUNS_MD.parent.mkdir(parents=True, exist_ok=True)
-    if not RUNS_MD.exists():
-        RUNS_MD.write_text(RUNS_HEADER)
-    res = ev.get("result") or {}
-    tws = res.get("tripwires") or {}
-    summary = "; ".join(f"{k}: θ_m {v.get('theta_m')} AUC {v.get('auc')}" for k, v in tws.items()) or "—"
-    kind = "**smoke, not a calibration**" if ev["kind"] == "smoke" else "calibration"
-    row = (f"| {(ev.get('created_at') or '')[:19].replace('T', ' ')} | `{ev['job_id']}` | {kind} | {ev['state']} | "
-           f"{ev['wall_clock_s']} | {ev['cost_usd_docs_price']} | {ev['cost_usd_high_price']} | "
-           f"{ev['input_rows']} rows · sha256 {ev['input_sha256'][:12]} | {summary} | {ev['result_via']} |\n")
-    with RUNS_MD.open("a") as f:
-        f.write(row)
+    RUNS_MD.write_text("\n".join(lines) + "\n")
 
 
 RUNS_HEADER = """# Calibration runs — Nebius AI Cloud Serverless Jobs
@@ -275,9 +289,11 @@ price ($0.0992/h) and at a higher price seen earlier ($0.132/h); the billed amou
 A **smoke** run checks the plumbing on a committed synthetic test fixture. It is not a calibration and its
 numbers mean nothing about any tripwire.
 
-| created (UTC) | job ID | kind | state | wall clock (s) | cost @ $0.0992/h | cost @ $0.132/h | input | result | result read via |
-|---|---|---|---|---|---|---|---|---|---|
-"""
+Provisioning = from the create call to the container start (queue, scheduling and the image pull); the cost
+columns price the container's own wall clock only.
+
+| created (UTC) | job ID | kind | state | provisioning (s) | wall clock (s) | cost @ $0.0992/h | cost @ $0.132/h | input | result | result read via |
+|---|---|---|---|---|---|---|---|---|---|---|"""
 
 
 def store_thresholds(job_id: str, result: dict, db=None) -> None:
