@@ -185,6 +185,7 @@ class Watcher:
                 self.db.set_armed(tw.tripwire_id, True)
                 self._event("armed", tw, f"{tw.name}: armed with its stored reference")
             self.dark_unarmed.discard(slot)
+            self._retarget_retry()  # re-arming a tripped tripwire ends its own OFF retry
 
     def disarm(self, slot: str) -> None:
         with self.lock:
@@ -193,7 +194,25 @@ class Watcher:
             self.capture_slots.discard(slot)
             self.dark_unarmed.discard(slot)
             self.db.set_armed(tw.tripwire_id, False, "disarmed")
+            self._retarget_retry()
             self._event("disarmed", tw, f"{tw.name}: disarmed")
+
+    def _unacked_cuts(self) -> list:
+        """Tripped plug_off tripwires still waiting for an acknowledged OFF (call under self.lock)."""
+        return [t for t in self.tripwires.values() if t.action == "plug_off" and t.state == "tripped"
+                and not t.off_acked]
+
+    def _retarget_retry(self) -> None:
+        """Keep a pending OFF retry only while some tripped tripwire still needs it (call under self.lock)."""
+        if not self.retry:
+            return
+        left = self._unacked_cuts()
+        if left:
+            self.retry["slot"] = left[0].slot
+        else:
+            self.retry = None
+            if self.plug.get("failed"):
+                self.plug.update(failed=False, detail="OFF retry stopped: no tripped tripwire needs it")
 
     def add_example(self, slot: str) -> dict:
         """The optional teaching step: 'it is happening now'. After 3 examples, the noise floor is checked."""
@@ -304,6 +323,14 @@ class Watcher:
                 self.trace[slot].append((ts, score, th.theta, r.above))
                 if was == "capturing" and tw.state != "capturing":
                     self._capture_done(tw)
+                if was == "tripped" and tw.state == "armed":  # a notify cool-down ended: the same gate as any arm
+                    why = self._arm_blocker(tw)
+                    if why:
+                        tw.unarm(why)
+                        self.db.set_armed(tw.tripwire_id, False, why)
+                        if why == "too dark to see":
+                            self.dark_unarmed.add(tw.slot)
+                        self._event("unarmed", tw, f"{tw.name}: cool-down over, but {why}")
                 if r.fired:
                     self._on_trip(tw, ts, r)
                 results.append(r)
@@ -399,6 +426,7 @@ class Watcher:
                     + (f" · margin {r.m:+.4f}" if tw.threshold.mode == "labelled-m" else f" · z {r.z:+.2f}"), ts=ts)
         if tw.action == "plug_off":
             tw.off_acked = False
+            tw.tripped_mono = time.monotonic()
             self.plug["state"] = "unknown"  # a cached "off" must never stand in for THIS trip's acknowledgement (I3)
             self.actions.put(("off", tw.slot, ts, held))
         else:
@@ -450,6 +478,9 @@ class Watcher:
             self.publish("window", self.snapshot())
             return False
         with self.lock:
+            # one plug: an OFF acknowledged now is a fresh confirmation for every tripwire tripped before it
+            for t2 in self._unacked_cuts():
+                t2.off_acked = True
             tw.off_acked = True
             self.last_off_ack_mono = time.monotonic()
             self.plug.update(state="off", failed=False, detail=ack.detail, last_action="off",
@@ -477,9 +508,9 @@ class Watcher:
             retry = dict(self.retry) if self.retry else None
         if retry and time.monotonic() >= retry["next"]:
             tw = self.tripwires.get(retry["slot"])
-            if tw is None or tw.state != "tripped":
+            if tw is None or tw.state != "tripped" or tw.off_acked:
                 with self.lock:
-                    self.retry = None
+                    self._retarget_retry()
             elif not self._turn_off(tw, retry["ts"], retry["held"], first=False):
                 with self.lock:
                     if self.retry:
@@ -505,9 +536,20 @@ class Watcher:
             st = self.driver.status()
         if st is None:
             return
+        confirmed = []
         with self.lock:
             if started < self.last_off_ack_mono:
                 return  # this read began before the latest OFF landed: stale, never acted on
+            if st is False:
+                # an OFF whose acknowledgement was lost: a read that began after the trip and finds the plug off
+                # confirms it, so the retry stops and a person switching it back on re-arms instead of being cut
+                confirmed = [t for t in self._unacked_cuts() if t.tripped_mono is not None and started > t.tripped_mono]
+                for t in confirmed:
+                    t.off_acked = True
+                if confirmed:
+                    self.last_off_ack_mono = started
+                    self.plug.update(failed=False, detail="OFF confirmed by a status read", last_action="off")
+                    self._retarget_retry()
             tripped = [tw for tw in self.tripwires.values()
                        if tw.action == "plug_off" and tw.state == "tripped" and tw.off_acked]
             if st is False:
@@ -520,6 +562,8 @@ class Watcher:
                     self.plug_seen_off = False
                     for tw in tripped:
                         self._rearm_or_hold(tw, "plug switched back on")
+        for t in confirmed:
+            self._event("action", t, "plug OFF confirmed by a status read (the OFF's acknowledgement was lost)")
         self.publish("window", self.snapshot())
 
     def plug_test(self) -> dict:

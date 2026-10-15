@@ -251,6 +251,7 @@ class Tripwire:
     capture_margins: list = field(default_factory=list)
     last: WindowResult | None = None
     off_acked: bool = False  # I3: True only once the plug acknowledged OFF for THIS trip
+    tripped_mono: float | None = None  # monotonic time of the trip: a plug read must start after it to count
     stale_ref: bool = False  # the camera moved since this tripwire's normal-state capture
 
     def __post_init__(self):

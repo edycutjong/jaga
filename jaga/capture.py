@@ -98,6 +98,9 @@ class SourceStatus:
 
 
 class CameraSource(threading.Thread):
+    REOPEN_AFTER_S = 5.0  # no decoded frame for this long: release and reopen the device
+    REOPEN_PAUSE_S = 2.0
+
     def __init__(self, ring: Ring, index: int = 0, fps: float = CAPTURE_FPS):
         super().__init__(daemon=True, name="jaga-camera")
         self.ring, self.index, self.fps = ring, index, fps
@@ -126,27 +129,30 @@ class CameraSource(threading.Thread):
         self.status.extra = {"width": cap.get(cv2.CAP_PROP_FRAME_WIDTH), "height": cap.get(cv2.CAP_PROP_FRAME_HEIGHT)}
         period = 1.0 / self.fps
         next_t = time.monotonic()
-        fails = 0
+        last_frame = time.monotonic()
         try:
             while not self._halt.is_set():
+                if time.monotonic() - last_frame > self.REOPEN_AFTER_S:
+                    # unplugged, asleep, or grabbing without decoding: release and reopen, so a night soak
+                    # survives a USB hiccup (a time rule: a loaded laptop stretches every sleep)
+                    self.status.ok, self.status.error = False, "camera stopped delivering frames — reopening"
+                    cap.release()
+                    self._halt.wait(self.REOPEN_PAUSE_S)
+                    cap = self._open() or cap
+                    self.status.extra["reopens"] = self.status.extra.get("reopens", 0) + 1
+                    last_frame = time.monotonic()
+                    continue
                 if not cap.grab():
-                    fails += 1
-                    if fails > 50:  # unplugged or asleep: release and reopen, so a night soak survives a USB hiccup
-                        self.status.ok, self.status.error = False, "camera stopped delivering frames — reopening"
-                        cap.release()
-                        time.sleep(2.0)
-                        cap = self._open() or cap
-                        self.status.extra["reopens"] = self.status.extra.get("reopens", 0) + 1
-                        fails = 0
                     time.sleep(0.02)
                     continue
-                fails = 0
                 now = time.monotonic()
                 if now < next_t:
                     continue
                 ok, frame = cap.retrieve()
                 if not ok or frame is None:
+                    time.sleep(0.02)
                     continue
+                last_frame = now
                 next_t += period
                 if next_t < now:  # fell behind (laptop busy): resynchronise, never burst
                     next_t = now + period
