@@ -217,9 +217,10 @@ jaga score my-clip.mp4 --tripwire fixtures/tripwires/01.json    # embeds one 8-s
 and `jaga score --replay iron/pos_03 --tripwire fixtures/tripwires/01.json` then scores it with no model download, no
 key and no camera. Until then `--replay` has nothing to read.
 
-**CI** (`.github/workflows/`) runs on every push and pull request, with no model download, no key and no camera:
+**CI** (`.github/workflows/`) runs on pushes to `main` and on pull requests, with no model download, no key and no camera:
 ruff, `pip-audit`, `pytest` with coverage (Python 3.11 and 3.12 on `main`), then `scripts/verify_offline.py` (an armed
-tripwire trips and a fake LAN plug is switched OFF while every non-LAN connection is refused) and
+tripwire trips and a fake LAN plug is switched OFF while every non-LAN connection is refused; `--real` runs the same check
+with the model and your plug) and
 `scripts/check_submission_readiness.py`. `gitleaks` scans the full history; CodeQL (Python) runs once the repository is
 public, because code scanning is free only there. `mypy` runs as an informational step. The same steps run locally
 with `make ci`.

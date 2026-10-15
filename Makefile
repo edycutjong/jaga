@@ -10,7 +10,7 @@ help:
 	@echo "test           pytest"
 	@echo "test-coverage  pytest with coverage"
 	@echo "readiness      scripts/check_submission_readiness.py (video URL is added at submission)"
-	@echo "verify-offline an armed tripwire trips and the plug goes OFF with the internet blocked"
+	@echo "verify-offline CI variant: a tripwire trips and a FAKE LAN plug goes OFF with the internet blocked (--real uses the model and your plug)"
 	@echo "audit          pip-audit (dependency CVEs)"
 	@echo "secrets        gitleaks over the full history"
 	@echo "ci             lint + test-coverage + readiness + verify-offline + audit"
