@@ -5,7 +5,7 @@ Thanks for your interest in improving jaga.
 ## Getting started
 1. Fork the repo and branch from `main`: `git checkout -b feat/your-change`
 2. Inside an activated virtualenv, install the test tool set (no model download, no GPU, no camera): `make install`.
-   Two seed-import tests cut real clips and need `ffmpeg`; they skip without it.
+   Three tests cut or retime real clips and need `ffmpeg`; they skip without it.
 3. Run the checks: `make ci`
 4. To run the real thing (Cosmos-Embed1 on your laptop), follow *Getting Started* in the README.
 

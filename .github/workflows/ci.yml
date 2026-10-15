@@ -77,7 +77,7 @@ jobs:
           cache-dependency-path: requirements-ci.txt
       - run: pip install -r requirements-ci.txt
       - run: pip install --no-deps -e .
-      - name: ffmpeg (two seed-import tests cut real clips; they skip when it is missing)
+      - name: ffmpeg (three tests cut or retime real clips; they skip when it is missing)
         run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
       - name: pytest with coverage
         # no test loads the Cosmos model or calls Token Factory: vectors are scripted and the plug is a fake LAN server

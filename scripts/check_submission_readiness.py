@@ -9,7 +9,7 @@ Checks (each prints PASS or FAIL with the reason):
   placeholders  no <bench:…> / <traction:…> tokens, TODO or TBD left in judge-facing files
   numbers       DEMO.md was written by bench.py, and no bench section is older than the code it measured
   video         a video URL (YouTube) is linked from README.md (or --submission file)
-  kitchen       no planning files tracked in git (specs, progress, predictions, radar, CLAUDE/AGENTS, keys)
+  kitchen       no working-notes or key files tracked in git
   tests         the test count README.md states is the number pytest collects
 
     python scripts/check_submission_readiness.py [--submission <submission-text.md>] [--allow video]

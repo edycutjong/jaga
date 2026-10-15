@@ -221,7 +221,7 @@ key and no camera. Until then `--replay` has nothing to read.
 ruff, `pip-audit`, `pytest` with coverage (Python 3.11 and 3.12 on `main`), then `scripts/verify_offline.py` (an armed
 tripwire trips and a fake LAN plug is switched OFF while every non-LAN connection is refused; `--real` runs the same check
 with the model and your plug) and
-`scripts/check_submission_readiness.py`. `gitleaks` scans the full history; CodeQL (Python) runs once the repository is
+`scripts/check_submission_readiness.py`. `gitleaks` scans each push and pull request (`make secrets` scans the full history); CodeQL (Python) runs once the repository is
 public, because code scanning is free only there. `mypy` runs as an informational step. The same steps (except mypy and gitleaks) run locally
 with `make ci`; `make typecheck` and `make secrets` cover those two.
 
