@@ -379,7 +379,7 @@ def test_demo_marks_speed_rows_measured_on_a_busy_machine(bench):
                    "_commit": "abc", "_machine": {}}}))
     bench.write_demo()
     t = bench.DEMO.read_text()
-    assert "The MPS row ran while the 1-min load average exceeded the machine's 10 cores" in t
+    assert "The 1-min load average went above the machine's 10 cores during the MPS row** (MPS 3.8 → 57.3)" in t
     assert "live loop's own embed time was p50 0.90 s" in t and "CPU row" not in t
 
 
@@ -430,3 +430,75 @@ def test_readiness_fails_closed_when_git_cannot_answer(monkeypatch, tmp_path):
     monkeypatch.setattr(ck, "collected_tests", lambda: 0)
     res = {n: (ok, why) for n, ok, why in ck.check(None, {"video"})}
     assert not res["numbers"][0] and "speed@0000000" in res["numbers"][1]
+
+
+# ------------------------------------------------------------------- QA round 4
+def test_period_with_a_mistyped_session_writes_nothing(bench, tmp_path):
+    import json
+
+    from jaga.db import DB
+
+    db = DB(tmp_path / "p.db")
+    for i in range(50):
+        db.add_embed(1000.0 + i, "P1", False, 0.5, 0.0, 0.0, None, None, "qa", 900, "live")
+    assert bench.cmd_period(SimpleNamespace(db=str(tmp_path / "p.db"), session="P1", input_note="x")) == 0
+    before = json.loads(bench.SUMMARY.read_text())["period"]
+    assert bench.cmd_period(SimpleNamespace(db=str(tmp_path / "p.db"), session="P11", input_note="x")) == 1
+    assert json.loads(bench.SUMMARY.read_text())["period"] == before
+    empty = SimpleNamespace(db=str(tmp_path / "empty.db"), session=None, input_note=None)
+    assert bench.cmd_period(empty) == 1  # an empty database is said, not an IndexError
+
+
+def test_outside_with_a_mistyped_root_keeps_the_computed_result(bench, tmp_path):
+    import json
+
+    bench.save_section("outside", {"k": 6, "n": 8, "ci95": [0.35, 0.97], "received": 8})
+    assert bench.cmd_outside(SimpleNamespace(root=str(tmp_path / "nope"), stride=1.0, device="cpu")) == 1
+    assert json.loads(bench.SUMMARY.read_text())["outside"]["k"] == 6
+
+
+def test_soak_a_counts_a_session_named_twice_once(bench, tmp_path):
+    import json
+
+    from jaga.db import DB
+
+    db = DB(tmp_path / "a.db")
+    tid = db.upsert_tripwire("03", "the door is left open and nobody is there", {"name": "DOOR"}, "r", "m", "now")
+    for i in range(400):
+        eid = db.add_embed(float(i), "A1", True, 0.5, 0.0, None, None, None, "kitchen", 900, "live")
+        db.add_win(eid, float(i), tid, -0.05, None, None, None, 1, 900, False, "capturing" if i < 60 else "armed",
+                   False)
+    a = SimpleNamespace(session=["A1", "A1"], tripwire="03", p8=0.5, dwell=None, db=str(tmp_path / "a.db"))
+    assert bench.cmd_soak_a(a) == 0
+    d = json.loads(bench.SUMMARY.read_text())["soak_a"]["tripwires"]["03"]
+    assert d["sessions"] == ["A1"]
+    del db
+
+
+def test_readiness_counts_an_unstamped_result_as_stale(monkeypatch, tmp_path):
+    import json
+
+    ck = load_script("check_submission_readiness")
+    (tmp_path / "bench" / "out").mkdir(parents=True)
+    (tmp_path / "bench" / "out" / "summary.json").write_text(json.dumps({
+        "speed": {"_commit": "unknown"}, "soak_a": {"status": "not yet run", "_commit": "abc"}}))
+    (tmp_path / "DEMO.md").write_text("This file is written by `scripts/bench.py`\n")
+    monkeypatch.setattr(ck, "REPO", tmp_path)
+    monkeypatch.setattr(ck, "git", lambda *a: "")
+    monkeypatch.setattr(ck, "git_ok", lambda *a: (True, ""))
+    monkeypatch.setattr(ck, "collected_tests", lambda: 0)
+    res = {n: (ok, why) for n, ok, why in ck.check(None, {"video"})}
+    assert not res["numbers"][0] and "speed@unknown" in res["numbers"][1] and "soak_a" not in res["numbers"][1]
+
+
+def test_the_protocol_script_checks_without_writing_and_refuses_unknown_sessions(tmp_path):
+    import subprocess
+    import sys
+
+    before = sorted(p.name for p in (REPO / "docs" / "protocol").iterdir())
+    ok = subprocess.run([sys.executable, str(REPO / "scripts" / "protocol.py"), "--check"], capture_output=True,
+                        text=True, timeout=60)
+    bad = subprocess.run([sys.executable, str(REPO / "scripts" / "protocol.py"), "X9"], capture_output=True, text=True,
+                         timeout=60)
+    assert ok.returncode == 0 and "reproduced exactly" in ok.stdout and bad.returncode != 0
+    assert sorted(p.name for p in (REPO / "docs" / "protocol").iterdir()) == before

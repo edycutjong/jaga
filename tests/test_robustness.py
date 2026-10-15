@@ -982,3 +982,103 @@ def test_arm_must_name_a_loaded_tripwire_and_soak_b_needs_its_schedule(home, mon
         cli.build_watcher(a)
     with pytest.raises(SystemExit, match="schedule"):
         cli.cmd_soak(SimpleNamespace(**{**vars(a), "kind": "B", "schedule": None, "session": "B9", "arm": None}))
+
+
+# ------------------------------------------------------------------- QA round 4
+def test_a_recording_that_ends_is_not_a_stopped_watcher(home, tuning, tmp_path):
+    from jaga.act import Notifier, NullPlug
+    from jaga.capture import FileSource, Ring
+    from jaga.daemon import Watcher
+    from jaga.db import DB
+    from jaga.guards import Guards
+
+    clip = write_test_video(tmp_path / "short.mp4", 10.0)
+    ring = Ring()
+    src = FileSource(ring, clip, realtime=False)
+    w = Watcher(db=DB(home / "e.db"), embedder=__import__("conftest").ScriptedEmbedder(Captions()), ring=ring,
+                driver=NullPlug(), notifier=Notifier(os_banner=False, ntfy_topic=""), session="ended", tuning=tuning,
+                guards=Guards(tuning, hog=False), source=src, offline=True)
+    w.start()
+    src.start()
+    try:
+        assert wait_for(lambda: w.source_ended, timeout=20)
+        time.sleep(1.5)  # the watchdog has looked again since
+        kinds = [e["kind"] for e in w.db.recent_events(20, "ended")]
+        assert "source_ended" in kinds and "watcher_stopped" not in kinds and w.watcher_ok
+        assert w.snapshot()["source_ended"] is True
+    finally:
+        w.stop()
+
+
+def test_action_failed_says_whether_a_push_went_out(home, tuning):
+    w, emb = make_watcher(home, tuning)  # no banner, no ntfy topic: no channel
+    w.driver = FlakyPlug(fail_first=10**6)
+    w.start()
+    try:
+        w.arm("01", 0)
+        push_windows(w, emb, "pos", 10, 100.0)
+        assert wait_for(lambda: any(e["kind"] == "action_failed" for e in w.db.recent_events(20, "test")), timeout=5)
+        detail = next(e["detail"] for e in w.db.recent_events(20, "test") if e["kind"] == "action_failed")
+        assert "no push channel is on" in detail and "push sent" not in detail
+        assert w.snapshot()["push_channels"] == []
+    finally:
+        w.stop()
+
+
+def test_a_new_trip_clears_the_previous_action_line_and_stop_warns(home, tuning, capsys):
+    w, emb = make_watcher(home, tuning)
+    w.driver = FlakyPlug(fail_first=10**6)
+    w.plug.update(last_action="off", latency_ms=12.0)  # an earlier trip's acknowledged OFF
+    w.start()
+    w.arm("01", 0)
+    push_windows(w, emb, "pos", 10, 100.0)
+    assert wait_for(lambda: w.tripwires["01"].state == "tripped")
+    assert w.plug["last_action"] in ("off-pending", "off-failed") and w.plug["latency_ms"] is None
+    w.stop()
+    assert "OFF for tripwire 01 is unconfirmed" in capsys.readouterr().err
+
+
+def test_bad_flag_values_are_refused_before_the_model_loads(home, monkeypatch, tmp_path):
+    from types import SimpleNamespace
+
+    from jaga import cli
+
+    monkeypatch.setattr("jaga.embed.shared", lambda *a, **k: (_ for _ in ()).throw(AssertionError("model loaded")))
+    base = dict(db=None, device="cpu", source="camera", camera=0, loop=False, offline=False, port=None,
+                no_os_banner=True, session=None, camera_pos="board", zone=None, load="01", arm=None, labels=False,
+                capture_s=None, dwell=None)
+    for bad, msg in ((dict(dwell=["02=30"]), "not loaded"), (dict(dwell=["01=abc"]), "slot>=<seconds"),
+                     (dict(dwell=["01=1"]), "2–600"), (dict(capture_s=-5.0), "between 0 and 600"),
+                     (dict(load="09"), "no frozen tripwire 09")):
+        with pytest.raises(SystemExit, match=msg):
+            cli.build_watcher(SimpleNamespace(**{**base, **bad}))
+    with pytest.raises(SystemExit, match="no such file"):
+        cli.cmd_soak(SimpleNamespace(**{**base, "kind": "B", "schedule": str(tmp_path / "nope.csv"), "session": "B9"}))
+
+
+def test_path_ids_and_missing_slots_answer_plainly(home, tuning, fakeplug):
+    from fastapi.testclient import TestClient
+
+    from jaga.server import create_app
+
+    w, emb = make_watcher(home, tuning, fakeplug.url)
+    c = TestClient(create_app(w, compile_fn=lambda s: None, embed_text_fn=emb.embed_text, token="t"),
+                   base_url="http://127.0.0.1:8765")
+    h = {"host": "127.0.0.1:8765", "x-jaga-session": "t"}
+    assert c.post("/events/9223372036854775808/wrong", headers=h).status_code == 404
+    for path in ("/tripwires/09/disarm", "/tripwires/09/example"):
+        r = c.post(path, headers=h)
+        assert r.status_code == 404 and not r.json()["detail"].startswith("'"), r.text
+
+
+def test_the_overlay_swaps_frames_only_once_decoded_and_keeps_the_choice_by_the_buttons():
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1] / "jaga" / "static"
+    js, html = (root / "overlay.js").read_text(), (root / "index.html").read_text()
+    css = (root / "overlay.css").read_text()
+    assert "next.decode()" in js and 'decoding="async"' not in html
+    foot = html[html.index('<div class="dr-foot">'):]
+    assert foot.index('id="dr-choose"') < foot.index('id="dr-arm"')
+    assert ".cam:not(.live) .nosignal { z-index: 4" in css
+    assert "no push channel is on" in js and "push sent" not in js
