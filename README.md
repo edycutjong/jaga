@@ -14,6 +14,7 @@
 
   <br/>
 
+  [![CI](https://github.com/edycutjong/jaga/actions/workflows/ci.yml/badge.svg)](https://github.com/edycutjong/jaga/actions/workflows/ci.yml)
   ![Python](https://img.shields.io/badge/Python_3.11-3776AB?style=flat&logo=python&logoColor=white)
   ![NVIDIA Cosmos](https://img.shields.io/badge/NVIDIA_Cosmos--Embed1-76B900?style=flat&logo=nvidia&logoColor=white)
   ![Nebius](https://img.shields.io/badge/Nebius_Token_Factory-0B1B3F?style=flat)
@@ -118,7 +119,8 @@ may talk to Tuya's cloud by itself; that is outside jaga's control, and the Shel
 
 | Metric | Value |
 |---|---|
-| Tests | 184 (`pytest`): safety invariants, decision rule, measurement rules; no model or key needed |
+| Tests | 187 (`pytest`): safety invariants, decision rule, measurement rules; no model or key needed |
+| Decision rule, exhaustively | all 49,152 above/below patterns (4 strides × 3 dwells × 2¹² windows) match an independent oracle, and one window never trips — `tests/test_decision_exhaustive.py` |
 | Measured speed and accuracy | only in [`DEMO.md`](DEMO.md), written by `scripts/bench.py` |
 | Pre-registered soaks | [`docs/PROTOCOL.md`](docs/PROTOCOL.md), committed before any data |
 
@@ -176,7 +178,7 @@ Python 3.11, a webcam, and (optionally) a Tuya or Shelly smart plug. Details are
 git clone https://github.com/edycutjong/jaga && cd jaga
 python3.11 -m venv .venv && source .venv/bin/activate
 pip install -e ".[test]"
-pytest       # 184 tests: the safety invariants, the decision rule and the measurement rules; no model or key needed
+pytest       # 187 tests: the safety invariants, the decision rule and the measurement rules; no model or key needed
 ```
 
 **The model:** [`nvidia/Cosmos-Embed1-224p`](https://huggingface.co/nvidia/Cosmos-Embed1-224p), under the NVIDIA Open
@@ -214,6 +216,13 @@ jaga score my-clip.mp4 --tripwire fixtures/tripwires/01.json    # embeds one 8-s
 **Available once the labelled clips are recorded:** each clip's window vector is committed under `fixtures/vecs/`,
 and `jaga score --replay iron/pos_03 --tripwire fixtures/tripwires/01.json` then scores it with no model download, no
 key and no camera. Until then `--replay` has nothing to read.
+
+**CI** (`.github/workflows/`) runs on every push and pull request, with no model download, no key and no camera:
+ruff, `pip-audit`, `pytest` with coverage (Python 3.11 and 3.12 on `main`), then `scripts/verify_offline.py` (an armed
+tripwire trips and a fake LAN plug is switched OFF while every non-LAN connection is refused) and
+`scripts/check_submission_readiness.py`. `gitleaks` scans the full history; CodeQL (Python) runs once the repository is
+public, because code scanning is free only there. `mypy` runs as an informational step. The same steps run locally
+with `make ci`.
 
 ## 📁 Project Structure
 
