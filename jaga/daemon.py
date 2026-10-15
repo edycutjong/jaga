@@ -52,6 +52,7 @@ class Watcher:
         self.started_mono = time.monotonic()
         self.dark_reminded_mono = 0.0
         self.compiler_down = False  # set by the server when Token Factory is unreachable (header: degraded)
+        self.source_ended = False  # a recorded file played to its end (not a fault)
         self.guards = guards or Guards(tuning)
         self.publish = publish or (lambda kind, payload: None)
         self.source = source
@@ -257,6 +258,11 @@ class Watcher:
         self._poll_now = True  # read the plug's real state at once
 
     def stop(self) -> None:
+        with self.lock:
+            open_cuts = [t.slot for t in self._unacked_cuts()]
+        if open_cuts:
+            print(f"WARNING: jaga stops while the OFF for tripwire {', '.join(open_cuts)} is unconfirmed — check the "
+                  "plug yourself", file=sys.stderr, flush=True)
         self.stop_evt.set()
         self.ring.close()
         self.actions.put(None)  # queued OFFs before it still run: power is cut before the watcher exits
@@ -431,6 +437,7 @@ class Watcher:
             tw.tripped_mono = time.monotonic()
             tw.trip_info = (ts, held)
             self.plug["state"] = "unknown"  # a cached "off" must never stand in for THIS trip's acknowledgement (I3)
+            self.plug.update(last_action="off-pending", latency_ms=None)
             self.actions.put(("off", tw.slot, ts, held))
         else:
             self.actions.put(("notify", tw.slot, ts, held))
@@ -478,7 +485,9 @@ class Watcher:
                                   + self.t.action_retry_s, "ts": ts, "held": held, "tries": 1}
             if first:
                 self._push(f"jaga · {tw.slot} {tw.name} · tripped {clock} · ACTION FAILED — plug did not switch off")
-                self._event("action_failed", tw, f"ACTION FAILED: {reason[:120]} · push sent · retrying OFF")
+                sent = " · pushed (" + ", ".join(self.notifier.channels) + ")" if self.notifier.channels else \
+                    " · no push channel is on"
+                self._event("action_failed", tw, f"ACTION FAILED: {reason[:120]}{sent} · retrying OFF")
             self.publish("window", self.snapshot())
             return False
         with self.lock:
@@ -599,9 +608,16 @@ class Watcher:
     def _watchdog(self) -> None:
         while not self.stop_evt.wait(1.0):
             reason = None
+            ended_now = False
             with self.lock:
+                src_status = getattr(self.source, "status", None)
+                ended = bool(src_status is not None and getattr(src_status, "ended", False))
+                if ended and not self.source_ended:
+                    self.source_ended = ended_now = True
                 dead = [t.name for t in self.threads if not t.is_alive()]
-                if dead and self.watcher_ok:
+                if ended:
+                    pass  # the recording is over: no window will come, and that is not a fault
+                elif dead and self.watcher_ok:
                     reason = f"WATCHER STOPPED — a watcher thread ended: {', '.join(dead)}"
                 elif self.last_window_mono is not None and any(
                         tw.state in ("armed", "holding", "capturing", "tripped") for tw in self.tripwires.values()):
@@ -623,6 +639,10 @@ class Watcher:
                     remind = dark_cut[0]
             if reason:
                 self._event("watcher_stopped", None, reason, notify=True)
+            if ended_now:
+                self._event("source_ended", None, "the recording ended — nothing more to watch (restart jaga, or "
+                                                  "use --loop to repeat a file)")
+                self.publish("window", self.snapshot())
             if remind is not None:
                 self._event("too_dark", remind, f"still too dark to see — {remind.name} is unarmed and its plug is ON",
                             notify=True)
@@ -707,7 +727,8 @@ class Watcher:
                 "s_per_clip_p95": None if not emb else float(np.percentile(emb, 95)),
                 "period_p50": p50, "period_p95": p95, "plug": dict(self.plug),
                 "device": getattr(self.embedder, "device", None), "frozen_for": self.frozen_for,
-                "labels": self.labels, "compiler_down": self.compiler_down,
+                "labels": self.labels, "compiler_down": self.compiler_down, "source_ended": self.source_ended,
+                "push_channels": self.notifier.channels,
                 "source": None if self.source is None else asdict(self.source.status),
             }
             if include_frames:

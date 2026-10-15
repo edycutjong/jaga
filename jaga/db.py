@@ -42,7 +42,7 @@ CREATE INDEX IF NOT EXISTS win_tripwire ON win(tripwire_id, ts);
 
 EVENT_KINDS = {
     "trip", "action", "action_failed", "suspend", "camera_moved", "watcher_stopped", "watcher_ok", "too_dark",
-    "operator_on", "rearmed", "armed", "disarmed", "notify", "compile", "compile_failed", "unarmed",
+    "operator_on", "rearmed", "armed", "disarmed", "notify", "compile", "compile_failed", "unarmed", "source_ended",
 }
 
 

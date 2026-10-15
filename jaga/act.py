@@ -229,6 +229,16 @@ class Notifier:
         self.ntfy_topic = None if self.ntfy_refused else topic
         self.sent: deque[str] = deque(maxlen=200)
 
+    @property
+    def channels(self) -> list[str]:
+        """Where a push actually goes; empty means the overlay row is the only notice."""
+        out = []
+        if self.os_banner and os.uname().sysname == "Darwin":
+            out.append("macOS banner")
+        if self.ntfy_topic:
+            out.append("ntfy")
+        return out
+
     def notify(self, text: str, title: str = "jaga") -> None:
         self.sent.append(text)
         if self.os_banner and os.uname().sysname == "Darwin":
