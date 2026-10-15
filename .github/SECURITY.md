@@ -28,6 +28,7 @@ cross-origin POST refusal, the session-token requirement, the DNS-rebinding Host
 ## Known dependency advisories
 `transformers` is pinned to `4.51.3` (`pyproject.toml`), the version the model's remote code was measured with, and the
 model revision is pinned too (`jaga/config.py`). `pip-audit -r requirements.lock` reports 28 known vulnerabilities (its own count) against that
-version as of 2026-10-15 (CI reports them in an informational step). jaga loads exactly one pinned model revision
+version as of 2026-10-15 (CI reports them in an informational step), and Dependabot shows 11 open alerts, all against `transformers`
+(4 high, 6 moderate, 1 low on 2026-10-15; the high ones need the 5.x line, which the model's remote code has not been run on). jaga loads exactly one pinned model revision
 (`nvidia/Cosmos-Embed1-224p`) and no user-supplied checkpoint, but moving to a fixed `transformers` release needs the
 speed and accuracy numbers in `DEMO.md` measured again, so it is a deliberate change, not a Dependabot bump.
