@@ -36,10 +36,14 @@ def test_i1_operator_module_only_reachable_from_plug_test():
                 importers.append(f.name)
     assert importers == ["daemon.py"], importers
     daemon = ast.parse((PKG / "daemon.py").read_text())
-    owner = [n.name for n in ast.walk(daemon) if isinstance(n, ast.FunctionDef)
-             and any(isinstance(m, ast.ImportFrom) and any(a.name == "operator_on" for a in m.names) for m in ast.walk(n))]
+    def imports_operator(fn):
+        return any(isinstance(m, ast.ImportFrom) and any(a.name == "operator_on" for a in m.names)
+                   for m in ast.walk(fn))
+
+    owner = [n.name for n in ast.walk(daemon) if isinstance(n, ast.FunctionDef) and imports_operator(n)]
     assert owner == ["plug_test"]
-    callers = [f.name for f in PKG.rglob("*.py") if re.search(r"\.plug_test\b", f.read_text()) and f.name != "daemon.py"]
+    callers = [f.name for f in PKG.rglob("*.py")
+               if re.search(r"\.plug_test\b", f.read_text()) and f.name != "daemon.py"]
     assert callers == ["server.py"]
     server = (PKG / "server.py").read_text()
     assert '@app.post("/plug/test")' in server

@@ -1,0 +1,61 @@
+{
+  "slot": "01-id",
+  "event": "iron",
+  "sentence": "nggak ada orang di meja setrika",
+  "spec": {
+    "visual": true,
+    "reason": "",
+    "name": "IRONING BOARD",
+    "positives": [
+      "empty ironing board with an iron on it",
+      "ironing board clear of any person",
+      "bare ironing board waiting for use"
+    ],
+    "hard_negatives": [
+      "person standing at the ironing board",
+      "someone ironing a shirt on the board",
+      "child playing near the ironing board"
+    ],
+    "dwell_s": 60,
+    "action": "notify",
+    "cooldown_s": 600,
+    "language_in": "id"
+  },
+  "tf_request_id": "5e22af741957d7a9a776b85656969623",
+  "tf_response_id": "chatcmpl-99ab742951d7d47b",
+  "model": "nvidia/nemotron-3-super-120b-a12b",
+  "temperature": 1.0,
+  "top_p": 0.95,
+  "max_tokens": 4096,
+  "shape": "openai",
+  "created": "2026-10-15T07:01:22+0700",
+  "latency_s": 2.854,
+  "usage": {
+    "completion_tokens": 335,
+    "prompt_tokens": 802,
+    "total_tokens": 1137,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": null,
+      "reasoning_tokens": 214,
+      "rejected_prediction_tokens": null,
+      "text_tokens": null
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": null,
+      "cache_write_tokens": null,
+      "cached_tokens": 0,
+      "image_tokens": null,
+      "text_tokens": null,
+      "created_cache_tokens": 0,
+      "multimodal_tokens": null
+    },
+    "prompt_cache_hit_tokens": 0,
+    "prompt_cache_miss_tokens": 802
+  },
+  "frozen_at": "2026-10-15T07:01:22+0700",
+  "leakage_guard": "compiled once from the sentence alone, before any clip was scored; never edited",
+  "caption_vectors": "01-id.vec.npz — Cosmos-Embed1 text_proj (256-d), positives and hard negatives in spec order",
+  "frozen": null,
+  "use": "ablation (c-id) only: Super(Indonesian sentence) vs the raw Indonesian sentence embedded directly"
+}

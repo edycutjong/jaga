@@ -112,7 +112,7 @@ def frame(value: int = 140, h: int = 90, w: int = 160, seed: int = 0) -> np.ndar
 
 def make_watcher(home, tuning, plug_url: str | None = None, caps: Captions | None = None, offline: bool = True,
                  action: str = "plug_off", dwell_s: float = 10, theta=None, session: str = "test"):
-    from jaga.act import NullPlug, Notifier, ShellyPlug
+    from jaga.act import Notifier, NullPlug, ShellyPlug
     from jaga.capture import Ring
     from jaga.daemon import Watcher
     from jaga.db import DB
@@ -122,7 +122,8 @@ def make_watcher(home, tuning, plug_url: str | None = None, caps: Captions | Non
     caps = caps or Captions()
     emb = ScriptedEmbedder(caps)
     events = []
-    w = Watcher(db=DB(home / "t.db"), embedder=emb, ring=Ring(), driver=ShellyPlug(plug_url) if plug_url else NullPlug(),
+    driver = ShellyPlug(plug_url) if plug_url else NullPlug()
+    w = Watcher(db=DB(home / "t.db"), embedder=emb, ring=Ring(), driver=driver,
                 notifier=Notifier(os_banner=False, ntfy_topic=""), session=session, camera_pos="test", tuning=tuning,
                 guards=Guards(tuning, hog=False), publish=lambda k, p: events.append((k, p)), offline=offline)
     spec = {**SPEC, "action": action, "dwell_s": dwell_s}

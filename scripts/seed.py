@@ -5,6 +5,7 @@ Order matters (leakage guard): each tripwire is compiled ONCE from its sentence 
 clip is scored; its spec is never edited afterwards. θ is computed from clips only after that.
 
     seed.py freeze-specs              compile 01/02/03 once with Nemotron 3 Super, save request IDs, embed captions
+    seed.py freeze-ablation           ablation (c-id): Super's compile of the Indonesian sentence, frozen once
     seed.py variance --k 5            K extra compiles per sentence (compile variance; never used for θ)
     seed.py import --raw DIR          labelled recordings <set>/<pos|neg>_<NN>_<lighting>_<camera_pos>.<ext>
                                       → 8-s windows at 1 fps, fixtures/clips.csv (labels from the filename)
@@ -100,6 +101,28 @@ def cmd_freeze_specs(a) -> int:
         s = fx["spec"]
         print(f"{slot} “{sentence}” → {s['name']} · {len(s['positives'])} pos / {len(s['hard_negatives'])} neg · "
               f"dwell {s['dwell_s']} s → {s['action']} · request {fx['tf_request_id']}")
+    return 0
+
+
+ABLATION = TRIPWIRES / "ablation"
+INDONESIAN_01 = "nggak ada orang di meja setrika"  # "nobody is at the ironing board", as typed in Jakarta
+
+
+def cmd_freeze_ablation(a) -> int:
+    """Ablation (c-id): Super's compile of the raw Indonesian sentence, frozen once before any clip is scored."""
+    from jaga.embed import shared
+
+    ABLATION.mkdir(parents=True, exist_ok=True)
+    out = ABLATION / "01-id.json"
+    if out.exists():
+        print(f"{out.name}: already frozen")
+        return 0
+    fx = compile_frozen("01-id", "iron", INDONESIAN_01, shared(a.device), out)
+    fx = json.loads(out.read_text())
+    fx["use"] = "ablation (c-id) only: Super(Indonesian sentence) vs the raw Indonesian sentence embedded directly"
+    out.write_text(json.dumps(fx, indent=2, ensure_ascii=False) + "\n")
+    print(f"01-id “{INDONESIAN_01}” → {fx['spec']['name']} · request {fx['tf_request_id']}"
+          f" · language {fx['spec']['language_in']}")
     return 0
 
 
@@ -337,6 +360,8 @@ def main() -> int:
     p.add_argument("--slots", default="01,02,03")
     p.add_argument("--cat", action="store_true", help="tripwire 02 is the cat variant (only if cat clips exist)")
     p.set_defaults(fn=cmd_freeze_specs)
+    p = sub.add_parser("freeze-ablation")
+    p.set_defaults(fn=cmd_freeze_ablation)
     p = sub.add_parser("variance")
     p.add_argument("--slots", default="01,02,03")
     p.add_argument("--k", type=int, default=5)
