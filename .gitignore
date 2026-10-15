@@ -16,3 +16,8 @@ coverage/
 *.db-journal
 vectors-*.npz
 /data/raw/
+# tinytuya wizard output (device keys, the Tuya cloud API secret): run the wizard in ~/.config/jaga, never here
+devices.json
+tinytuya.json
+snapshot.json
+tuya-raw.json
