@@ -6,7 +6,9 @@
   const TOKEN = document.querySelector('meta[name="jaga-token"]').content;
   const TRACE_S = 120;
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
-  const S = { snap: null, traces: {}, events: [], receipt: "", resetUntil: {}, snapped: {}, drawerSlot: null, examples: {} };
+  const S = { snap: null, traces: {}, events: [], receipt: "", resetUntil: {}, snapped: {}, drawerSlot: null, examples: {},
+    lastMsgAt: Date.now(), lost: false, rowNote: {}, plugNote: null };
+  const LOST_AFTER_MS = 10000;  // no message from the watcher for this long = it is not running
 
   const fmt = {
     n: (v, d = 2) => (v === null || v === undefined || Number.isNaN(v) ? "—" : Number(v).toFixed(d)),
@@ -146,16 +148,16 @@
     const rows = snap.windows || [];
     const box = $("capture");
     const capturing = rows.find((w) => w.state === "capturing");
-    const checking = !capturing && rows.find((w) => w.state === "armed" && w.armed_at && (snap.ts - w.armed_at) < 90
-      && (w.examples || 0) < 3);
+    const checking = !capturing && rows.find((w) => (w.state === "armed" || w.state === "holding") && w.armed_at
+      && (snap.ts - w.armed_at) < 90 && (w.examples || 0) < 3);
     const row = capturing || checking;
     if (!row) { box.hidden = true; return; }
     box.hidden = false;
     box.dataset.mode = capturing ? "capture" : "check";
-    $("cap-title").textContent = capturing ? "NORMAL STATE" : "CHECK · OPTIONAL";
+    $("cap-title").textContent = capturing ? `NORMAL STATE · ${row.slot}` : `CHECK ${row.slot} · OPTIONAL`;
     $("cap-clock").textContent = capturing ? fmt.mmss(row.capture_left_s || 0) : `${row.examples || 0}/3`;
     $("cap-text").textContent = capturing ? captureHint(row.sentence)
-      : "make it happen now, then press — three times — so jaga can check it can see it";
+      : "make it happen, then press three times so jaga can check it sees it";
     const btn = $("cap-example");
     btn.hidden = !!capturing;
     btn.textContent = `it's happening now (${row.examples || 0}/3)`;
@@ -188,6 +190,7 @@
     else if (p.last_action === "operator-on") last = `last action: operator test · ${esc(p.detail || "")}`;
     else if (p.last_action === "off-failed") last = "last action: OFF not acknowledged";
     if (p.kind === "none") last = "no plug configured yet — trips will show ACTION FAILED";
+    if (S.plugNote && S.plugNote.until > Date.now()) last = esc(S.plugNote.text);
     $("plug-last").innerHTML = last;
   }
 
@@ -199,18 +202,27 @@
   function renderEvents(fresh) {
     const ol = $("events");
     ol.innerHTML = "";
-    S.events.slice(0, 5).forEach((e) => {  // five rows; the list fades out at the bottom if a narrow screen clips one
+    S.events.slice(0, 5).forEach((e) => {  // at most five one-line rows; a row that would not fit is not shown
       const li = document.createElement("li");
       if (ALARM.has(e.kind)) li.classList.add("alarm");
       if (fresh && e.id === fresh) li.classList.add("fresh");
       const slot = e.slot ? `${e.slot} ` : "";
       const word = e.kind === "armed" && /capturing/.test(e.detail || "") ? "ARMING" : (KIND[e.kind] || e.kind);
       li.innerHTML = `<span class="t">${fmt.clock(e.ts)}</span><span class="k">${esc(slot + word)}</span>` +
-        (e.kind === "trip" ? `<button class="wrong" type="button" data-id="${e.id}" aria-pressed="${e.wrong ? "true" : "false"}" title="mark this trip as wrong: kept as a labelled negative for the calibration report">✗ wrong</button>` : "<span></span>") +
-        `<span class="d">${esc(e.detail)}</span>`;
+        `<span class="d" title="${esc(e.detail)}">${esc(e.detail)}</span>` +
+        (e.kind === "trip" ? `<button class="wrong" type="button" data-id="${e.id}" aria-pressed="${e.wrong ? "true" : "false"}" title="mark this trip as wrong: kept as a labelled negative for the calibration report">✗ wrong</button>` : "<span></span>");
       ol.appendChild(li);
     });
+    fitEvents();
   }
+  function fitEvents() {
+    const ol = $("events");
+    const bottom = ol.getBoundingClientRect().bottom + 0.5;
+    let cut = false;
+    [...ol.children].forEach((li) => { li.hidden = false; });
+    [...ol.children].forEach((li) => { if (cut || li.getBoundingClientRect().bottom > bottom) { cut = true; li.hidden = true; } });
+  }
+  window.addEventListener("resize", () => fitEvents());
 
   function scheduleRow(slot) {
     const tr = document.createElement("tr");
@@ -227,6 +239,12 @@
   function renderSchedule(snap) {
     const tb = $("sch-rows");
     const rows = snap.windows || [];
+    const soak = $("soak");
+    soak.hidden = !snap.labels;
+    if (snap.labels) {
+      $("soak-name").textContent = `${snap.session}${snap.scored ? " · scored" : " · unscored"}${snap.frozen_for ? " · θ frozen" : ""}`;
+      $("soak-keys").textContent = "log: 1 still starts · 2 still ends · 3 leaves the room · 4 steps away, in view · 5 back at the board · 6 left open · 7 closed · 0 note";
+    }
     if (!rows.length) {
       if (!tb.querySelector("tr.empty")) {
         tb.innerHTML = '<tr class="empty"><td colspan="6">No tripwire yet. Type what to watch for above — Nemotron 3 Super compiles it, you check it, then arm it.</td></tr>';
@@ -246,13 +264,18 @@
       tr.className = w.state;
       setText(tr.querySelector(".slot"), w.slot);
       setText(tr.querySelector(".sent"), w.sentence);
-      setText(tr.querySelector(".reason"), w.state === "unarmed" && w.unarmed_reason ? w.unarmed_reason : "");
+      const note = S.rowNote[w.slot] && S.rowNote[w.slot].until > Date.now() ? S.rowNote[w.slot].text : "";
+      setText(tr.querySelector(".reason"), note || (w.state === "unarmed" && w.unarmed_reason ? w.unarmed_reason : ""));
       const dwell = Math.round(w.effective_dwell_s || w.dwell_s);
       const rule = `dwell <span class="num">${dwell}</span> s → ${w.action === "plug_off" ? "plug OFF" : "notify"}` +
         (w.dwell_note ? ` <span class="muted">(${esc(w.dwell_note)})</span>` : "");
       const ruleTd = tr.querySelector(".rule");
       if (ruleTd.innerHTML !== rule) ruleTd.innerHTML = rule;
       setText(tr.querySelector(".st"), word + (w.state === "capturing" ? ` ${fmt.mmss(w.capture_left_s || 0)}` : ""));
+      if (tr.dataset.word !== word) {  // the screen-reader line announces a change of state, not every window
+        if (tr.dataset.word) $("sr-live").textContent = `tripwire ${w.slot}: ${word.toLowerCase()}`;
+        tr.dataset.word = word;
+      }
       const sc = scoreOf(w);
       setText(tr.querySelector(".score"), sc === null || sc === undefined ? "—" : `${scoreName(w)} ${fmt.signed(sc, w.mode === "labelled-m" ? 4 : 2)}`);
       const live = ["armed", "holding", "capturing", "tripped"].includes(w.state);
@@ -268,19 +291,25 @@
       }
     });
     [...tb.querySelectorAll("tr[data-slot]")].forEach((tr) => { if (!seen.has(tr.dataset.slot)) tr.remove(); });
-    const soak = $("soak");
-    soak.hidden = !snap.labels;
-    if (snap.labels) {
-      $("soak-name").textContent = `${snap.session}${snap.scored ? " · scored" : " · unscored"}${snap.frozen_for ? " · θ frozen" : ""}`;
-      $("soak-keys").textContent = "log: 1 still starts · 2 still ends · 3 leaves the room · 4 steps away, in view · 5 back at the board · 6 left open · 7 closed · 0 note";
-    }
   }
 
   function renderStopped(snap) {
     const box = $("stopped");
-    box.hidden = snap.watcher_ok !== false;
+    document.body.classList.toggle("lost", S.lost);
+    if (S.lost) {
+      box.hidden = false;
+      $("stopped-word").textContent = "LOST CONTACT";
+      $("stopped-text").textContent = "jaga is not running — nothing is watching. Start it again.";
+      return;
+    }
+    box.hidden = !snap || snap.watcher_ok !== false;
+    $("stopped-word").textContent = "WATCHER STOPPED";
     if (!box.hidden) $("stopped-text").textContent = "no window is completing — check the camera and the laptop";
   }
+  function heard() { S.lastMsgAt = Date.now(); if (S.lost) { S.lost = false; renderStopped(S.snap); } }
+  setInterval(() => {
+    if (!S.lost && Date.now() - S.lastMsgAt > LOST_AFTER_MS) { S.lost = true; renderStopped(S.snap); }
+  }, 2000);
 
   function render(snap) {
     if (!snap) return;
@@ -318,8 +347,10 @@
       renderEvents();
     } catch (e) { $("nosignal-text").textContent = `cannot reach the watcher: ${e.message}`; }
     const es = new EventSource("/stream");
-    es.addEventListener("window", (m) => absorbWindow(JSON.parse(m.data)));
+    es.onopen = heard;
+    es.addEventListener("window", (m) => { heard(); absorbWindow(JSON.parse(m.data)); });
     es.addEventListener("event", (m) => {
+      heard();
       const e = JSON.parse(m.data);
       S.events.unshift(e); S.events = S.events.slice(0, 20);
       if (e.kind === "rearmed" && e.slot) S.resetUntil[e.slot] = Date.now() / 1000 + 10;
@@ -327,7 +358,10 @@
     });
     es.addEventListener("tripped", () => { if (S.snap) render(S.snap); });
     es.addEventListener("schedule", (m) => { const d = JSON.parse(m.data); $("soak-next").textContent = d.text || ""; });
-    es.onerror = () => { $("nosignal-text").textContent = "reconnecting to the watcher…"; };
+    es.onerror = () => {  // the browser retries by itself; the screen says so at once instead of looking ARMED
+      $("nosignal-text").textContent = "reconnecting to the watcher…";
+      S.lost = true; renderStopped(S.snap);
+    };
   }
 
   // ---------------------------------------------------------------- actions
@@ -357,8 +391,11 @@
       sel.value = String(spec.dwell_s);
     }
     $("dr-req").textContent = d && d.tf_request_id ? `${d.model || "nvidia/nemotron-3-super-120b-a12b"} · request ${d.tf_request_id}` : "";
+    $("dr-title").textContent = { "compile-failed": "COMPILE FAILED · TOKEN FACTORY", compiling: "COMPILING · NEMOTRON 3 SUPER",
+      "not-visual": "NOT A VISUAL TRIPWIRE · NEMOTRON 3 SUPER" }[state] || "COMPILED BY NEMOTRON 3 SUPER · TOKEN FACTORY";
     $("dr-arm").disabled = !(state === "compiled" || state === "cached");
-    if (state === "compiled" || state === "cached") $("dr-arm").focus();
+    if (state === "compiled" || state === "cached") $("dr-arm").focus({ preventScroll: true });
+    dr.scrollTop = 0;
   }
   function closeDrawer() { $("drawer").hidden = true; $("sentence").focus(); }
 
@@ -392,6 +429,8 @@
     catch (e) {
       b.textContent = "failed";
       b.title = e.message;
+      S.rowNote[b.dataset.slot] = { text: `could not ${b.dataset.act}: ${e.message}`, until: Date.now() + 8000 };
+      if (S.snap) renderSchedule(S.snap);
       setTimeout(() => { b.disabled = false; b.textContent = b.dataset.act; }, 2000);
     }
   });
@@ -404,9 +443,9 @@
   $("plug-test").addEventListener("click", async () => {
     if (!window.confirm("Operator test: switch the plug OFF, then back ON?")) return;
     const b = $("plug-test"); b.disabled = true;
-    try { const d = await post("/plug/test"); if (!d.ok) $("plug-last").textContent = `test failed: ${d.detail}`; }
-    catch (e) { $("plug-last").textContent = `test failed: ${e.message}`; }
-    finally { b.disabled = false; }
+    try { const d = await post("/plug/test"); S.plugNote = { text: d.ok ? "test: OFF → ON acknowledged" : `test failed: ${d.detail}`, until: Date.now() + 10000 }; }
+    catch (e) { S.plugNote = { text: `test failed: ${e.message}`, until: Date.now() + 10000 }; }
+    finally { b.disabled = false; if (S.snap) renderBreaker(S.snap); }
   });
   $("cap-example").addEventListener("click", async (ev) => {
     const slot = ev.currentTarget.dataset.slot;
@@ -419,9 +458,16 @@
   const SOAK_KEYS = { 1: "still_start", 2: "still_end", 3: "exit_leave", 4: "exit_inview", 5: "returned",
     6: "left_open", 7: "closed", 0: "note" };
   document.addEventListener("keydown", (ev) => {
-    if (ev.target.tagName === "INPUT") { if (ev.key === "Escape") ev.target.blur(); return; }
+    const t = ev.target;
+    const typing = (t.tagName === "INPUT" && !["radio", "checkbox"].includes(t.type)) || t.tagName === "SELECT"
+      || t.tagName === "TEXTAREA";
+    if (ev.key === "Escape") {
+      if (!$("drawer").hidden) { ev.preventDefault(); closeDrawer(); } else if (typing) t.blur();
+      return;
+    }
+    if (typing) return;
     if (ev.key === "/") { ev.preventDefault(); $("sentence").focus(); return; }
-    if (ev.key === "Escape" && !$("drawer").hidden) { closeDrawer(); return; }
+    if (ev.metaKey || ev.ctrlKey || ev.altKey || ev.repeat) return;  // a label is one plain key press
     if (S.snap && S.snap.labels && SOAK_KEYS[ev.key] !== undefined) {
       post("/labels", { kind: SOAK_KEYS[ev.key], note: "key" }).then(() => {
         $("soak-next").textContent = `logged: ${SOAK_KEYS[ev.key].replace("_", " ")} at ${fmt.clock(Date.now() / 1000)}`;

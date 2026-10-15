@@ -31,6 +31,11 @@ def job_runs() -> list[dict]:
     return runs
 
 
+def cost_listed(ev: dict):
+    """A run priced at the listed rate (evidence written before the rename calls it cost_usd_high_price)."""
+    return ev.get("cost_usd_listed", ev.get("cost_usd_high_price"))
+
+
 def footer_line() -> str:
     runs = [r for r in job_runs() if r.get("state") == "COMPLETED"]
     if not runs:
@@ -97,16 +102,19 @@ def render_html(d: dict) -> str:
     rows_j = "".join(
         f"<tr><td class=num>{_e(j.get('job_id'))}</td><td>{_e(j.get('kind'))}</td><td>{_e(j.get('state'))}</td>"
         f"<td class=num>{_e(j.get('created_at'))}</td><td class=num>{_e(j.get('wall_clock_s'))} s</td>"
-        f"<td>{_e(j.get('platform'))} {_e(j.get('preset'))}</td><td class=num>{_usd(j.get('cost_usd_docs_price'))}</td></tr>"
+        f"<td>{_e(j.get('platform'))} {_e(j.get('preset'))}</td><td class=num>{_usd(cost_listed(j))}</td></tr>"
         for j in reversed(d["jobs"]))
     m = d.get("model") or {}
     b = d.get("bench") or {}
     sp = (b.get("speed") or {}).get("rows") or []
     pe = b.get("period") or {}
-    rows_b = "".join(f"<tr><td>{_e(r['device']).upper()} fp32</td><td class=num>{_e(r['p50_s'])} s</td>"
-                     f"<td class=num>{_e(r['p95_s'])} s</td><td class=num>{_e(r['n'])}</td></tr>" for r in sp)
+    rows_b = "".join(f"<tr><td>{_e(str(r.get('device', '?')).upper())} fp32</td><td class=num>{_e(r.get('p50_s'))} s"
+                     f"</td><td class=num>{_e(r.get('p95_s'))} s</td><td class=num>{_e(r.get('n'))}</td></tr>"
+                     for r in sp if isinstance(r, dict))
     period = (f"<p class=muted>Live window period p50 {pe['period_p50_s']:.2f} s, p95 {pe['period_p95_s']:.2f} s over "
-              f"{pe['windows']} windows ({_e(pe.get('input'))}).</p>") if pe.get("windows") else ""
+              f"{pe.get('windows')} windows ({_e(pe.get('input'))}).</p>"
+              if isinstance(pe.get("period_p50_s"), (int, float)) and isinstance(pe.get("period_p95_s"), (int, float))
+              else "")
     bench_html = (f"<section><h2>Measured · scripts/bench.py (DEMO.md)</h2><table><tr><th>device</th><th>p50 s/clip</th>"
                   f"<th>p95 s/clip</th><th>timed calls</th></tr>{rows_b}</table>{period}</section>") if rows_b else ""
     return f"""<!doctype html><html lang=en><head><meta charset=utf-8><title>jaga · receipts</title>
@@ -118,10 +126,10 @@ def render_html(d: dict) -> str:
 {_e(m.get('device'))} {_e(m.get('dtype'))} · torch {_e(m.get('torch'))}</p></section>
 <section><h2>Compiled tripwires · Nemotron 3 Super on Nebius Token Factory</h2>
 <table><tr><th>slot</th><th>tripwire</th><th>TF request ID</th><th>model</th><th>threshold</th></tr>{rows_tw}</table></section>
-<section><h2>Recent compiles</h2><table><tr><th>time</th><th>sentence</th><th>TF request ID</th><th>result</th></tr>{rows_c}
+<section><h2>Recent compiles</h2><table><tr><th>time</th><th>sentence</th><th>TF request ID</th><th>result</th></tr>{rows_c or '<tr><td colspan=4 class=muted>no compile in this database yet</td></tr>'}
 </table></section>
 <section><h2>Calibration · Nebius AI Cloud Serverless Jobs</h2>
-<table><tr><th>job ID</th><th>kind</th><th>state</th><th>created</th><th>wall clock</th><th>compute</th><th>cost (docs price)</th></tr>
+<table><tr><th>job ID</th><th>kind</th><th>state</th><th>created</th><th>wall clock</th><th>compute</th><th>cost (listed price)</th></tr>
 {rows_j or '<tr><td colspan=7 class=muted>no Job run yet</td></tr>'}</table>
 <p class=muted>Every run is also listed in docs/RUNS.md with its cost at both prices.</p></section>
 {bench_html}

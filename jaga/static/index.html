@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="jaga-token" content="{{TOKEN}}">
 <title>jaga · watching</title>
+<link rel="icon" href="data:,">
 <link rel="preload" href="/static/fonts/big-shoulders-stencil-800-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/static/fonts/atkinson-hyperlegible-next-400-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/static/overlay.css">
@@ -84,7 +85,8 @@
       <button class="btn" id="compile" type="submit">compile</button>
     </form>
   </div>
-  <table class="sch" id="sch" aria-live="polite"><tbody id="sch-rows"></tbody></table>
+  <table class="sch" id="sch"><tbody id="sch-rows"></tbody></table>
+  <p class="sr" id="sr-live" aria-live="polite"></p>
   <div class="soak" id="soak" hidden><span class="tag">SESSION</span> <span id="soak-name"></span> <span id="soak-next"></span><span class="keys" id="soak-keys"></span></div>
 </section>
 
@@ -111,7 +113,7 @@
   </div>
 </div>
 
-<div class="stopped" id="stopped" hidden role="alert"><span>WATCHER STOPPED</span> <span class="num" id="stopped-text"></span></div>
+<div class="stopped" id="stopped" hidden role="alert"><span id="stopped-word">WATCHER STOPPED</span> <span class="num" id="stopped-text"></span></div>
 
 <footer class="foot" id="footer">Built on NVIDIA Cosmos · video frames never leave this laptop · <span id="foot-job">θ: Nebius Job —</span>
   · rules compiled by Nemotron 3 Super on Nebius Token Factory</footer>
