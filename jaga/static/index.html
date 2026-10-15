@@ -22,7 +22,7 @@
 
 <main class="panel">
   <section class="cam" id="cam" aria-label="live camera">
-    <img class="frame" id="frame" alt="" decoding="async">
+    <img class="frame" id="frame" alt="">
     <div class="nosignal" id="nosignal"><p class="ns-title">NO PICTURE</p><p id="nosignal-text">waiting for the first 8 frames…</p></div>
     <div class="filmstrip" id="filmstrip" aria-hidden="true"><span class="fs-label">WINDOW · 8 frames · 1 fps</span><div class="fs-frames" id="fs-frames"></div></div>
 
@@ -99,17 +99,19 @@
     <div><h3>Cosmos looks for</h3><ul class="tapes pos" id="dr-pos"></ul></div>
     <div><h3>…and tells it apart from</h3><ul class="tapes neg" id="dr-neg"></ul></div>
   </div>
-  <fieldset class="dr-choose" id="dr-choose">
-    <legend>when it holds for the dwell</legend>
-    <label><input type="radio" name="dr-action" value="plug_off"> cut the plug</label>
-    <label><input type="radio" name="dr-action" value="notify"> notify me</label>
-    <label class="dw">dwell <select id="dr-dwell"><option>30</option><option>60</option><option>120</option><option>300</option></select> s</label>
-  </fieldset>
   <p class="dr-rule" id="dr-rule"></p>
   <p class="dr-req num" id="dr-req"></p>
-  <div class="dr-actions">
-    <button class="btn" id="dr-arm" type="button">arm · 2-min normal capture</button>
-    <button class="btn ghost" id="dr-edit" type="button">edit sentence</button>
+  <div class="dr-foot">
+    <fieldset class="dr-choose" id="dr-choose">
+      <legend>when it holds for the dwell</legend>
+      <label><input type="radio" name="dr-action" value="plug_off"> cut the plug</label>
+      <label><input type="radio" name="dr-action" value="notify"> notify me</label>
+      <label class="dw">dwell <select id="dr-dwell"><option>30</option><option>60</option><option>120</option><option>300</option></select> s</label>
+    </fieldset>
+    <div class="dr-actions">
+      <button class="btn" id="dr-arm" type="button">arm · 2-min normal capture</button>
+      <button class="btn ghost" id="dr-edit" type="button">edit sentence</button>
+    </div>
   </div>
 </div>
 

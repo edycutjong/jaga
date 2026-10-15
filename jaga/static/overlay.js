@@ -61,7 +61,12 @@
   function renderCamera(snap) {
     const cam = $("cam");
     if (snap.frame_jpeg_b64) {
-      $("frame").src = `data:image/jpeg;base64,${snap.frame_jpeg_b64}`;
+      const next = new Image();
+      const url = `data:image/jpeg;base64,${snap.frame_jpeg_b64}`;
+      S.frameSeq = (S.frameSeq || 0) + 1;
+      const seq = S.frameSeq;
+      next.src = url;
+      next.decode().then(() => { if (seq === S.frameSeq) $("frame").src = url; }).catch(() => { $("frame").src = url; });
       cam.classList.add("live");
     }
     if (snap.filmstrip_jpeg_b64 && snap.filmstrip_jpeg_b64.length) {
@@ -191,12 +196,14 @@
     $("plug-addr").textContent = p.address || "—";
     $("flag").hidden = !acked;
     $("failed").hidden = !p.failed;
-    if (p.failed) $("failed-detail").textContent = `${(p.detail || "the plug did not confirm OFF").slice(0, 90)} · push sent · retrying OFF`;
+    const pushed = (snap.push_channels || []).length ? `pushed (${snap.push_channels.join(", ")})` : "no push channel is on";
+    if (p.failed) $("failed-detail").textContent = `${(p.detail || "the plug did not confirm OFF").slice(0, 90)} · ${pushed} · retrying OFF`;
     let last = "last action: —";
     if (p.last_action === "off") last = `last action: OFF acknowledged in <span class="num">${fmt.n(p.latency_ms, 0)}</span> ms`;
     else if (p.last_action === "operator-on") last = `last action: operator test · ${esc(p.detail || "")}`;
     else if (p.last_action === "off-failed") last = "last action: OFF not acknowledged";
     else if (p.last_action === "off-confirmed") last = "last action: OFF confirmed by a status read";
+    else if (p.last_action === "off-pending") last = "last action: cutting power — waiting for the plug to confirm";
     if (p.kind === "none") last = "no plug configured yet — trips will show ACTION FAILED";
     if (S.plugNote && S.plugNote.until > Date.now()) last = esc(S.plugNote.text);
     $("plug-last").innerHTML = last;
@@ -204,6 +211,7 @@
 
   const KIND = { trip: "TRIPPED", action: "PLUG OFF", action_failed: "ACTION FAILED", notify: "NOTIFIED", suspend: "SUSPENDED",
     camera_moved: "CAMERA MOVED", too_dark: "TOO DARK", watcher_stopped: "WATCHER STOPPED", watcher_ok: "WATCHER OK",
+    source_ended: "RECORDING ENDED",
     rearmed: "RESET", armed: "ARMED", disarmed: "DISARMED", operator_on: "PLUG TEST", compile: "LOADED", unarmed: "UNARMED", notify_failed: "NOTIFY FAILED" };
   const ALARM = new Set(["trip", "action_failed", "watcher_stopped"]);
 
@@ -218,6 +226,7 @@
       if (fresh && e.id === fresh) li.classList.add("fresh");
       const slot = e.slot ? `${e.slot} ` : "";
       const word = e.kind === "armed" && /capturing/.test(e.detail || "") ? "ARMING" : (KIND[e.kind] || e.kind);
+      li.title = `${slot}${word}: ${e.detail || ""}`;
       li.innerHTML = `<span class="t">${fmt.clock(e.ts)}</span><span class="k">${esc(slot + word)}</span>` +
         `<span class="d" title="${esc(e.detail)}">${esc(e.detail)}</span>` +
         (e.kind === "trip" ? `<button class="wrong" type="button" data-id="${e.id}" aria-pressed="${e.wrong ? "true" : "false"}" title="mark this trip as wrong: kept as a labelled negative for the calibration report">✗ wrong</button>` : "<span></span>");
@@ -307,11 +316,19 @@
   function renderStopped(snap) {
     const box = $("stopped");
     document.body.classList.toggle("lost", S.lost);
-    document.body.classList.toggle("banner", S.lost || (!!snap && snap.watcher_ok === false));
+    document.body.classList.toggle("banner", S.lost || (!!snap && (snap.watcher_ok === false || !!snap.source_ended)));
+    requestAnimationFrame(fitEvents);  // the banner moves the layout: refit the event rows
     if (S.lost) {
       box.hidden = false;
       $("stopped-word").textContent = "LOST CONTACT";
       $("stopped-text").textContent = "jaga is not running — nothing is watching. Start it again.";
+      return;
+    }
+    box.classList.toggle("ended", !!(snap && snap.source_ended));
+    if (snap && snap.source_ended) {
+      box.hidden = false;
+      $("stopped-word").textContent = "RECORDING ENDED";
+      $("stopped-text").textContent = "the whole file was watched — restart jaga to watch again (or use --loop)";
       return;
     }
     box.hidden = !snap || snap.watcher_ok !== false;
@@ -452,7 +469,7 @@
       b.title = e.message;
       S.rowNote[b.dataset.slot] = { text: `could not ${b.dataset.act}: ${e.message}`, until: Date.now() + 8000 };
       if (S.snap) renderSchedule(S.snap);
-      setTimeout(() => { b.disabled = false; b.textContent = b.dataset.act; }, 2000);
+      setTimeout(() => { b.disabled = false; b.textContent = b.dataset.act; b.title = ""; }, 2000);
     }
   });
   $("events").addEventListener("click", async (ev) => {

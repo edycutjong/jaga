@@ -31,9 +31,10 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 [hidden] { display: none !important; }
 html { font-size: max(18px, 1.15vw); background: var(--bg); color: var(--ink); }
-body { font: 400 1rem/1.35 var(--font-body); height: 100vh; min-height: 600px; display: grid;
+body { font: 400 1rem/1.35 var(--font-body); height: 100vh; min-height: 600px; min-width: 1024px; display: grid;
   grid-template-rows: auto minmax(26rem, 1fr) auto auto; -webkit-font-smoothing: antialiased; overflow: auto; }
-body.banner .strip { margin-top: 3.2rem; }  /* the red banner sits above the header, never over its links */
+body.banner .strip { margin-top: 3.5rem; }
+.stopped.ended { background: var(--ink); }  /* a recording that ended is not an alarm */  /* the red banner sits above the header, never over its links */
 .num { font-family: var(--font-data); font-weight: 500; font-variant-numeric: tabular-nums; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 .eyebrow { font: 700 max(18px, .82rem)/1.2 var(--font-body); letter-spacing: .12em; color: var(--muted); text-transform: uppercase; }
@@ -60,6 +61,8 @@ body.banner .strip { margin-top: 3.2rem; }  /* the red banner sits above the hea
   background: repeating-linear-gradient(135deg, rgba(92,87,76,.10) 0 10px, transparent 10px 20px); }
 .nosignal .ns-title { font: 800 2rem/1 var(--font-display); letter-spacing: .06em; color: var(--muted); }
 .cam.live .nosignal { display: none; }
+.cam:not(.live) .nosignal { z-index: 4; background: #D8D2C3; }
+.nosignal p:not(.ns-title) { max-width: 36rem; padding: 0 1rem; }
 
 .filmstrip { position: absolute; left: 1rem; top: .9rem; display: flex; flex-direction: column; gap: .3rem; }
 .fs-label { font: 700 max(18px, .72rem)/1 var(--font-body); letter-spacing: .12em; color: var(--ink); background: var(--panel);
@@ -241,8 +244,10 @@ body.banner .strip { margin-top: 3.2rem; }  /* the red banner sits above the hea
 .dr-choose select:hover { border-color: var(--before); box-shadow: 0 0 0 3px rgba(29,78,137,.18); }
 .drawer.notvisual .dr-choose { display: none; }
 .dr-req { font-size: max(18px, .8rem); color: var(--muted); }
-.dr-actions { display: flex; gap: .6rem; position: sticky; bottom: -1rem; margin: 0 -1.2rem -1rem; padding: .7rem 1.2rem 1rem;
+/* the choice and the buttons stay in view together while the captions scroll */
+.dr-foot { position: sticky; bottom: -1rem; margin: 0 -1.2rem -1rem; padding: .6rem 1.2rem 1rem; display: grid; gap: .6rem;
   background: var(--panel); border-top: 1px solid var(--rule); }
+.dr-actions { display: flex; gap: .6rem; }
 .drawer.notvisual .dr-sentence { color: var(--muted); }
 .drawer.notvisual #dr-arm { display: none; }
 
@@ -270,7 +275,7 @@ body.receipts { display: block; }
 
 /* between 1024 and 1280 px the filmstrip hides; the side column keeps room for one-line events */
 @media (max-width: 1280px) {
-  :root { --side: 340px; } .filmstrip { display: none; }
+  :root { --side: 352px; } .filmstrip { display: none; }
   .ev-list li { grid-template-columns: auto minmax(0, 1fr) auto; }
   .ev-list .d { display: none; }
   .ev-list .k { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
