@@ -32,7 +32,8 @@
 [hidden] { display: none !important; }
 html { font-size: max(18px, 1.15vw); background: var(--bg); color: var(--ink); }
 body { font: 400 1rem/1.35 var(--font-body); height: 100vh; min-height: 600px; display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto auto; -webkit-font-smoothing: antialiased; overflow: auto; }
+  grid-template-rows: auto minmax(26rem, 1fr) auto auto; -webkit-font-smoothing: antialiased; overflow: auto; }
+body.banner .strip { margin-top: 3.2rem; }  /* the red banner sits above the header, never over its links */
 .num { font-family: var(--font-data); font-weight: 500; font-variant-numeric: tabular-nums; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 .eyebrow { font: 700 max(18px, .82rem)/1.2 var(--font-body); letter-spacing: .12em; color: var(--muted); text-transform: uppercase; }
@@ -154,6 +155,7 @@ body { font: 400 1rem/1.35 var(--font-body); height: 100vh; min-height: 600px; d
   background: repeating-linear-gradient(135deg, rgba(210,40,28,.22) 0 8px, transparent 8px 16px); }
 .failed .fw { justify-self: start; font: 800 1.45rem/1 var(--font-display); letter-spacing: .05em; color: var(--ink); background: var(--panel); padding: .15rem .4rem; }
 .failed .fd { font-size: max(18px, .95rem); }
+.breaker.failing .toggle { display: none; }  /* ACTION FAILED says it all; the lever would only read "unknown" */
 .last { color: var(--muted); font-size: max(18px, .95rem); }
 .last .num { color: var(--ink); }
 
@@ -239,7 +241,8 @@ body { font: 400 1rem/1.35 var(--font-body); height: 100vh; min-height: 600px; d
 .dr-choose select:hover { border-color: var(--before); box-shadow: 0 0 0 3px rgba(29,78,137,.18); }
 .drawer.notvisual .dr-choose { display: none; }
 .dr-req { font-size: max(18px, .8rem); color: var(--muted); }
-.dr-actions { display: flex; gap: .6rem; }
+.dr-actions { display: flex; gap: .6rem; position: sticky; bottom: -1rem; margin: 0 -1.2rem -1rem; padding: .7rem 1.2rem 1rem;
+  background: var(--panel); border-top: 1px solid var(--rule); }
 .drawer.notvisual .dr-sentence { color: var(--muted); }
 .drawer.notvisual #dr-arm { display: none; }
 
@@ -265,8 +268,14 @@ body.receipts { display: block; }
 .back:hover { color: var(--ink); }
 .back:active { color: var(--before); }
 
-/* between 1024 and 1280 px the filmstrip hides and the breaker narrows */
-@media (max-width: 1280px) { :root { --side: 300px; } .filmstrip { display: none; } }
+/* between 1024 and 1280 px the filmstrip hides; the side column keeps room for one-line events */
+@media (max-width: 1280px) {
+  :root { --side: 340px; } .filmstrip { display: none; }
+  .ev-list li { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .ev-list .d { display: none; }
+  .ev-list .k { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+}
+@media (max-width: 1500px) { .cam.carding .filmstrip { display: none; } }  /* the capture/check card has the corner */
 /* laptop heights: the page scrolls instead of squeezing the camera pane into the schedule */
 @media (max-height: 900px) {
   body { height: auto; min-height: 100vh; grid-template-rows: auto auto auto auto; }

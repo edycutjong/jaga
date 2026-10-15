@@ -24,6 +24,10 @@
       body: JSON.stringify(body || {}) });
     let data = {};
     try { data = await r.json(); } catch (_) { /* empty */ }
+    if (r.status === 403 && /session token/.test(data.detail || data.error || "")) {
+      location.reload();  // jaga was restarted: this page's token belongs to the old run
+      throw new Error("jaga was restarted — reloading the page");
+    }
     if (!r.ok && !data.state) throw new Error(data.detail || data.error || `HTTP ${r.status}`);
     return data;
   }
@@ -151,6 +155,7 @@
     const checking = !capturing && rows.find((w) => (w.state === "armed" || w.state === "holding") && w.armed_at
       && (snap.ts - w.armed_at) < 90 && (w.examples || 0) < 3);
     const row = capturing || checking;
+    $("cam").classList.toggle("carding", !!row);
     if (!row) { box.hidden = true; return; }
     box.hidden = false;
     box.dataset.mode = capturing ? "capture" : "check";
@@ -177,9 +182,11 @@
     const p = snap.plug || {};
     const b = $("breaker");
     const rows = snap.windows || [];
-    const tripped = rows.some((w) => w.action === "plug_off" && w.state === "tripped");
-    const acked = rows.some((w) => w.action === "plug_off" && w.state === "tripped" && w.off_acked);
-    b.dataset.state = tripped && !acked ? "unknown" : (p.state || "unknown");
+    // OFF and the TRIPPED flag only when every tripped row has its own confirmation after its trip (I3)
+    const cut = rows.filter((w) => w.action === "plug_off" && w.state === "tripped");
+    const acked = cut.length > 0 && cut.every((w) => w.off_acked);
+    b.dataset.state = cut.length && !acked ? "unknown" : (p.state || "unknown");
+    b.classList.toggle("failing", !!p.failed);
     $("plug-label").textContent = p.label || "Wi-Fi plug";
     $("plug-addr").textContent = p.address || "—";
     $("flag").hidden = !acked;
@@ -189,6 +196,7 @@
     if (p.last_action === "off") last = `last action: OFF acknowledged in <span class="num">${fmt.n(p.latency_ms, 0)}</span> ms`;
     else if (p.last_action === "operator-on") last = `last action: operator test · ${esc(p.detail || "")}`;
     else if (p.last_action === "off-failed") last = "last action: OFF not acknowledged";
+    else if (p.last_action === "off-confirmed") last = "last action: OFF confirmed by a status read";
     if (p.kind === "none") last = "no plug configured yet — trips will show ACTION FAILED";
     if (S.plugNote && S.plugNote.until > Date.now()) last = esc(S.plugNote.text);
     $("plug-last").innerHTML = last;
@@ -201,6 +209,8 @@
 
   function renderEvents(fresh) {
     const ol = $("events");
+    const focusId = document.activeElement && document.activeElement.classList.contains("wrong")
+      ? document.activeElement.dataset.id : null;
     ol.innerHTML = "";
     S.events.slice(0, 5).forEach((e) => {  // at most five one-line rows; a row that would not fit is not shown
       const li = document.createElement("li");
@@ -214,6 +224,7 @@
       ol.appendChild(li);
     });
     fitEvents();
+    if (focusId) { const b = ol.querySelector(`button.wrong[data-id="${focusId}"]`); if (b) b.focus(); }
   }
   function fitEvents() {
     const ol = $("events");
@@ -296,6 +307,7 @@
   function renderStopped(snap) {
     const box = $("stopped");
     document.body.classList.toggle("lost", S.lost);
+    document.body.classList.toggle("banner", S.lost || (!!snap && snap.watcher_ok === false));
     if (S.lost) {
       box.hidden = false;
       $("stopped-word").textContent = "LOST CONTACT";
@@ -315,6 +327,7 @@
     if (!snap) return;
     S.snap = snap;
     renderHeader(snap); renderCamera(snap); renderWire(snap); renderCapture(snap); renderBreaker(snap); renderSchedule(snap); renderStopped(snap);
+    fitEvents();
   }
 
   // ---------------------------------------------------------------- data in
@@ -342,12 +355,20 @@
         S.traces[slot] = arr.map((p) => [p[0], p[1], p[2], p[3]]).filter((p) => p[1] !== null);
       });
       if (d.receipt) $("foot-job").textContent = d.receipt;
+      S.runId = d.run_id;
       S.lastN = (d.snapshot && d.snapshot.n_windows) || 0;
       render(d.snapshot);
       renderEvents();
     } catch (e) { $("nosignal-text").textContent = `cannot reach the watcher: ${e.message}`; }
     const es = new EventSource("/stream");
     es.onopen = heard;
+    es.addEventListener("hello", (m) => {
+      heard();
+      const id = JSON.parse(m.data).run_id;
+      if (S.runId && id && id !== S.runId) location.reload();  // a restarted jaga: new token, fresh traces
+      S.runId = S.runId || id;
+    });
+    es.addEventListener("ping", heard);
     es.addEventListener("window", (m) => { heard(); absorbWindow(JSON.parse(m.data)); });
     es.addEventListener("event", (m) => {
       heard();
@@ -452,6 +473,7 @@
     if (!slot) return;
     try {
       const d = await post(`/tripwires/${slot}/example`);
+      if (d.examples) { $("cap-clock").textContent = `${d.examples}/3`; $("cap-example").textContent = `it's happening now (${d.examples}/3)`; }
       if (d.ok === false && d.examples === 3) $("cap-text").textContent = "can't see that — name an object and where it is";
     } catch (_) { /* the next window shows the state */ }
   });
