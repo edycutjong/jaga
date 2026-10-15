@@ -1,0 +1,112 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Cancel in-progress runs for the same PR/branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ── Stage 1: code quality ─────────────────────────────────
+  quality:
+    name: "Stage 1 · Quality (ruff + mypy)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements-ci.txt
+      - run: pip install -r requirements-ci.txt
+      - name: Lint (ruff)
+        run: python -m ruff check --output-format=github .
+      - name: Typecheck (mypy, informational)
+        # the typing backlog is tracked in pyproject [tool.mypy]; it must not hide a real failure, so it reports only
+        continue-on-error: true
+        run: python -m mypy jaga --ignore-missing-imports
+
+  # ── Stage 2: security (parallel with stage 1) ─────────────
+  security:
+    name: "Stage 2 · Security (pip-audit)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements-ci.txt
+      - run: pip install -r requirements-ci.txt
+      - name: Dependency audit (pip-audit)
+        run: python -m pip_audit -r requirements-ci.txt
+
+  # ── Stage 3: tests ────────────────────────────────────────
+  test:
+    name: "Stage 3 · Tests (Python ${{ matrix.python }})"
+    needs: [quality, security]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # full matrix on main, one version on pull requests
+        python: ${{ github.event_name == 'push' && fromJSON('["3.11", "3.12"]') || fromJSON('["3.11"]') }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: requirements-ci.txt
+      - run: pip install -r requirements-ci.txt
+      - run: pip install --no-deps -e .
+      - name: pytest with coverage
+        # no test loads the Cosmos model or calls Token Factory: vectors are scripted and the plug is a fake LAN server
+        run: python -m pytest --cov=jaga --cov-report=term-missing --cov-report=xml
+      - uses: actions/upload-artifact@v4
+        if: matrix.python == '3.11'
+        with:
+          name: coverage-xml
+          path: coverage.xml
+
+  # ── Stage 4: the safety path and the submission checks ────
+  gates:
+    name: "Stage 4 · Offline trip + readiness"
+    needs: [test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # the readiness script reads git history to date each measured section
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements-ci.txt
+      - run: pip install -r requirements-ci.txt
+      - run: pip install --no-deps -e .
+      - name: A tripwire trips and the plug goes OFF with every non-LAN connection refused (fake LAN plug, no model)
+        run: python scripts/verify_offline.py
+      - name: Submission readiness (the video URL is added by hand at submission)
+        run: python scripts/check_submission_readiness.py --allow video
+
+  # ── Stage 5: merge gate ───────────────────────────────────
+  ci-pass:
+    name: "Stage 5 · CI gate"
+    if: always()
+    needs: [quality, security, test, gates]
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "quality=${{ needs.quality.result }} security=${{ needs.security.result }} test=${{ needs.test.result }} gates=${{ needs.gates.result }}"
+          test "${{ needs.quality.result }}" = success && test "${{ needs.security.result }}" = success \
+            && test "${{ needs.test.result }}" = success && test "${{ needs.gates.result }}" = success

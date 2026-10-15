@@ -21,3 +21,8 @@ devices.json
 tinytuya.json
 snapshot.json
 tuya-raw.json
+
+# coverage output
+.coverage
+coverage.xml
+htmlcov/

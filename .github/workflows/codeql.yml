@@ -1,0 +1,27 @@
+name: CodeQL
+
+# CodeQL needs GitHub code scanning, which is free on public repos only. While this repo is private the job is
+# skipped by the condition below (not failing); it starts on the first push after the repo is made public.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "17 3 * * 1"
+
+jobs:
+  analyze:
+    name: Analyze (python)
+    if: ${{ !github.event.repository.private }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: python
+      - uses: github/codeql-action/analyze@v3
