@@ -1,0 +1,35 @@
+step,start_min,end_min,kind,text
+0,0.0,2.0,capture,iron as usual: this is the 2-minute normal-state capture
+1,2.0,8.0,activity:folding,fold clothes at the board
+2,8.0,11.0,still,"sit still at the board: no ironing, no phone, hands still"
+3,11.0,16.0,activity:phone,"scroll your phone, standing at the board"
+4,16.0,22.0,exit_leave,"leave the room and stay away; when you come back, if the lamp is off, press the plug's own button"
+5,22.0,26.0,activity:phone,"scroll your phone, standing at the board"
+6,26.0,31.0,still,"sit still at the board: no ironing, no phone, hands still"
+7,31.0,34.0,activity:reading,read at the board
+8,34.0,37.0,still,"stand still at the board: no ironing, no phone, hands still"
+9,37.0,41.0,activity:reading,read at the board
+10,41.0,46.0,exit_leave,"leave the room and stay away; when you come back, if the lamp is off, press the plug's own button"
+11,46.0,50.0,activity:reading,read at the board
+12,50.0,56.0,exit_leave,"leave the room and stay away; when you come back, if the lamp is off, press the plug's own button"
+13,56.0,59.0,activity:reading,read at the board
+14,59.0,62.0,still,"stand still at the board: no ironing, no phone, hands still"
+15,62.0,68.0,activity:phone,"scroll your phone, standing at the board"
+16,68.0,73.0,still,"sit still at the board: no ironing, no phone, hands still"
+17,73.0,79.0,activity:folding,fold clothes at the board
+18,79.0,83.0,exit_leave,"leave the room and stay away; when you come back, if the lamp is off, press the plug's own button"
+19,83.0,87.0,activity:phone,"scroll your phone, standing at the board"
+20,87.0,90.0,still,"stand still at the board: no ironing, no phone, hands still"
+21,90.0,94.0,activity:ironing,iron the shirt as usual (the iron prop stays unplugged; the lamp is the load)
+22,94.0,98.0,exit_inview,"step at least 2 metres away from the board and stay in view; when you come back, if the lamp is off, press the plug's own button"
+23,98.0,102.0,activity:ironing,iron the shirt as usual (the iron prop stays unplugged; the lamp is the load)
+24,102.0,106.0,still,"stand still at the board: no ironing, no phone, hands still"
+25,106.0,110.0,activity:ironing,iron the shirt as usual (the iron prop stays unplugged; the lamp is the load)
+26,110.0,114.0,still,"stand still at the board: no ironing, no phone, hands still"
+27,114.0,117.0,activity:ironing,iron the shirt as usual (the iron prop stays unplugged; the lamp is the load)
+28,117.0,120.0,still,"stand still at the board: no ironing, no phone, hands still"
+29,120.0,126.0,activity:phone,"scroll your phone, standing at the board"
+30,126.0,129.0,still,"sit still at the board: no ironing, no phone, hands still"
+31,129.0,134.0,activity:ironing,iron the shirt as usual (the iron prop stays unplugged; the lamp is the load)
+32,134.0,140.0,exit_inview,"step at least 2 metres away from the board and stay in view; when you come back, if the lamp is off, press the plug's own button"
+33,140.0,143.0,activity:ironing,iron the shirt as usual (the iron prop stays unplugged; the lamp is the load)
