@@ -5,8 +5,8 @@ where the evidence is. It feeds the hackathon's feedback form.
 
 ## NVIDIA Cosmos-Embed1-224p
 
-1. **The model card documents Linux + CUDA + BF16 only.** Its example hard-codes `.to("cuda", dtype=torch.bfloat16)`
-   and reads video with `decord`; the card says it was tested only with BF16 on Ampere/Hopper under Linux.
+1. **The model card's example is CUDA + BF16 only.** It hard-codes `.to("cuda", dtype=torch.bfloat16)` and reads
+   video with `decord`; the card says it was tested only with BF16 on Ampere and Hopper GPUs, under Linux.
    *What we did:* ran the card's own javelin example unchanged except for device, precision and the video reader
    (PyAV instead of `decord`, item 2): fp32 on the Apple M1 Max, on CPU and on MPS (`PYTORCH_ENABLE_MPS_FALLBACK=1`). Both pick a javelin caption as top-1; between CPU and MPS the six
    caption cosines agree to 6 decimals and the probabilities differ by at most 2 × 10⁻⁶.
@@ -33,9 +33,10 @@ where the evidence is. It feeds the hackathon's feedback form.
    (`shape_ok_counts`: tf 0, openai 6, json_object 6).
 7. **Super is a reasoning model.** We send `max_tokens` 4096 with `reasoning_effort: "low"` so reasoning leaves room
    for the answer, strip any think block, and treat empty content as a compile error — never as a spec (`jaga/compile.py`; test `test_reasoning_only_reply_is_an_error_never_an_invented_spec`).
-8. **At the recommended temperature (1.0) the proposed action varies.** The first frozen compile proposed `plug_off` for
-   a fridge (cutting a fridge's power is the harm) and, after a prompt fix, `notify` for the ironing board. We made the
-   action and dwell an explicit choice shown before arming, kept a code-side "never cut" list (fridge, freezer,
+8. **At the recommended temperature (1.0) the proposed action varies.** The first compile of the fridge sentence
+   (later superseded) proposed `plug_off` for a fridge (cutting a fridge's power is the harm) and, after a prompt
+   fix, `notify` for the ironing board. We made the action and dwell an explicit choice shown before arming, kept a
+   code-side "never cut" list (fridge, freezer,
    medical…), and measure caption variance with K = 5 extra compiles per sentence
    (`fixtures/tripwires/variance/`). The superseded compiles are recorded in each fixture.
 9. **Indonesian works.** Both Indonesian test sentences compiled into valid English-caption specs

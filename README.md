@@ -24,20 +24,22 @@ shop), and her CCTV stays silent — an empty room with a hot iron in it has no 
    dwell above the threshold, including the newest. A 2-minute "normal state" capture at arming (someone ironing as
    usual) sets the reference.
 5. The plug switches **off** over the home network, and the overlay shows OFF only after the plug confirms it.
-   A **Nebius Serverless Job** recalibrates each tripwire's threshold from labelled margins (`jaga calibrate`).
+   A **Nebius Serverless Job** recalibrates each tripwire's threshold from labelled margins (`jaga calibrate`); the
+   threshold the pre-registered soaks use is fitted on the laptop from the labelled clips and frozen before them.
 
 The model chooses where to look; the code decides when to act.
 
 ## Status
 
-The software is complete; the measurements are being made.
+The software is built and tested against scripted vectors and fake plugs; the measurements are being made.
 
 * Accuracy, speed and latency results appear only in [`DEMO.md`](DEMO.md), written by `scripts/bench.py`. Job
   receipts are in [`docs/RUNS.md`](docs/RUNS.md) and the day-0 spikes in [`evidence/day0/`](evidence/day0/).
-* **Not recorded yet:** the labelled clips and the two pre-registered soak sessions (protocol committed before any
-  data: [`docs/PROTOCOL.md`](docs/PROTOCOL.md)). `DEMO.md` says "not yet run" for each until it is measured.
+* **Not recorded yet:** the labelled clips and the pre-registered soaks — B1, B2 and the supporting Soak A night
+  (protocol committed before any data: [`docs/PROTOCOL.md`](docs/PROTOCOL.md)). `DEMO.md` says "not yet run" for
+  each until it is measured.
 * **Not run on the real hardware yet:** so far the live loop has run on recorded files played through the same
-  capture path, and the plug path against a fake LAN plug in the tests. The first runs with a real webcam and a real
+  capture path, and the plug path against fake plugs in the tests. The first runs with a real webcam and a real
   plug are pending.
 * The calibration Job has run once, as a smoke test on synthetic numbers (`docs/RUNS.md`). Once labelled margins
   exist, a calibration run is started by hand (`jaga calibrate`, or `scripts/dispatch_calibrate.sh`); no scheduler is
@@ -49,7 +51,7 @@ The software is complete; the measurements are being made.
 git clone https://github.com/edycutjong/jaga && cd jaga
 python3.11 -m venv .venv && source .venv/bin/activate
 pip install -e ".[test]"
-pytest       # 161 tests: the safety invariants, the decision rule and the measurement rules; no model or key needed
+pytest       # 173 tests: the safety invariants, the decision rule and the measurement rules; no model or key needed
 ```
 
 **The model:** [`nvidia/Cosmos-Embed1-224p`](https://huggingface.co/nvidia/Cosmos-Embed1-224p), under the NVIDIA Open
@@ -62,9 +64,9 @@ first run downloads the weights; after that jaga loads them from the local cache
 **The plug (optional for trying it):** a Tuya "Smart Life" Wi-Fi plug, paired in its app; then run the wizard once
 inside `~/.config/jaga` (`cd ~/.config/jaga && python -m tinytuya wizard`). It writes `devices.json` (the plug's
 local key) and your Tuya cloud API secret into the folder it runs in, so never run it inside the repo. jaga also has a
-driver for the Shelly Plug S Gen3's local API (`~/.config/jaga/shelly.json` with `{"ip": "…"}`); like the Tuya path,
-it has so far been exercised only against the fake plug in the tests. With no plug configured, a trip shows
-**ACTION FAILED** — never "done".
+driver for the Shelly Plug S Gen3's local API (`~/.config/jaga/shelly.json` with `{"ip": "…"}`). Neither driver has
+run against a real plug yet: the tests exercise the Shelly driver against a fake plug on the loopback network and the
+Tuya driver through a fake `tinytuya` device. With no plug configured, a trip shows **ACTION FAILED** — never "done".
 
 ```bash
 jaga serve --load 01 --arm 01                 # watch the webcam; open http://127.0.0.1:8765/
@@ -77,7 +79,8 @@ On macOS, allow camera access for your terminal (System Settings → Privacy & S
 ## Testing it without the hardware
 
 `pytest` runs the whole watcher — decision rule, guards, actuator, server — against scripted vectors and a fake LAN
-plug. Scoring a recording works today with the model:
+plug. Scoring a recording works today with the model (one run on the model card's sample video is recorded in
+`evidence/day0/score-run.json`):
 
 ```bash
 jaga score my-clip.mp4 --tripwire fixtures/tripwires/01.json    # embeds one 8-s window with Cosmos-Embed1
@@ -94,7 +97,8 @@ key and no camera. Until then `--replay` has nothing to read.
 | `nvidia/Cosmos-Embed1-224p` | on the laptop, fp32 on Apple MPS or CPU (`jaga/embed.py`) | `get_video_embeddings` turns each 8-frame window into a 256-d vector; `get_text_embeddings` puts the compiled captions in the same space, so a sentence becomes a classifier without training |
 | `nvidia/nemotron-3-super-120b-a12b` | Nebius Token Factory (`jaga/compile.py`) | rewrites the sentence into the short English caption register the Cosmos-Embed1 card says aligns with video, and invents the hard negatives that turn "nobody" into a visual contrast; structured JSON output, so the code can enforce it |
 
-The Cosmos-Embed1 card documents Linux, CUDA and BF16 only; jaga runs it on macOS in fp32, and the speeds in
+The Cosmos-Embed1 card says it was tested only with BF16 on Ampere and Hopper GPUs under Linux; jaga runs it on macOS
+in fp32, and the speeds in
 `DEMO.md` are ours, measured on this laptop.
 
 ## Where Nebius is used

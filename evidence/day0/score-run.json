@@ -1,0 +1,20 @@
+{
+  "check": "jaga score on a recording, with the model on this laptop (plumbing, not accuracy)",
+  "measured_at": "2026-10-15T13:16:21+0700",
+  "command": "jaga score javelin_throw.webm --tripwire fixtures/tripwires/01.json --json",
+  "input": "javelin_throw.webm — the Cosmos-Embed1 model card's own sample video (a javelin throw)",
+  "rc": 0,
+  "wall_s_incl_model_load": 19.8,
+  "output": {
+    "tripwire": "01",
+    "sentence": "nobody is at the ironing board",
+    "tf_request_id": "9727b666068a1e42a836b303ab8fd65c",
+    "clip": "jaga/javelin_throw",
+    "source": "live embed on mps fp32 · window 0.0–8.0 s",
+    "margin": -0.066592,
+    "theta_m": null,
+    "theta_version": null,
+    "above": null
+  },
+  "note": "the clip is not an ironing-board scene: its margin says nothing about tripwire 01. θ is not frozen yet (no labelled clips), so 'above' is null."
+}
