@@ -28,6 +28,19 @@ class ActionFailed(Exception):
     pass
 
 
+def why(e: Exception) -> str:
+    """A short reason a person can act on (the overlay is filmed; no stack traces or URLs)."""
+    name = type(e).__name__
+    status = getattr(getattr(e, "response", None), "status_code", None)
+    if status is not None:
+        return f"the plug answered HTTP {status}"
+    if "Timeout" in name or isinstance(e, TimeoutError):
+        return "the plug did not answer within 3 s"
+    if "Connect" in name or isinstance(e, (ConnectionError, OSError)):
+        return "the plug is not reachable on the home network"
+    return f"{name}"
+
+
 @dataclass
 class Ack:
     off: bool
@@ -94,16 +107,16 @@ class TuyaPlug(PlugDriver):
         try:
             r = self._device().turn_off(switch=int(self.dps))
         except Exception as e:  # socket errors, decryption errors
-            raise ActionFailed(f"tuya: {type(e).__name__}: {e}") from e
+            raise ActionFailed(why(e)) from e
         if isinstance(r, dict) and r.get("Error"):
-            raise ActionFailed(f"tuya: {r.get('Error')} {r.get('Err', '')}".strip())
+            raise ActionFailed(f"the plug refused: {r.get('Error')}"[:120])
         dps = (r or {}).get("dps") or {}
         if dps.get(self.dps) is False:
             return Ack(True, (time.perf_counter() - t0) * 1000, "acknowledged in the set response")
         st = self.status()  # some firmware answer the set call with no dps: read it back
         if st is False:
             return Ack(True, (time.perf_counter() - t0) * 1000, "acknowledged by a status read")
-        raise ActionFailed(f"tuya: plug did not confirm OFF (status={st})")
+        raise ActionFailed("the plug did not confirm OFF")
 
 
 class ShellyPlug(PlugDriver):
@@ -136,10 +149,10 @@ class ShellyPlug(PlugDriver):
             self._get("/rpc/Switch.Set", {"id": self.switch_id, "on": "false"})
             out = self._get("/rpc/Switch.GetStatus", {"id": self.switch_id})["output"]
         except Exception as e:
-            raise ActionFailed(f"shelly: {type(e).__name__}: {e}") from e
+            raise ActionFailed(why(e)) from e
         if out is False:
             return Ack(True, (time.perf_counter() - t0) * 1000, "acknowledged by a status read")
-        raise ActionFailed(f"shelly: plug did not confirm OFF (output={out})")
+        raise ActionFailed("the plug did not confirm OFF")
 
 
 def _read_json(p: Path):

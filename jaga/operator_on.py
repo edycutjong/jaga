@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import time
 
-from .act import Ack, ActionFailed, PlugDriver, ShellyPlug, TuyaPlug
+from .act import Ack, ActionFailed, PlugDriver, ShellyPlug, TuyaPlug, why
 
 
 def switch_on(driver: PlugDriver) -> Ack:
@@ -25,10 +25,10 @@ def switch_on(driver: PlugDriver) -> Ack:
     except ActionFailed:
         raise
     except Exception as e:
-        raise ActionFailed(f"{driver.kind}: {type(e).__name__}: {e}") from e
+        raise ActionFailed(why(e)) from e
     st = driver.status()
     if st is not True:
-        raise ActionFailed(f"{driver.kind}: plug did not confirm ON (status={st})")
+        raise ActionFailed("the plug did not confirm ON")
     return Ack(off=False, latency_ms=(time.perf_counter() - t0) * 1000, detail="operator ON acknowledged")
 
 

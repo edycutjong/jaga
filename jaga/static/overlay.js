@@ -114,7 +114,8 @@
     const dwell = Math.round(row.effective_dwell_s || row.dwell_s);
     const note = row.dwell_note ? ` (${row.dwell_note})` : "";
     $("dwell-text").textContent = row.state === "capturing" ? `capturing the normal state · ${row.capture_windows} windows`
-      : `dwell ${row.count}/${row.k} windows above · ${dwell} s${note}`;
+      : row.state === "tripped" ? `held for the dwell · ${dwell} s${note}`
+        : `dwell ${row.count}/${row.k} windows above · ${dwell} s${note}`;
     renderTrace(row, snap.ts);
   }
 
@@ -166,7 +167,7 @@
     const tripped = (snap.windows || []).some((w) => w.action === "plug_off" && w.state === "tripped");
     $("flag").hidden = !(tripped && p.state === "off");
     $("failed").hidden = !p.failed;
-    if (p.failed) $("failed-detail").textContent = `${p.detail || "plug did not confirm OFF"} · push sent · retrying OFF`;
+    if (p.failed) $("failed-detail").textContent = `${(p.detail || "the plug did not confirm OFF").slice(0, 90)} · push sent · retrying OFF`;
     let last = "last action: —";
     if (p.last_action === "off") last = `last action: OFF acknowledged in <span class="num">${fmt.n(p.latency_ms, 0)}</span> ms`;
     else if (p.last_action === "operator-on") last = `last action: operator test · ${esc(p.detail || "")}`;
@@ -295,7 +296,7 @@
     $("dr-sentence").innerHTML = d && d.sentence ? `You typed <b>“${esc(d.sentence)}”</b>` : "";
     $("dr-pos").innerHTML = (spec.positives || []).map((t) => `<li>${esc(t)}</li>`).join("");
     $("dr-neg").innerHTML = (spec.hard_negatives || []).map((t) => `<li>${esc(t)}</li>`).join("");
-    $("dr-rule").textContent = spec.dwell_s ? `Super proposed: dwell ${spec.dwell_s} s → ${spec.action === "plug_off" ? "plug OFF" : "notify"} · cool-down ${spec.cooldown_s} s · ${spec.name}` : "";
+    $("dr-rule").innerHTML = spec.dwell_s ? `Super proposed: dwell <span class="num">${esc(spec.dwell_s)}</span> s → ${spec.action === "plug_off" ? "plug OFF" : "notify"} · cool-down <span class="num">${esc(spec.cooldown_s)}</span> s · ${esc(spec.name)}` : "";
     if (spec.action) {
       document.querySelectorAll('input[name="dr-action"]').forEach((r) => { r.checked = r.value === spec.action; });
       const sel = $("dr-dwell");
@@ -366,6 +367,8 @@
       }).catch(() => {});
     }
   });
-  setInterval(() => { $("hdr-clock").textContent = new Date().toLocaleTimeString("en-GB", { hour12: false }); }, 1000);
+  const tick = () => { $("hdr-clock").textContent = new Date().toLocaleTimeString("en-GB", { hour12: false }); };
+  tick();
+  setInterval(tick, 1000);
   boot();
 })();

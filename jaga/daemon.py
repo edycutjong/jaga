@@ -189,9 +189,17 @@ class Watcher:
         return self.ts_hist[-1] if (self.offline and self.ts_hist) else time.time()
 
     # ------------------------------------------------------------------ threads
+    def _read_plug_once(self) -> None:
+        """Show the plug's real state from the start (read only)."""
+        st = self.driver.status()
+        with self.lock:
+            if self.plug["state"] == "unknown" and st is not None:
+                self.plug["state"] = "on" if st else "off"
+
     def start(self) -> None:
         for target, name in ((self._loop, "jaga-loop"), (self._actions_worker, "jaga-act"),
-                             (self._watchdog, "jaga-watchdog"), (self._plug_poll, "jaga-plug")):
+                             (self._watchdog, "jaga-watchdog"), (self._plug_poll, "jaga-plug"),
+                             (self._read_plug_once, "jaga-plug-read")):
             th = threading.Thread(target=target, name=name, daemon=True)
             th.start()
             self.threads.append(th)
@@ -362,7 +370,7 @@ class Watcher:
             if first:
                 text = f"jaga · {tw.slot} {tw.name} · tripped {clock} · ACTION FAILED — plug did not switch off"
                 self.notifier.notify(text)
-                self._event("action_failed", tw, f"ACTION FAILED: {str(e)[:160]} · push sent · retrying OFF")
+                self._event("action_failed", tw, f"ACTION FAILED: {str(e)[:120]} · push sent · retrying OFF")
             self.publish("window", self.snapshot())
             return False
         with self.lock:
