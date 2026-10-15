@@ -15,6 +15,9 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
+import shutil
+import subprocess
 import sys
 import threading
 import time
@@ -49,6 +52,10 @@ def build_watcher(a, *, scored: bool = False, session: str | None = None):
     from .tripwires import fresh_threshold, frozen_threshold, load, load_vectors
 
     db = DB(a.db) if a.db else DB()
+    session = session or a.session or time.strftime("live-%Y%m%d-%H%M%S")
+    if scored and db.query("SELECT 1 FROM session WHERE name=?", (session,)):
+        raise SystemExit(f"session {session!r} already exists: every scored run counts, so a new run needs a new name "
+                         "(e.g. B1-run2); an aborted run stays on record")
     print("loading NVIDIA Cosmos-Embed1-224p …", flush=True)
     emb = shared(a.device)
     print(f"  {emb.info['device']} fp32 · loaded in {emb.load_s:.1f} s", flush=True)
@@ -60,10 +67,10 @@ def build_watcher(a, *, scored: bool = False, session: str | None = None):
     driver = load_driver()
     notifier = Notifier(os_banner=not a.no_os_banner)
     bc = Broadcaster()
-    session = session or a.session or time.strftime("live-%Y%m%d-%H%M%S")
     w = Watcher(db=db, embedder=emb, ring=ring, driver=driver, notifier=notifier, session=session,
                 camera_pos=a.camera_pos, scored=scored, tuning=TUNING, guards=Guards(TUNING, zone=a.zone),
-                publish=bc.publish, source=src, frozen_for=session if scored else None, offline=a.offline)
+                publish=bc.publish, source=src, frozen_for=session if scored else None, offline=a.offline,
+                labels=getattr(a, "labels", False))
     for slot in _slots(a.load):
         fx = load(slot)
         pos, neg = load_vectors(fx)
@@ -111,6 +118,8 @@ def cmd_serve(a, *, scored: bool = False, session: str | None = None, on_started
 def cmd_soak(a) -> int:
     from .soak import ScheduleRunner, load_schedule
 
+    if not a.session:
+        raise SystemExit("a soak needs its own --session name (B1, B2, A1 …)")
     if a.kind == "B":
         a.load = a.load or "01"
         a.arm = a.arm or a.load
@@ -131,7 +140,17 @@ def cmd_soak(a) -> int:
         if steps:
             ScheduleRunner(w, steps, say=not a.no_say, started=started).start()
 
-    return cmd_serve(a, scored=True, session=a.session, on_started=watch_capture)
+    caffeinate = None
+    if sys.platform == "darwin":  # a soak must not be ended by sleep: hold an assertion for as long as jaga runs
+        try:
+            caffeinate = subprocess.Popen(["caffeinate", "-dimsu", "-w", str(os.getpid())])
+        except OSError:
+            print("warning: caffeinate not available — keep the laptop awake yourself", file=sys.stderr)
+    try:
+        return cmd_serve(a, scored=True, session=a.session, on_started=watch_capture)
+    finally:
+        if caffeinate:
+            caffeinate.terminate()
 
 
 # ------------------------------------------------------------------------------------------- score
@@ -230,6 +249,8 @@ def cmd_compile(a) -> int:
 def cmd_record(a) -> int:
     import cv2
 
+    if not re.fullmatch(r"[a-z0-9-]+", a.camera_pos, re.I):  # the importer reads the name back: no underscores
+        raise SystemExit("--camera-pos takes letters, digits and hyphens only (e.g. board, kitchen-door)")
     out_dir = Path(a.out).expanduser() / a.set
     out_dir.mkdir(parents=True, exist_ok=True)
     n = a.n
@@ -248,21 +269,33 @@ def cmd_record(a) -> int:
                          "(System Settings → Privacy & Security → Camera)")
     fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
     w, h = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    print(f"label {a.label.upper()} · set {a.set} · {name}")
+    print(f"label {a.label.upper()} · set {a.set} · {name} · camera {a.camera} (use --camera 1 for a USB webcam)")
     for k in range(a.countdown, 0, -1):
         print(f"  recording in {k} …", flush=True)
         time.sleep(1)
-    vw = cv2.VideoWriter(str(path), cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))
-    t_end = time.monotonic() + a.seconds
+    tmp = path.with_suffix(".part.mp4")
+    vw = cv2.VideoWriter(str(tmp), cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))  # streamed: no frames held in memory
     frames = 0
+    t0 = time.monotonic()
+    t_end = t0 + a.seconds
     while time.monotonic() < t_end:
         ok, f = cap.read()
         if ok:
             vw.write(f)
             frames += 1
+    elapsed = time.monotonic() - t0
     vw.release()
     cap.release()
-    print(f"  saved {path} ({frames} frames, {a.seconds:.0f} s). Next: scripts/seed.py import --raw {a.out}")
+    real_fps = frames / elapsed if elapsed > 0 else fps
+    if real_fps < 0.9 * fps and shutil.which("ffmpeg"):
+        # the camera delivered fewer frames than it reports (dim light): retime so the file lasts the real time
+        subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(tmp), "-filter:v",
+                        f"setpts=PTS*{fps / real_fps:.6f}", "-r", f"{real_fps:.3f}", "-an", str(path)], check=True)
+        tmp.unlink()
+        print(f"  note: the camera delivered {real_fps:.1f} fps, not the {fps:.0f} it reports; retimed to real time")
+    else:
+        tmp.rename(path)
+    print(f"  saved {path} ({frames} frames over {elapsed:.1f} s). Next: scripts/seed.py import --raw {a.out}")
     return 0
 
 
@@ -335,12 +368,14 @@ def _serve_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("--dwell", action="append", help="labelled demo dwell override, e.g. 01=30")
     p.add_argument("--no-os-banner", action="store_true",
                    help="no macOS banner (filming): the overlay row is the notice")
+    p.add_argument("--labels", action="store_true",
+                   help="turn on the label keys (1-7, 0) for an unscored session, e.g. the U1 tuning session")
     p.add_argument("--port", type=int, default=config.PORT)
     p.add_argument("--device", default="auto", choices=["auto", "mps", "cpu"])
     p.add_argument("--db", default=None, help="SQLite path (default ~/.jaga/jaga.db)")
 
 
-def main(argv: list[str] | None = None) -> int:
+def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(prog="jaga", description=__doc__.split("\n")[0],
                                  formatter_class=argparse.RawDescriptionHelpFormatter, epilog=__doc__)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -407,8 +442,11 @@ def main(argv: list[str] | None = None) -> int:
 
     p = sub.add_parser("info", help="versions and paths")
     p.set_defaults(fn=cmd_info)
+    return ap
 
-    a = ap.parse_args(argv)
+
+def main(argv: list[str] | None = None) -> int:
+    a = build_parser().parse_args(argv)
     return int(a.fn(a) or 0)
 
 
