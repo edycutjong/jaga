@@ -7,7 +7,7 @@ Checks (each prints PASS or FAIL with the reason):
   cosmos        "Built on NVIDIA Cosmos" appears in README.md and NOTICE (NVIDIA Open Model License §3.2)
   license       LICENSE is the Apache License 2.0 (OSI-approved)
   placeholders  no <bench:…> / <traction:…> tokens, TODO or TBD left in judge-facing files
-  numbers       DEMO.md was written by bench.py, and no bench section is older than the scoring code
+  numbers       DEMO.md was written by bench.py, and no bench section is older than the code it measured
   video         a video URL (YouTube) is linked from README.md (or --submission file)
   kitchen       no planning files tracked in git (specs, progress, predictions, radar, CLAUDE/AGENTS, keys)
   tests         the test count README.md states is the number pytest collects
@@ -25,7 +25,15 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 JUDGE_FILES = ["README.md", "DEMO.md", "ARCHITECTURE.md", "docs/PROTOCOL.md", "docs/RUNS.md", "docs/DX-REPORT.md"]
-SCORING_CODE = ["jaga/score.py", "jaga/embed.py", "jaga/frames.py", "jaga/offline.py", "scripts/bench.py"]
+SCORING_CODE = ["jaga/score.py", "jaga/embed.py", "jaga/frames.py", "jaga/offline.py", "jaga/stats.py",
+                "scripts/bench.py"]
+# the code each measurement depends on: (files, (file, function) pairs). A section is stale when any of it changed
+# after the section's commit. Speed and period measure the embedder and the live loop, not the scoring scripts.
+SECTION_CODE = {
+    "speed": (["jaga/embed.py", "jaga/frames.py"], [("scripts/bench.py", "cmd_speed")]),
+    "period": (["jaga/daemon.py", "jaga/capture.py", "jaga/embed.py", "jaga/frames.py", "jaga/score.py",
+                "jaga/guards.py"], [("scripts/bench.py", "cmd_period")]),
+}
 KITCHEN = re.compile(r"spec|progress|predict|radar|CLAUDE|AGENTS|\.claude|\.env$|pem$|a2a|autopilot|devices\.json"
                      r"|tinytuya\.json|snapshot\.json|tuya-raw\.json|consent", re.I)  # + the tinytuya wizard's files
 README_TESTS = re.compile(r"pytest\s+#\s*(\d+) tests")
@@ -75,7 +83,16 @@ def check(submission: Path | None, allow: set[str]) -> list[tuple[str, bool, str
     if summary.exists():
         for name, sec in json.loads(summary.read_text()).items():
             c = sec.get("_commit")
-            if c and c != "unknown" and git("diff", "--name-only", c, "HEAD", "--", *SCORING_CODE).strip():
+            if not c or c == "unknown":
+                continue
+            if c.endswith("+dirty"):  # measured on uncommitted code: never current
+                stale.append(f"{name}@{c}")
+                continue
+            files, funcs = SECTION_CODE.get(name, (SCORING_CODE, []))
+            changed = git("diff", "--name-only", c, "HEAD", "--", *files).strip()
+            for f, fn in funcs:
+                changed = changed or git("log", "-L", f":{fn}:{f}", f"{c}..HEAD", "-s", "--format=%h").strip()
+            if changed:
                 stale.append(f"{name}@{c}")
     ok = "written by `scripts/bench.py`" in demo and not stale
     res.append(("numbers", ok, ("stale: " + ", ".join(stale)) if stale else

@@ -59,9 +59,13 @@ JAVELIN = Path.home() / ".cache" / "jaga" / "javelin_throw.webm"
 
 # ----------------------------------------------------------------------------------- bookkeeping
 def git_head() -> str:
+    """The commit a result came from; '+dirty' when tracked files differ from it (the code that ran is not it)."""
     try:
-        return subprocess.run(["git", "-C", str(REPO), "rev-parse", "--short", "HEAD"], capture_output=True,
+        head = subprocess.run(["git", "-C", str(REPO), "rev-parse", "--short", "HEAD"], capture_output=True,
                               text=True, timeout=10).stdout.strip() or "unknown"
+        dirty = subprocess.run(["git", "-C", str(REPO), "status", "--porcelain", "--untracked-files=no", "--", "jaga",
+                                "scripts", "jobs"], capture_output=True, text=True, timeout=10).stdout.strip()
+        return head + ("+dirty" if dirty else "")
     except Exception:
         return "unknown"
 
@@ -217,7 +221,7 @@ def loo_decisions(scores_pos, scores_neg, recall=0.9) -> tuple[list, list]:
     pos = []
     for i, s in enumerate(sp):
         others = sp[:i] + sp[i + 1:]
-        th = theta_at_recall(others, recall) if others else s
+        th = theta_at_recall(others, recall) if others else math.inf  # nothing left to fit θ on: a miss
         pos.append((th, s >= th))
     th_all = theta_at_recall(sp, recall) if sp else math.inf
     return pos, [(th_all, s >= th_all) for s in sn]
@@ -337,7 +341,8 @@ def cmd_fresh(a) -> int:
         fx, pos, neg, _ = caption_vectors(slot)
         emb = shared(a.device)
         n_ts, n_v = embed_long(cands[0], emb, stride)
-        P = [c for c in read_clips() if c["tripwire"].zfill(2) == slot and c["label"] == "1" and c["heldout"] != "1"]
+        P = [c for c in read_clips() if c["tripwire"].zfill(2) == slot and c["label"] == "1" and c["heldout"] != "1"
+             and c["set"] != "iron-inview"]
         pv = [committed_vector(c["clip_id"]) for c in P]
         pv = [v for v in pv if v is not None]
         # positives are single 8-s clips: per-window recall at θ_z (no dwell on one window)
@@ -394,16 +399,40 @@ def schedule_intervals(labels: list[dict]) -> list[dict]:
     return out
 
 
+def session_end(db, session: str) -> float | None:
+    return db.query("SELECT MAX(ts) AS t FROM label WHERE session=? AND kind='plan:session_end'", (session,))[0]["t"]
+
+
+def countdown_cuts(t_on: float, t_end: float, minutes: float, resume_at: list[float]) -> list[float]:
+    """A plug countdown timer: it cuts `minutes` after each switch-on; after its own cut the person switches it back
+    on at the next scheduled step (the same counterfactual as the other baselines)."""
+    cuts = []
+    while t_on + minutes * 60 <= t_end:
+        c = t_on + minutes * 60
+        cuts.append(c)
+        later = [r for r in resume_at if r > c]
+        if not later:
+            break
+        t_on = later[0]
+    return cuts
+
+
 def soak_rows(db, session: str, slot: str, dwell_s: float, k_fraction: float, p8: float, r_thr: float | None,
               live_dwell: bool = True):
     emb = db.query("SELECT * FROM embed WHERE session=? ORDER BY ts", (session,))
     if not emb:
         return None
     tw = db.tripwire(slot)
+    if tw is None:
+        print(f"{session}: tripwire {slot} is not in this database")
+        return None
+    p50, _ = window_period([e["ts"] for e in emb])
+    stride = p50 or 1.0
+    end = session_end(db, session)
+    if end is not None:  # the schedule's end closes the session: anything later is not part of it
+        emb = [e for e in emb if e["ts"] <= end + stride]
     wins = {w["embed_id"]: w for w in db.query("SELECT * FROM win WHERE tripwire_id=? ORDER BY ts", (tw["id"],))}
     ts = [e["ts"] for e in emb]
-    p50, _ = window_period(ts)
-    stride = p50 or 1.0
     labels = label_times(db, session)
     steps = schedule_intervals(labels)
     step_starts = sorted(s["start"] for s in steps)
@@ -424,7 +453,7 @@ def soak_rows(db, session: str, slot: str, dwell_s: float, k_fraction: float, p8
                                pause_after_trip=True, resume_at=step_starts) for name, f in flags.items()}
     if live_dwell:  # the live trips happened at the session's own dwell; a secondary dwell is recomputed only
         live = [e["ts"] for e in db.query("SELECT ts FROM event WHERE session=? AND kind='trip' AND tripwire_id=?",
-                                          (session, tw["id"]))]
+                                          (session, tw["id"])) if e["ts"] <= ts[-1]]
         trips = {"jaga (live)": live, **trips}
     still = [s for s in steps if s["kind"] == "still" and s["end"]]
     exits = [s for s in steps if s["kind"] in ("exit_leave", "exit_inview") and s["end"]]
@@ -445,13 +474,14 @@ def soak_rows(db, session: str, slot: str, dwell_s: float, k_fraction: float, p8
                      "exits_caught": sum(caught), "exits_n": len(exits), "caught_flags": caught, "exit_kinds": kinds,
                      "median_time_to_trip_s": S.median(ttt), "trips": len(tt), "other_false_cuts": len(other)}
     timers = {}
-    on_times = [ts[0]] + [e["ts"] for e in db.query("SELECT ts FROM event WHERE session=? AND kind='rearmed'",
-                                                     (session,))]
     for T in (15, 30, 60):
-        cuts = [t + T * 60 for t in on_times if t + T * 60 <= ts[-1]]
+        cuts = countdown_cuts(ts[0], ts[-1], T, step_starts)
         mid = sum(1 for c in cuts if not any(x["start"] < c <= x["end"] for x in exits))
-        after = [min([c - x["start"] for c in cuts if c > x["start"]] or [T * 60.0]) / 60 for x in exits]
-        timers[f"{T} min"] = {"mid_session_cuts": mid, "minutes_on_after_exit_median": S.median(after)}
+        # how long the power stayed on while nobody was there: exit start → the countdown's cut or the return
+        on_after = [(min([c for c in cuts if x["start"] < c <= x["end"]] or [x["end"]]) - x["start"]) / 60
+                    for x in exits]
+        timers[f"{T} min"] = {"cuts": len(cuts), "mid_session_cuts": mid, "minutes_on_after_exit": on_after,
+                              "minutes_on_after_exit_median": S.median(on_after)}
     return {"session": session, "windows": len(emb), "hours": round(hours, 3), "stride_s": stride, "theta": theta,
             "dwell_s": dwell_s, "systems": res, "plug_countdown": timers, "still_episodes": len(still),
             "exits": len(exits)}
@@ -468,11 +498,13 @@ def cmd_soak(a) -> int:
             print(f"{sess}: no windows logged")
             continue
         results[sess] = r
+    key = f"soak_b_dwell_{a.dwell:.0f}"  # one section per dwell: the 30-s row never overwrites the 120-s one
     if not results:
-        save_section(f"soak_b_dwell_{a.dwell:.0f}", {"status": "not yet run",
-                                                     "why": "no scored Soak B session in the database"})
-        write_demo()
-        return 0
+        print(f"no windows for session(s) {', '.join(a.session)} — nothing written", file=sys.stderr)
+        if not load_summary().get(key):
+            save_section(key, {"status": "not yet run", "why": "no scored Soak B session in the database"})
+            write_demo()
+        return 1
     pooled = {}
     hours = sum(r["hours"] for r in results.values())
     for r in results.values():
@@ -511,14 +543,22 @@ def cmd_soak(a) -> int:
     jr = next((r for r in table if r["system"] == "jaga (live)"), None) or \
         next((r for r in table if r["system"] == "jaga (recomputed)"), None)
     tr = next((r for r in table if r["system"] == "stillness timer"), None)
-    if jr and tr and jr["exits"]:
+    if jr and tr and jr["exits"] and not a.secondary:  # the targets were pre-registered for the primary dwell only
         target = {"fewer_than_half": jr["still_cut"] < tr["still_cut"] / 2,
                   "recall_ge_0.8": jr["exits_caught"] / jr["exits"] >= 0.8}
         target["both_hold"] = all(target.values())
-    key = f"soak_b_dwell_{a.dwell:.0f}"  # one section per dwell: the 30-s row never overwrites the 120-s one
+    countdown = {}
+    for T in ("15 min", "30 min", "60 min"):
+        per = [r["plug_countdown"][T] for r in results.values()]
+        mins = [m for x in per for m in x["minutes_on_after_exit"]]
+        countdown[T] = {"cuts": sum(x["cuts"] for x in per), "exits": len(mins),
+                        "mid_session_cuts": sum(x["mid_session_cuts"] for x in per),
+                        "minutes_on_after_exit_median": S.median(mins)}
     write_csv(f"{key}.csv", table)
     save_section(key, {"sessions": results, "pooled": table, "paired_vs_stillness": paired, "targets": target,
-                       "dwell_s": a.dwell, "primary": not a.secondary})
+                       "plug_countdown": countdown, "dwell_s": a.dwell, "primary": not a.secondary,
+                       "inputs": {"P7_k_fraction": a.k_fraction, "P8": a.p8, "R": a.r,
+                                  "note": "frozen values passed on the command line (docs/PROTOCOL.md)"}})
     write_demo()
     print(json.dumps({"pooled": table, "paired": paired, "targets": target}, indent=1, default=float))
     return 0
@@ -528,18 +568,29 @@ def cmd_soak(a) -> int:
 ARMED_STATES = ("armed", "holding")
 
 
-def intervals(labels: list[dict], start_kind: str, end_kind: str) -> list[tuple[float, float | None]]:
-    """Pair each start key with the next end key (keys 6 = left open, 7 = closed)."""
-    out, open_t = [], None
+MAX_OPEN_S = 900.0  # docs/PROTOCOL.md: a left-open key with no closing key counts as closed 15 min later
+
+
+def intervals(labels: list[dict], start_kind: str, end_kind: str) -> tuple[list[tuple[float, float]], list[dict]]:
+    """Pair each start key with the next end key (keys 6 = left open, 7 = closed). A start with no end closes at the
+    next start or MAX_OPEN_S later, whichever is first; an end with no start is ignored. Both are reported."""
+    out, unpaired, open_t = [], [], None
     for r in labels:
-        if r["kind"] == start_kind and open_t is None:
+        if r["kind"] == start_kind:
+            if open_t is not None:
+                out.append((open_t, min(r["ts"], open_t + MAX_OPEN_S)))
+                unpaired.append({"ts": open_t, "missing": end_kind})
             open_t = r["ts"]
-        elif r["kind"] == end_kind and open_t is not None:
-            out.append((open_t, r["ts"]))
-            open_t = None
+        elif r["kind"] == end_kind:
+            if open_t is None:
+                unpaired.append({"ts": r["ts"], "missing": start_kind})
+            else:
+                out.append((open_t, r["ts"]))
+                open_t = None
     if open_t is not None:
-        out.append((open_t, None))
-    return out
+        out.append((open_t, open_t + MAX_OPEN_S))
+        unpaired.append({"ts": open_t, "missing": end_kind})
+    return out, unpaired
 
 
 def armed_seconds(ts: list[float], armed: list[bool], cap_s: float) -> float:
@@ -569,7 +620,7 @@ def soak_a_rows(db, session: str, slot: str, p8: float, dwell_s: float | None) -
     armed = [wins[e["id"]]["state"] in ARMED_STATES for e in emb]
     hours = armed_seconds(ts, armed, 2 * (p95 or stride)) / 3600
     labels = label_times(db, session)
-    positives = intervals(labels, "left_open", "closed")
+    positives, unpaired = intervals(labels, "left_open", "closed")
     suspends = [e["ts"] for e in db.query("SELECT ts FROM event WHERE session=? AND kind='suspend'", (session,))]
     resumes = [e["ts"] for e in db.query("SELECT ts FROM event WHERE session=? AND kind='rearmed' AND tripwire_id=?",
                                          (session, tw["id"]))]
@@ -615,14 +666,13 @@ def soak_a_rows(db, session: str, slot: str, p8: float, dwell_s: float | None) -
         fresh = {"status": "no vectors file for this session"}
     res = {}
     for name, tt in systems.items():
-        caught = [any(t0 < t <= (t1 if t1 is not None else math.inf) + stride for t in tt) for t0, t1 in positives]
-        false = [t for t in tt if not any(t0 < t <= (t1 if t1 is not None else math.inf) + stride
-                                          for t0, t1 in positives)]
+        caught = [any(t0 < t <= t1 + stride for t in tt) for t0, t1 in positives]
+        false = [t for t in tt if not any(t0 < t <= t1 + stride for t0, t1 in positives)]
         res[name] = {"trips": len(tt), "false_alarms": len(false), "positives_caught": sum(caught),
                      "positives": len(positives), "caught_flags": caught}
     return {"session": session, "tripwire": slot, "sentence": fx["sentence"], "windows": len(emb),
             "armed_hours": round(hours, 3), "stride_s": stride, "dwell_s": dwell, "theta": theta, "p8": p8,
-            "systems": res, "fresh_reference": fresh}
+            "systems": res, "fresh_reference": fresh, "unpaired_keys": unpaired}
 
 
 def cmd_soak_a(a) -> int:
@@ -636,9 +686,11 @@ def cmd_soak_a(a) -> int:
             if r is not None:
                 per.setdefault(r["tripwire"], []).append(r)
     if not per:
-        save_section("soak_a", {"status": "not yet run", "why": "no Soak A session with logged windows"})
-        write_demo()
-        return 0
+        print(f"no windows for session(s) {', '.join(a.session)} — nothing written", file=sys.stderr)
+        if not load_summary().get("soak_a"):
+            save_section("soak_a", {"status": "not yet run", "why": "no Soak A session with logged windows"})
+            write_demo()
+        return 1
     out, rows = {}, []
     for slot, rs in per.items():
         hours = sum(r["armed_hours"] for r in rs)
@@ -653,7 +705,8 @@ def cmd_soak_a(a) -> int:
             table.append(row)
             rows.append(row)
         out[slot] = {"sentence": rs[0]["sentence"], "sessions": [r["session"] for r in rs], "table": table,
-                     "dwell_s": rs[0]["dwell_s"], "p8": a.p8, "fresh_reference": [r["fresh_reference"] for r in rs]}
+                     "dwell_s": rs[0]["dwell_s"], "p8": a.p8, "fresh_reference": [r["fresh_reference"] for r in rs],
+                     "unpaired_keys": [u for r in rs for u in r["unpaired_keys"]]}
     write_csv("soak_a.csv", rows)
     save_section("soak_a", {"tripwires": out})
     write_demo()
@@ -941,10 +994,29 @@ def write_demo() -> None:
             L.append(f"| {r['device'].upper()} | fp32 | {r['n']} | {r['p50_s']} | {r['p95_s']} | {r['torch']} | "
                      f"{r['threads']} | {load} |")
         n = sp["rows"][0]["n"]
+        cores = (sp.get("_machine") or {}).get("cpu_count") or 0
+        busy = [r["device"].upper() for r in sp["rows"] if cores and max(r.get("loadavg_1m_before") or 0,
+                                                                         r.get("loadavg_1m_after") or 0) > cores]
         L += ["", f"{n} timed calls on one window (8 frames → `preprocess` + `get_video_embeddings`), after 5 warm-up "
               f"calls; input `{sp['input']}` (the model card's own sample video). Other processes on the machine were "
-              f"not stopped; the load column shows how busy it was. {stamp(sp)}", "",
-              f"Reproduce: `python scripts/bench.py speed --n {n}`", ""]
+              f"not stopped; the load column shows how busy it was. {stamp(sp)}", ""]
+        if busy:
+            ctx = [f"**The {' and '.join(busy)} row{'s' if len(busy) > 1 else ''} ran while the 1-min load average "
+                   f"exceeded the machine's {cores} cores** — other processes were competing for it, so read "
+                   f"{'them' if len(busy) > 1 else 'it'} as a loaded machine, not an idle one."]
+            pe0 = s.get("period") or {}
+            if pe0.get("embed_p50_s") and pe0.get("_commit") == sp.get("_commit"):
+                ctx.append(f"At the same commit the live loop's own embed time was p50 {pe0['embed_p50_s']:.2f} s over "
+                           f"{pe0['windows']} windows (below).")
+            day0 = REPO / "evidence" / "day0" / "cosmos-mps.json"
+            if day0.exists():
+                d0 = json.loads(day0.read_text())
+                q = d0.get("s_per_clip_preprocess_plus_embed") or {}
+                if q.get("p50") is not None:
+                    ctx.append(f"Day-0 stage COSMOS measured MPS p50 {q['p50']} s over {d0.get('runs')} calls "
+                               f"(`evidence/day0/cosmos-mps.json`).")
+            L += [" ".join(ctx), ""]
+        L += [f"Reproduce: `python scripts/bench.py speed --n {n}`", ""]
     else:
         L += ["Not yet run. `python scripts/bench.py speed`", ""]
     pe = s.get("period")
@@ -1027,6 +1099,18 @@ def write_demo() -> None:
                      f"{fmt(r['median_time_to_trip_s'], 0)} s | "
                      + (f"{r['other_false_cuts']} in {fmt(r['attended_hours'], 2)} h → {fmt(rate[0], 2)} "
                         f"({fmt(rate[1], 2)}–{fmt(rate[2], 2)})" if rate else "—") + " |")
+        cd = so.get("plug_countdown") or {}
+        if cd:
+            L += ["", "| plug countdown timer | cuts | mid-session cuts (person present) | minutes on after an exit "
+                  "begins (median) |", "|---|---|---|---|"]
+            for T, v in cd.items():
+                L.append(f"| {T} | {v['cuts']} | {v['mid_session_cuts']} | "
+                         f"{fmt(v['minutes_on_after_exit_median'], 1)} |")
+        inp = so.get("inputs") or {}
+        if inp:
+            L.append(f"\nFrozen inputs: P7 (k fraction) = {fmt(inp.get('P7_k_fraction'), 2)}, "
+                     f"P8 = {fmt(inp.get('P8'), 2)} % of pixels, R = {fmt(inp.get('R'), 2)} "
+                     f"(docs/PROTOCOL.md, Frozen values).")
         if so.get("paired_vs_stillness"):
             p = so["paired_vs_stillness"]
             L.append(f"\nPaired on the same episodes: jaga-only cuts {p['jaga_only']}, timer-only cuts "
@@ -1057,8 +1141,10 @@ def write_demo() -> None:
                          + f" | {r['positives_caught']} of {r['positives']} ({ci(r.get('caught_ci95'))}) |")
             L.append("")
         p8 = next(iter(sa["tripwires"].values()))["p8"]
+        unp = [u for d in sa["tripwires"].values() for u in d.get("unpaired_keys", [])]
         L += [f"Frame difference runs through the same rule at P8 = {fmt(p8, 2)} % of pixels changed, in both "
-              f"orientations. {stamp(sa)}", ""]
+              f"orientations." + (f" {len(unp)} key press(es) had no partner (a left-open with no close counts as "
+                                  f"closed after 15 min, per the protocol)." if unp else "") + f" {stamp(sa)}", ""]
     else:
         L += ["Not yet run: the Soak A night has not been recorded.", ""]
 
@@ -1130,9 +1216,10 @@ def main() -> int:
     p.add_argument("--session", action="append", required=True)
     p.add_argument("--tripwire", default="01")
     p.add_argument("--dwell", type=float, default=120.0)
-    p.add_argument("--k-fraction", type=float, default=config.TUNING.k_fraction)
-    p.add_argument("--p8", type=float, default=config.TUNING.still_motion_pct)
-    p.add_argument("--r", type=float, default=None, help="reference-difference threshold R (docs/PROTOCOL.md)")
+    p.add_argument("--k-fraction", type=float, required=True, help="P7 as frozen in docs/PROTOCOL.md")
+    p.add_argument("--p8", type=float, required=True, help="P8 as frozen in docs/PROTOCOL.md (stillness timer)")
+    p.add_argument("--r", type=float, default=None,
+                   help="R as frozen in docs/PROTOCOL.md (without it the reference-difference baseline is omitted)")
     p.add_argument("--secondary", action="store_true",
                    help="a secondary dwell (e.g. --dwell 30): recomputed for every system, live trips not used")
     p.set_defaults(fn=cmd_soak)
@@ -1155,7 +1242,7 @@ def main() -> int:
     p.add_argument("--tripwire", default="02,03")
     p.add_argument("--dwell", type=float, default=None, help="default: the tripwire's operating dwell")
     p.add_argument("--p8", type=float, default=config.TUNING.still_motion_pct,
-                   help="frame-difference threshold (% of pixels changed): the P8 frozen for Soak B")
+                   help="frame-difference threshold (%% of pixels changed): the P8 frozen for Soak B")
     p.set_defaults(fn=cmd_soak_a)
     p = sub.add_parser("hog")
     p.add_argument("--zone", required=True, type=_zone_arg, help="x0,y0,x1,y1 fractions (the frozen zone box)")

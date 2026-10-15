@@ -31,7 +31,7 @@ Both halves matter. A system that never cuts is useless; a system that cuts on e
 | k-of-n | k = max(2, ⌈P7 · n⌉), n = max(2, dwell ÷ window period) — never fewer than two windows (I2) |
 | Cool-down | 600 s; a re-arm (the plug switched back on) ends it |
 | Suspend | a jump in mean luma > P1 (25 %) suspends trips for P2 (60 s) |
-| Sessions | **B1** and **B2**, each ≥ 2 h, on different days |
+| Sessions | **B1** and **B2**, each ≥ 2 h, on different days; a session ends at its schedule's last step (jaga stops itself a minute later, and nothing after the `plan:session_end` label is scored) |
 
 Command (the overlay shows each step; the laptop speaks it 30 s ahead and when it is due):
 
@@ -86,8 +86,9 @@ After a computed baseline trip, that baseline is paused until the next scheduled
   **Time-to-trip** = t − exit start. Reported per exit type (leaves the room / steps away in view).
 * **Other false cut** — a trip outside every exit and every still episode (during an activity): reported per
   attended hour (attended hours = the logged length of B1 + B2), secondary.
-* **Plug countdown timer** — mid-session cuts while the person is present, and the minutes the power stays on after
-  each exit begins.
+* **Plug countdown timer** — it cuts T minutes after each switch-on and, after its own cut, is switched back on at
+  the next scheduled step (as for the other baselines). Reported: mid-session cuts while the person is present, and
+  the minutes the power stays on after each exit begins (until the countdown cuts or the person returns).
 
 ## 6. Rules that fix the remaining values before B1
 
@@ -107,6 +108,9 @@ After a computed baseline trip, that baseline is paused until the next scheduled
   No claim is drawn from overlapping intervals.
 * Exits caught: k of E per system and per exit type, Clopper–Pearson; median time-to-trip on caught exits.
 * Other false cuts per attended hour: exact Poisson interval.
+* Scoring command, with the frozen values passed explicitly (they are written into the result):
+  `python scripts/bench.py soak --session B1 --session B2 --k-fraction <P7> --p8 <P8> --r <R>`, then the same with
+  `--dwell 30 --secondary`.
 * n is small (≥ 20 episodes, ≥ 12 exits); intervals will be wide, and every surface says so.
 
 ## 8. Targets (pre-registered) and the sentences that report them
@@ -136,7 +140,8 @@ camera view are armed.
   next window, a gap counting at most twice the p95 window period.
 * **False alarm** — a trip outside every logged positive (key 6 → key 7, plus one window period). Reported per armed
   hour with an exact Poisson interval, armed hours stated. **Positive caught** — a trip inside it; k of n,
-  Clopper–Pearson.
+  Clopper–Pearson. A key 6 with no key 7 counts as closed at the next key 6 or 15 minutes later, whichever comes
+  first; such keys are reported.
 * **Baselines, through the same rule** (dwell, k-of-n, suspend, cool-down) over the same armed windows: frame
   difference at the P8 frozen for Soak B, in **both** orientations — motion (`motion_pct` ≥ P8) and stillness
   (`motion_pct` < P8) — since an open door in an empty room is neither clearly one nor the other.
