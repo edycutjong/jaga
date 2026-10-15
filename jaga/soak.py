@@ -33,9 +33,10 @@ class ScheduleRunner(threading.Thread):
     """Starts the clock with the first window (step 0 is the capture); announces each step 30 s ahead and when due."""
 
     def __init__(self, watcher, steps: list[Step], *, say: bool = True, warn_s: float = 30.0,
-                 started: threading.Event | None = None):
+                 started: threading.Event | None = None, on_complete=None):
         super().__init__(daemon=True, name="jaga-schedule")
         self.w, self.steps, self.say_enabled, self.warn_s = watcher, steps, say, warn_s
+        self.on_complete = on_complete
         self.started = started or threading.Event()
         self.t0: float | None = None
         self._halt = threading.Event()  # not `_stop`: Thread._stop is CPython's
@@ -76,5 +77,7 @@ class ScheduleRunner(threading.Thread):
                     self.w.label(f"plan_end:{s.kind}", f"step {s.step} ends")
             if len(ended) == len(self.steps):
                 self.w.label("plan:session_end", "schedule complete")
-                self._say("The scheduled session is complete. Thank you.")
+                self._say("The scheduled session is complete. Thank you. jaga stops in one minute.")
+                if self.on_complete:
+                    self.on_complete()
                 return

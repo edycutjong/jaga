@@ -40,6 +40,30 @@ def _slots(s: str | None) -> list[str]:
 
 
 # ------------------------------------------------------------------------------------------- serve
+def session_used(db, name: str) -> bool:
+    """A session name with windows or labels is taken (a start that failed before its first window is not)."""
+    return bool(db.query("SELECT 1 FROM embed WHERE session=? LIMIT 1", (name,))
+                or db.query("SELECT 1 FROM label WHERE session=? LIMIT 1", (name,)))
+
+
+def port_free(port: int | None) -> None:
+    """Refuse to start (before the model loads) when the overlay's port is taken — usually another jaga."""
+    if not port:
+        return
+    import socket
+
+    from . import config
+
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        s.bind((config.HOST, int(port)))
+    except OSError:
+        raise SystemExit(f"port {port} is in use — another jaga is probably running: stop it (Ctrl-C in its "
+                         "terminal) or pass --port") from None
+    finally:
+        s.close()
+
+
 def build_watcher(a, *, scored: bool = False, session: str | None = None):
     from .act import Notifier, load_driver
     from .capture import CameraSource, FileSource, Ring
@@ -53,9 +77,17 @@ def build_watcher(a, *, scored: bool = False, session: str | None = None):
 
     db = DB(a.db) if a.db else DB()
     session = session or a.session or time.strftime("live-%Y%m%d-%H%M%S")
-    if scored and db.query("SELECT 1 FROM session WHERE name=?", (session,)):
-        raise SystemExit(f"session {session!r} already exists: every scored run counts, so a new run needs a new name "
-                         "(e.g. B1-run2); an aborted run stays on record")
+    if session_used(db, session):
+        raise SystemExit(f"session {session!r} already has data: every run counts, so a new run needs a new name "
+                         "(e.g. B1-run2, U1-run2); the earlier run stays on record")
+    fixtures = []
+    for slot in _slots(a.load):  # every refusal happens before the model loads and before the session is opened
+        fx = load(slot)
+        th = frozen_threshold(fx)
+        if scored and th is None:
+            raise SystemExit(f"tripwire {slot}: a scored session needs a frozen θ (scripts/seed.py freeze-theta)")
+        fixtures.append((slot, fx, th))
+    port_free(getattr(a, "port", None))
     print("loading NVIDIA Cosmos-Embed1-224p …", flush=True)
     emb = shared(a.device)
     print(f"  {emb.info['device']} fp32 · loaded in {emb.load_s:.1f} s", flush=True)
@@ -71,12 +103,8 @@ def build_watcher(a, *, scored: bool = False, session: str | None = None):
                 camera_pos=a.camera_pos, scored=scored, tuning=TUNING, guards=Guards(TUNING, zone=a.zone),
                 publish=bc.publish, source=src, frozen_for=session if scored else None, offline=a.offline,
                 labels=getattr(a, "labels", False))
-    for slot in _slots(a.load):
-        fx = load(slot)
+    for slot, fx, th in fixtures:
         pos, neg = load_vectors(fx)
-        th = frozen_threshold(fx)
-        if scored and th is None:
-            raise SystemExit(f"tripwire {slot}: a scored session needs a frozen θ (scripts/seed.py freeze-theta)")
         if not scored:
             job = db.latest_job_threshold(slot)
             if job and (th is None or job["set_at"] > (fx.get("frozen") or {}).get("set_at", "")):
@@ -105,10 +133,13 @@ def cmd_serve(a, *, scored: bool = False, session: str | None = None, on_started
     for slot in _slots(a.arm):
         w.arm(slot, a.capture_s)
     if on_started:
-        on_started(w)
-    print(f"jaga is watching · session {w.session} · http://{config.HOST}:{a.port}/  (Ctrl-C to stop)", flush=True)
+        on_started(w, app)
+
+    def ready():
+        print(f"jaga is watching · session {w.session} · http://{config.HOST}:{a.port}/  (Ctrl-C to stop)", flush=True)
+
     try:
-        run(app, a.port)
+        run(app, a.port, on_ready=ready)
     finally:
         src.stop()
         w.stop()
@@ -130,15 +161,22 @@ def cmd_soak(a) -> int:
     steps = load_schedule(a.schedule) if a.schedule else []
     started = threading.Event()
 
-    def watch_capture(w):
+    def watch_capture(w, app):
         def run():  # the schedule clock starts with the first window: step 0 is the 2-min normal capture
             while w.windows < 1:
                 time.sleep(0.5)
             started.set()
 
+        def complete():  # the schedule is over: stop watching, so nothing after it is mistaken for the session
+            print("schedule complete — jaga stops in 60 s", flush=True)
+            time.sleep(60)
+            server = getattr(app.state, "server", None)
+            if server is not None:
+                server.should_exit = True
+
         threading.Thread(target=run, daemon=True).start()
         if steps:
-            ScheduleRunner(w, steps, say=not a.no_say, started=started).start()
+            ScheduleRunner(w, steps, say=not a.no_say, started=started, on_complete=complete).start()
 
     caffeinate = None
     if sys.platform == "darwin":  # a soak must not be ended by sleep: hold an assertion for as long as jaga runs
@@ -286,8 +324,15 @@ def cmd_record(a) -> int:
     elapsed = time.monotonic() - t0
     vw.release()
     cap.release()
+    if frames == 0:
+        tmp.unlink(missing_ok=True)
+        raise SystemExit("the camera delivered no frames — nothing saved (check the camera and its permission)")
     real_fps = frames / elapsed if elapsed > 0 else fps
-    if real_fps < 0.9 * fps and shutil.which("ffmpeg"):
+    if real_fps < 0.9 * fps:
+        if not shutil.which("ffmpeg"):
+            tmp.unlink(missing_ok=True)
+            raise SystemExit(f"the camera delivered {real_fps:.1f} fps, not the {fps:.0f} it reports, and ffmpeg is "
+                             "not installed to retime the clip — nothing saved (brew install ffmpeg, or more light)")
         # the camera delivered fewer frames than it reports (dim light): retime so the file lasts the real time
         subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(tmp), "-filter:v",
                         f"setpts=PTS*{fps / real_fps:.6f}", "-r", f"{real_fps:.3f}", "-an", str(path)], check=True)
@@ -307,6 +352,12 @@ def cmd_label(a) -> int:
     session = a.session or db.open_session()
     if not session:
         raise SystemExit("no open session — start `jaga serve` or `jaga soak` first, or pass --session")
+    if not db.query("SELECT 1 FROM session WHERE name=?", (session,)):
+        raise SystemExit(f"no session named {session!r}")
+    last = db.query("SELECT MAX(ts) AS t FROM embed WHERE session=?", (session,))[0]["t"]
+    if last is None or time.time() - last > 300:
+        print(f"warning: session {session} has no window in the last 5 minutes — is jaga still running?",
+              file=sys.stderr)
     lid = db.add_label(session, a.kind, a.note or "")
     print(f"label {lid}: {a.kind} → session {session}")
     return 0

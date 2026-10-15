@@ -15,6 +15,7 @@ import json
 import math
 import re
 import secrets
+import threading
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -123,7 +124,7 @@ def create_app(watcher, *, compile_fn=None, embed_text_fn=None, broadcaster: Bro
 
     app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
-    @app.get("/", response_class=HTMLResponse)
+    @app.api_route("/", methods=["GET", "HEAD"], response_class=HTMLResponse)
     async def index() -> HTMLResponse:
         page = (STATIC / "index.html").read_text()
         page = page.replace("{{TOKEN}}", html.escape(token)).replace("{{VERSION}}", html.escape(config_version()))
@@ -182,6 +183,8 @@ def create_app(watcher, *, compile_fn=None, embed_text_fn=None, broadcaster: Bro
         slot = str(body.get("slot") or _slot_free()).zfill(2)
         if not SLOT_RE.fullmatch(slot):
             raise HTTPException(422, "slot must be one or two digits")
+        if body.get("slot") and _fixture_slot(slot):
+            raise HTTPException(409, f"slot {slot} holds a frozen tripwire — leave the slot empty")
         if compile_fn is None or embed_text_fn is None:
             raise HTTPException(503, "compiler not configured")
         try:
@@ -217,12 +220,15 @@ def create_app(watcher, *, compile_fn=None, embed_text_fn=None, broadcaster: Bro
     @app.post("/tripwires/{slot}/arm")
     async def arm(slot: str, request: Request) -> dict:
         body = await _json_or_empty(request)
-        cap = body.get("capture_s")
+        cap = _number(body.get("capture_s"), "capture_s", 0.0, 600.0)
+        dwell = _number(body.get("dwell_s"), "dwell_s", 2.0, 600.0)
+        action = body.get("action")
+        if action is not None and action not in ("plug_off", "notify"):
+            raise HTTPException(422, "action must be plug_off or notify")
         try:
-            if body.get("action") is not None or body.get("dwell_s") is not None:
-                await asyncio.to_thread(watcher.set_operating, slot, body.get("action"),
-                                        None if body.get("dwell_s") is None else float(body["dwell_s"]))
-            await asyncio.to_thread(watcher.arm, slot, None if cap is None else float(cap))
+            if action is not None or dwell is not None:
+                await asyncio.to_thread(watcher.set_operating, slot, action, dwell)
+            await asyncio.to_thread(watcher.arm, slot, cap)
         except (KeyError, ValueError) as e:
             raise HTTPException(404 if isinstance(e, KeyError) else 409, str(e)) from e
         return {"ok": True}
@@ -264,6 +270,8 @@ def create_app(watcher, *, compile_fn=None, embed_text_fn=None, broadcaster: Bro
     @app.post("/labels")
     async def label(request: Request) -> dict:
         body = await _json_or_422(request)
+        if not watcher.labels:
+            raise HTTPException(409, "labels are off in this session (start jaga with --labels)")
         kind = str(body.get("kind", "")).strip()[:40]
         if not kind:
             raise HTTPException(422, "kind required")
@@ -290,12 +298,40 @@ def config_version() -> str:
     return __version__
 
 
+TRANSPORT = re.compile(r"^(APIConnectionError|APITimeoutError|ConnectError|ConnectTimeout|ReadTimeout|"
+                       r"TimeoutException|TimeoutError)\b|^\w+: Error code: 50[234]\b")
+
+
 def _unreachable(e: Exception) -> bool:
-    """Token Factory down or unreachable (as opposed to a sentence that produced no valid spec)."""
-    kind = getattr(e, "kind", "")
+    """Token Factory down or unreachable — every attempt failed in transport — as opposed to a sentence that got an
+    answer but no valid spec (then the compiler is up, and the header must not say otherwise)."""
+    if getattr(e, "kind", "") == "no_key":
+        return True
     attempts = getattr(e, "attempts", []) or []
-    names = " ".join(str(a.get("error", "")) for a in attempts) + f" {type(e).__name__} {e}"
-    return kind == "no_key" or any(w in names for w in ("Connection", "Timeout", "APIConnection", "502", "503", "504"))
+    if not attempts:
+        return bool(TRANSPORT.match(f"{type(e).__name__}: {e}"))
+    return all(not a.get("response_id") and TRANSPORT.match(str(a.get("error", ""))) for a in attempts)
+
+
+def _fixture_slot(slot: str) -> bool:
+    from .tripwires import FIXTURES
+
+    return (FIXTURES / f"{slot}.json").exists()
+
+
+def _number(v, name: str, lo: float, hi: float) -> float | None:
+    """A JSON number (or numeric string) in [lo, hi]; None stays None; anything else is a 422, never a 500."""
+    if v is None:
+        return None
+    if isinstance(v, bool) or not isinstance(v, (int, float, str)):
+        raise HTTPException(422, f"{name} must be a number")
+    try:
+        x = float(v)
+    except ValueError:
+        raise HTTPException(422, f"{name} must be a number") from None
+    if not math.isfinite(x) or not lo <= x <= hi:
+        raise HTTPException(422, f"{name} must be between {lo:g} and {hi:g}")
+    return x
 
 
 async def _json_or_422(request: Request) -> dict:
@@ -309,17 +345,36 @@ async def _json_or_422(request: Request) -> dict:
 
 
 async def _json_or_empty(request: Request) -> dict:
-    try:
-        raw = await request.body()
-        return json.loads(raw) if raw else {}
-    except json.JSONDecodeError:
+    """An optional JSON object body: empty → {}; anything that is not a JSON object → 422."""
+    raw = await request.body()
+    if not raw:
         return {}
+    try:
+        body = json.loads(raw)
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        raise HTTPException(422, "the body must be JSON") from None
+    if not isinstance(body, dict):
+        raise HTTPException(422, "the body must be a JSON object")
+    return body
 
 
-def run(app: FastAPI, port: int = config.PORT) -> None:
+def run(app: FastAPI, port: int = config.PORT, on_ready=None) -> None:
+    """Serve on 127.0.0.1. `on_ready` runs once the socket is bound; `app.state.server.should_exit = True` stops it.
+    An open overlay tab keeps an event stream open, so shutdown waits at most 2 s for it (Ctrl-C works)."""
     import uvicorn
 
-    uvicorn.run(app, host=config.HOST, port=port, log_level="warning", access_log=False)
+    server = uvicorn.Server(uvicorn.Config(app, host=config.HOST, port=port, log_level="warning", access_log=False,
+                                           timeout_graceful_shutdown=2))
+    app.state.server = server
+    if on_ready:
+        def wait_ready():
+            while not server.started and not server.should_exit:
+                time.sleep(0.1)
+            if server.started:
+                on_ready()
+
+        threading.Thread(target=wait_ready, daemon=True, name="jaga-ready").start()
+    server.run()
 
 
 def wait_for_server(port: int, timeout: float = 30.0) -> bool:
