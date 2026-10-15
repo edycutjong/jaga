@@ -1,7 +1,8 @@
 """The only code path that switches a plug ON. Operator-only (invariant I1).
 
-Reachable from exactly one place: `POST /plug/test` in `jaga/server.py`, which requires a localhost Host,
-an absent or same-origin Origin and the per-run session token. No trip, re-arm or guard imports this module;
+Reachable only from operator actions: inside the package, from `POST /plug/test` in `jaga/server.py` (which
+requires a localhost Host, an absent or same-origin Origin and the per-run session token); outside it, from the
+day-0 plug check a person runs by hand (`scripts/day0_plug.py`). No trip, re-arm or guard imports this module;
 `tests/test_invariants.py` enforces that. A trip only ever cuts power or notifies.
 """
 from __future__ import annotations

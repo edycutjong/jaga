@@ -1,6 +1,7 @@
 """Safety invariants (architecture: Protocol Invariants). It switches mains power, so these are tested, not assumed.
 
-I1 — a trip can only cut power or notify. The only ON path is POST /plug/test (operator-only).
+I1 — a trip can only cut power or notify. ON exists only in jaga/operator_on.py, reached by operator actions:
+POST /plug/test and the hand-run scripts/day0_plug.py.
 I2 — a trip needs k-of-n windows over a dwell ≥ 2 × p95 window period (tests/test_score.py).
 I3 — the UI shows OFF only after the driver acknowledges (tests/test_watcher.py).
 """
@@ -47,6 +48,16 @@ def test_i1_operator_module_only_reachable_from_plug_test():
     assert callers == ["server.py"]
     server = (PKG / "server.py").read_text()
     assert '@app.post("/plug/test")' in server
+    scripts = [f.name for f in (PKG.parent / "scripts").glob("*.py") if "operator_on" in f.read_text()]
+    assert scripts == ["day0_plug.py"], scripts  # the hand-run plug check is the only other operator
+
+
+def test_i1_no_trip_path_imports_the_operator_module():
+    for name in ("score.py", "act.py", "guards.py", "capture.py", "offline.py", "soak.py", "calibrate.py"):
+        tree = ast.parse((PKG / name).read_text())
+        mods = [n.module or "" for n in ast.walk(tree) if isinstance(n, ast.ImportFrom)]
+        names = [a.name for n in ast.walk(tree) if isinstance(n, (ast.Import, ast.ImportFrom)) for a in n.names]
+        assert not any("operator_on" in m for m in mods) and "operator_on" not in names, name
 
 
 def test_i1_drivers_expose_off_and_status_only():
