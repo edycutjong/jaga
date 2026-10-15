@@ -48,7 +48,7 @@ jobs:
           cache-dependency-path: requirements-ci.txt
       - run: pip install -r requirements-ci.txt
       - name: Dependency audit (pip-audit)
-        run: python -m pip_audit -r requirements-ci.txt
+        run: python -m pip_audit --skip-editable   # audits the installed environment (same as `make audit`)
 
   # ── Stage 3: tests ────────────────────────────────────────
   test:

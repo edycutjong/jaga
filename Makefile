@@ -43,7 +43,7 @@ verify-offline:
 
 # ── Security ────────────────────────────────────────────────
 audit:
-	$(PY) -m pip_audit
+	$(PY) -m pip_audit --skip-editable
 
 secrets:
 	gitleaks detect --no-banner --redact --log-opts="--all"
