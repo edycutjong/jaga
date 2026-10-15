@@ -2,6 +2,7 @@
 and which clips may fit a threshold (scripts/seed.py, jaga/calibrate.py). Synthetic logs only — no model."""
 import csv
 import importlib.util
+import shutil
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -65,6 +66,7 @@ def test_in_view_and_held_out_clips_never_fit_theta(tmp_path, monkeypatch):
         ("iron/pos_00",), ("iron/neg_01",), ("iron-inview/pos_02",), ("iron-day2/pos_03",))}
 
 
+@pytest.mark.skipif(not shutil.which("ffmpeg"), reason="needs ffmpeg")
 def test_import_refuses_two_clips_with_one_number(tmp_path, monkeypatch):
     monkeypatch.setenv("JAGA_HOME", str(tmp_path / "home"))
     seed = load_script("seed")

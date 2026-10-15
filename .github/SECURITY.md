@@ -24,3 +24,10 @@ window to patch before public disclosure.
 ## What the tests assert (not just claim)
 `tests/test_invariants.py` pins that no trip path can switch a plug ON (I1). `tests/test_server.py` pins the
 cross-origin POST refusal, the session-token requirement, the DNS-rebinding Host refusal and the Fetch-Metadata check.
+
+## Known dependency advisories
+`transformers` is pinned to `4.51.3` (`pyproject.toml`), the version the model's remote code was measured with, and the
+model revision is pinned too (`jaga/config.py`). `pip-audit -r requirements.lock` reports 28 known vulnerabilities (its own count) against that
+version as of 2026-10-15 (CI reports them in an informational step). jaga loads exactly one pinned model revision
+(`nvidia/Cosmos-Embed1-224p`) and no user-supplied checkpoint, but moving to a fixed `transformers` release needs the
+speed and accuracy numbers in `DEMO.md` measured again, so it is a deliberate change, not a Dependabot bump.

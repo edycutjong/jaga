@@ -1,7 +1,7 @@
 # CI-only install: everything the test suite imports, WITHOUT torch / transformers / einops (the Cosmos model is
 # never loaded by a test; vectors are scripted). Product install for users and judges stays `pip install -e .`.
 numpy>=2.0
-opencv-python>=4.10,<5
+opencv-python-headless>=4.10,<5   # headless: no libGL needed on a bare runner
 av>=12
 openai>=1.40
 pydantic>=2.6

@@ -4,7 +4,8 @@ Thanks for your interest in improving jaga.
 
 ## Getting started
 1. Fork the repo and branch from `main`: `git checkout -b feat/your-change`
-2. Install the test tool set (no model download, no GPU, no camera): `make install`
+2. Inside an activated virtualenv, install the test tool set (no model download, no GPU, no camera): `make install`.
+   Two seed-import tests cut real clips and need `ffmpeg`; they skip without it.
 3. Run the checks: `make ci`
 4. To run the real thing (Cosmos-Embed1 on your laptop), follow *Getting Started* in the README.
 
@@ -14,7 +15,8 @@ Thanks for your interest in improving jaga.
   trip may call ON. `tests/test_invariants.py` pins this; keep it green and extend it, never loosen it.
 - Add or update tests for any behaviour change, and name a regression test after the defect it pins.
 - The readiness check marks a measured section of `DEMO.md` stale when the code it measured changed (the scoring and
-  live-loop files). That needs `python scripts/bench.py` re-run on a machine with the model; say so in the PR if it applies.
+  live-loop files). On a pull request CI reports this without failing; on `main` it fails until `python scripts/bench.py`
+  is re-run on a machine with the model. Say so in the PR if your change touches those files.
 - If you change the README's test count, it must equal what `pytest` collects (the readiness script checks this).
 - Never commit video frames, device keys (`devices.json`, `tinytuya.json`) or `.env` files.
 - Keep commits small, with a message that says what changed and why.

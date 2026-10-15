@@ -2,6 +2,7 @@
 import csv
 import importlib.util
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -70,6 +71,7 @@ def test_fresh_mode_trips_inside_positive_and_not_on_holdout():
 
 
 # ------------------------------------------------------------------- seed import
+@pytest.mark.skipif(not shutil.which("ffmpeg"), reason="needs ffmpeg")
 def test_import_reads_labels_from_filenames(tmp_path, monkeypatch):
     monkeypatch.setenv("JAGA_HOME", str(tmp_path / "home"))
     seed = load_script("seed")

@@ -10,7 +10,7 @@ on:
 # Cancel in-progress runs for the same PR/branch
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -52,6 +52,10 @@ jobs:
       - run: pip install -r requirements-ci.txt
       - name: Dependency audit (pip-audit)
         run: python -m pip_audit --skip-editable   # audits the installed environment (same as `make audit`)
+      - name: Shipped model stack (requirements.lock), informational
+        # the CI install has no torch/transformers; this audits the versions the product pins (see SECURITY.md)
+        continue-on-error: true
+        run: python -m pip_audit -r requirements.lock --no-deps --disable-pip
 
   # ── Stage 3: tests (does not wait for the audit: a newly published CVE must not hide test results) ──
   test:
@@ -73,6 +77,8 @@ jobs:
           cache-dependency-path: requirements-ci.txt
       - run: pip install -r requirements-ci.txt
       - run: pip install --no-deps -e .
+      - name: ffmpeg (two seed-import tests cut real clips; they skip when it is missing)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
       - name: pytest with coverage
         # no test loads the Cosmos model or calls Token Factory: vectors are scripted and the plug is a fake LAN server
         run: python -m pytest --cov=jaga --cov-report=term-missing --cov-report=xml
@@ -102,12 +108,15 @@ jobs:
       - name: A tripwire trips and the plug goes OFF with every non-LAN connection refused (fake LAN plug, no model)
         run: python scripts/verify_offline.py
       - name: Submission readiness (the video URL is added by hand at submission)
+        # on main this is a gate: a measured DEMO.md section older than the code it measured fails it. On a pull request
+        # it only reports, because re-measuring needs the model on a laptop (see CONTRIBUTING)
+        continue-on-error: ${{ github.event_name == 'pull_request' }}
         run: python scripts/check_submission_readiness.py --allow video
 
   # ── Stage 5: merge gate ───────────────────────────────────
   ci-pass:
     name: "Stage 5 · CI gate"
-    if: always()
+    if: ${{ !cancelled() }}
     needs: [quality, security, test, gates]
     runs-on: ubuntu-latest
     timeout-minutes: 5
