@@ -1,0 +1,9 @@
+unmutated: pass
+KILLED   one window may trip (MIN_WINDOWS 2 -> 1)
+KILLED   k rounds down (ceil -> floor)
+KILLED   k fraction 0.8 -> 0.5
+KILLED   dwell window keeps its oldest sample (<= -> <)
+KILLED   cool-down ignored
+KILLED   suspend ignored
+SURVIVED newest window not required -- equivalent: the cool-down (3 strides) ends before k windows can pile up without the newest one, for every dwell and stride the test covers
+SURVIVED k floor MIN_WINDOWS dropped -- equivalent: n is already floored at MIN_WINDOWS = 2, so ceil(0.8 n) >= 2 without the floor

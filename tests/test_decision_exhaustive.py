@@ -65,6 +65,17 @@ def test_every_window_pattern_matches_the_oracle_and_one_window_never_trips():
             cases += 1
     assert cases == EXHAUSTIVE_CASES
 
+    # a suspend (a sudden light change) blocks even the worst-case stream, one that is above in every window: nothing
+    # may trip until it ends, and the dwell restarts afterwards, so the rule trips once the scene has been stable
+    for stride, dwell in itertools.product(STRIDES, DWELLS):
+        rule = DecisionRule(dwell, 3 * stride)
+        rule.suspend(0.0, 6 * stride)
+        fired = [i for i in range(1, 40) if rule.push(i * stride, True, stride).fire]
+        assert all(i * stride >= 6 * stride for i in fired), (stride, dwell, fired)
+        if dwell >= 2 * stride:  # a dwell shorter than two strides can never hold two windows, so it never trips
+            assert fired, (stride, dwell)
+
+
 
 def test_an_all_below_stream_never_trips_whatever_the_dwell_and_stride():
     for stride, dwell in itertools.product(STRIDES + (0.5, 3.0), DWELLS + (1.0, 60.0)):

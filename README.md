@@ -122,7 +122,7 @@ may talk to Tuya's cloud by itself; that is outside jaga's control, and the Shel
 | Metric | Value |
 |---|---|
 | Tests | 187 (`pytest`): safety invariants, decision rule, measurement rules; no model or key needed (3 need ffmpeg on PATH and skip without it) |
-| Decision rule, exhaustively | all 49,152 above/below patterns (4 strides × 3 dwells × 2¹² windows) match an independent oracle, and one window never trips — `tests/test_decision_exhaustive.py` |
+| Decision rule, exhaustively | all 49,152 above/below patterns (4 strides × 3 dwells × 2¹² windows) match an independent oracle, and one window never trips — `tests/test_decision_exhaustive.py`; `scripts/mutation_check.py` breaks the rule 8 ways: 6 are caught, 2 cannot change its behaviour (`evidence/runs/2026-10-17-decision-mutation.txt`) |
 | Measured speed and accuracy | only in [`DEMO.md`](DEMO.md), written by `scripts/bench.py` |
 | Pre-registered soaks | [`docs/PROTOCOL.md`](docs/PROTOCOL.md), committed before any data |
 
