@@ -121,7 +121,7 @@ may talk to Tuya's cloud by itself; that is outside jaga's control, and the Shel
 
 | Metric | Value |
 |---|---|
-| Tests | 187 (`pytest`): safety invariants, decision rule, measurement rules; no model or key needed |
+| Tests | 187 (`pytest`): safety invariants, decision rule, measurement rules; no model or key needed (3 need ffmpeg on PATH and skip without it) |
 | Decision rule, exhaustively | all 49,152 above/below patterns (4 strides × 3 dwells × 2¹² windows) match an independent oracle, and one window never trips — `tests/test_decision_exhaustive.py` |
 | Measured speed and accuracy | only in [`DEMO.md`](DEMO.md), written by `scripts/bench.py` |
 | Pre-registered soaks | [`docs/PROTOCOL.md`](docs/PROTOCOL.md), committed before any data |
@@ -180,7 +180,7 @@ Python 3.11, a webcam, and (optionally) a Tuya or Shelly smart plug. Details are
 git clone https://github.com/edycutjong/jaga && cd jaga
 python3.11 -m venv .venv && source .venv/bin/activate
 pip install -e ".[test]"
-pytest       # 187 tests: the safety invariants, the decision rule and the measurement rules; no model or key needed
+pytest       # 187 tests: the safety invariants, the decision rule and the measurement rules; no model or key needed (3 need ffmpeg)
 ```
 
 **The model:** [`nvidia/Cosmos-Embed1-224p`](https://huggingface.co/nvidia/Cosmos-Embed1-224p), under the NVIDIA Open
