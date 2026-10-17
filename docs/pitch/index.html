@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>jaga — pitch deck</title>
-<meta name="description" content="jaga&#x27;s pitch deck: a typed sentence becomes a tripwire on a live camera, and a smart plug switches OFF.">
+<title>jaga · pitch deck</title>
+<meta name="description" content="jaga&#x27;s pitch deck: built to turn a typed sentence into a tripwire on a laptop camera, with a plug that only switches OFF.">
 <meta name="author" content="Edy Cu">
 <meta name="theme-color" content="#E9E5DA">
 <link rel="canonical" href="https://jaga.edycu.dev/pitch/">
 <link rel="icon" href="../assets/icon.svg" type="image/svg+xml">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="jaga">
-<meta property="og:title" content="jaga — the pitch deck">
-<meta property="og:description" content="Ten slides: a typed sentence becomes a tripwire on a laptop camera, and a smart plug switches OFF.">
+<meta property="og:title" content="jaga · the pitch deck">
+<meta property="og:description" content="Ten slides: jaga is built to turn a typed sentence into a tripwire, and a smart plug that only switches OFF.">
 <meta property="og:url" content="https://jaga.edycu.dev/pitch/">
 <meta property="og:image" content="https://jaga.edycu.dev/assets/page/og.png?v=27053512">
 <meta property="og:image:width" content="1200">
@@ -21,7 +21,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://jaga.edycu.dev/assets/page/og.png?v=27053512">
 <!--
-  jaga — pitch deck, v0.0.0-dev. One file: a 1920 × 1080 stage scaled to the window; the enamel ground fills any aspect.
+  jaga pitch deck, v0.1.0 · untagged. One file: a 1920 × 1080 stage scaled to the window; the enamel ground fills any aspect.
   Keys: → / Space / PageDown next · ← / PageUp previous · Home / End · Esc overview · P presenter notes · C contrast debug.
   Touch: swipe left / right. Print: Cmd/Ctrl+P → Save as PDF → landscape (one slide per page).
   Images: assets/page/overlay-tripped.webp (QA render of the real overlay), assets/icon.svg. The QR encodes https://jaga.edycu.dev/.
@@ -64,14 +64,15 @@
   --font-data: "IBM Plex Mono", "IBM Plex Mono Fallback", "SF Mono", Menlo, ui-monospace, monospace;
   --hi: rgba(255, 255, 255, .62);
   --lo: rgba(60, 52, 40, .16);
-  --shadow: 0 1px 0 rgba(255,255,255,.7), 0 10px 26px -12px rgba(59, 53, 42, .42);
+  --shadow: 0 1px 0 rgba(255,255,255,.7), 0 8px 18px -10px rgba(59, 53, 42, .42);
   --ease-out: cubic-bezier(.16, 1, .3, 1);
   --pad: clamp(18px, 4vw, 64px);
   --maxw: 1240px;
 }
 
 * { box-sizing: border-box; }
-html { overflow-x: clip; -webkit-text-size-adjust: 100%; scroll-padding-top: 24px; }
+html { -webkit-text-size-adjust: 100%; scroll-padding-top: 128px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 body {
   margin: 0; color: var(--ink); background-color: var(--bg);
   background-image:
@@ -95,6 +96,7 @@ b, strong { font-weight: 700; }
 img, svg { display: block; max-width: 100%; }
 .skip { position: absolute; left: -9999px; top: 8px; z-index: 50; background: var(--ink); color: var(--panel); padding: 10px 14px; }
 .skip:focus { left: 8px; }
+.skip:hover, .skip:focus { color: #fff; }
 .wrap { width: 100%; max-width: var(--maxw); margin: 0 auto; padding: 0 var(--pad); }
 
 /* ------------------------------------------------------------ stamped labels, tape, buttons */
@@ -109,7 +111,7 @@ img, svg { display: block; max-width: 100%; }
 .h1 .tape { padding: 0 .12em .02em; margin-left: -.06em; transform: rotate(-1.2deg); }
 /* stamped state words: the body face in bold caps (the stencil face is kept for 28 px and up) */
 .stamp {
-  display: inline-block; font: 700 .76rem/1 var(--font-body); letter-spacing: .14em; text-transform: uppercase;
+  display: inline-block; font: 700 .8rem/1 var(--font-body); letter-spacing: .14em; text-transform: uppercase;
   padding: .45em .6em .4em; border: 2px solid currentColor; border-radius: 3px; white-space: nowrap;
 }
 .s-measured { color: var(--ink); }
@@ -130,7 +132,7 @@ img, svg { display: block; max-width: 100%; }
 .btn-sm { min-height: 40px; font-size: .9rem; padding: 0 .9em; }
 
 /* ------------------------------------------------------------ the panel door (hero) */
-.door { position: relative; }
+.door { position: relative; overflow-x: clip; }
 .stage { position: relative; min-height: 100svh; padding: 14px; }
 .rim {
   position: absolute; inset: 14px; border-radius: 10px; pointer-events: none;
@@ -145,13 +147,15 @@ nav.top { display: flex; align-items: center; gap: clamp(12px, 2.4vw, 32px); pad
 .mark img { width: 34px; height: 34px; }
 .mark:hover { color: var(--ink); }
 nav.top .links { display: flex; gap: clamp(10px, 2vw, 26px); margin-right: auto; }
-nav.top .links a { font-weight: 700; font-size: .95rem; text-decoration: none; padding: 6px 2px; border-bottom: 2px solid transparent; transition: border-color .2s, color .2s; }
+nav.top .links a { font-weight: 700; font-size: .95rem; text-decoration: none; padding: 6px 2px; border-bottom: 2px solid transparent; transition: border-color .2s, color .2s; white-space: nowrap; }
 nav.top .links a:hover { border-color: var(--before); color: var(--before); }
-nav.top .btn { min-height: 42px; font-size: .95rem; }
+nav.top .ev { font-size: .82rem; color: var(--muted); white-space: nowrap; }
+@media (max-width: 1279px) { nav.top .ev { display: none; } }
+nav.top .btn { min-height: 42px; font-size: .95rem; white-space: nowrap; }
 
 .hero { position: relative; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: 24px; align-content: center;
   padding: 0 var(--pad); --bh: clamp(250px, min(46vh, 30vw), 430px); --bw: calc(var(--bh) * .6); --drop: calc(var(--bh) * .23); }
-.hero-top { grid-column: 1 / span 8; align-self: end; padding-top: clamp(16px, 3vh, 40px); }
+.hero-top { grid-column: 1 / span 8; align-self: end; padding-top: clamp(24px, 5vh, 64px); }
 .hero-bot { grid-column: 1 / span 6; align-self: start; padding-top: clamp(46px, 7.5vh, 76px); }
 .idplate { display: inline-flex; align-items: center; gap: 10px; margin: 0 0 clamp(12px, 2.2vh, 22px); font: 700 .8rem/1 var(--font-body); letter-spacing: .14em; text-transform: uppercase; }
 .idplate .tag { background: var(--ink); color: var(--panel); padding: 7px 9px 6px; border-radius: 2px; white-space: nowrap; }
@@ -165,29 +169,29 @@ nav.top .btn { min-height: 42px; font-size: .95rem; }
 .proof ul { display: flex; flex-wrap: wrap; gap: 4px 0; margin: 0; padding: 0; list-style: none; }
 .proof li + li::before { content: "·"; margin: 0 .55em; color: var(--rule); }
 .cmd { display: inline-flex; align-items: center; gap: 8px; font: 500 .84rem/1 var(--font-data); background: var(--panel); border: 1px solid var(--rule); border-radius: 3px; padding: 7px 8px 7px 11px; color: var(--ink); }
-.cmd button { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 3px; color: var(--muted); transition: background .2s, color .2s; }
+.cmd button { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 3px; color: var(--muted); transition: background .2s, color .2s; }
 .cmd button:hover, .cmd button.ok { background: rgba(26,25,22,.08); color: var(--ink); }
 .cmd button:focus-visible { outline: 3px solid var(--before); outline-offset: 2px; }
 .cmd .ic { width: 16px; height: 16px; }
 
 /* the rig: the wire (two halves meeting at θ), the tape, the drawn dwell, and the breaker it is tied to */
-.rig { grid-column: 1 / -1; position: relative; height: 0; margin-top: clamp(30px, 5vh, 52px); --notch: 58%; }
+.rig { grid-column: 1 / -1; position: relative; height: 0; margin-top: clamp(30px, 5vh, 52px); --notch: 55%; }
 .brk-wrap { position: absolute; z-index: 1; right: calc(var(--pad) * .25); top: calc(var(--bh) * -.375); width: var(--bw); height: var(--bh); }
 .brk { width: 100%; height: 100%; overflow: visible; }
 .brk .tag-t { font: 700 15px/1 var(--font-body); letter-spacing: .14em; }
 .brk .stamp { font: 800 36px/1 var(--font-display); letter-spacing: .02em; border: 0; padding: 0; }
-.brk .st-on { fill: var(--ink); } .brk .st-off { fill: #A49C8B; }
+.brk .st-on { fill: var(--ink); } .brk .st-off { fill: #8F877A; }
 .brk .trip-win { fill: #CFC8B8; transition: fill .2s; }
 .brk .trip-t { font: 700 9px/1 var(--font-body); letter-spacing: .2em; fill: #fff; opacity: 0; }
 .brk .lever { transition: transform .26s cubic-bezier(.55, 0, .8, .4); }
 .door.is-off .brk .lever { transform: translateY(92px); }
-.door.is-off .brk .st-on { fill: #A49C8B; } .door.is-off .brk .st-off { fill: var(--ink); }
+.door.is-off .brk .st-on { fill: #8F877A; } .door.is-off .brk .st-off { fill: var(--ink); }
 .door.is-off .brk .trip-win { fill: var(--after); } .door.is-off .brk .trip-t { opacity: 1; }
 .flag { position: absolute; left: 50%; top: calc(100% + 14px); transform: translateX(-50%); display: grid; justify-items: center; gap: 8px; width: max-content; }
-.flag .stamp { font: 800 clamp(1.8rem, 2.6vw, 2.4rem)/1 var(--font-display); letter-spacing: .04em; color: var(--after); background: var(--panel); border-width: 3px; padding: .18em .45em .12em; opacity: 0; transform: scale(1.35) rotate(-6deg); transition: opacity .15s, transform .32s cubic-bezier(.2, 1.6, .4, 1); }
-.flag .ack { font-size: .86rem; color: var(--muted); opacity: 0; transition: opacity .4s .25s; }
-.door.is-stamped .flag .stamp { opacity: 1; transform: scale(1) rotate(-3deg); }
-.door.is-acked .flag .ack { opacity: 1; }
+.flag .stamp { font: 800 clamp(1.8rem, 2.6vw, 2.4rem)/1 var(--font-display); letter-spacing: .04em; color: var(--after); background: var(--panel); border-width: 3px; padding: .18em .45em .12em; opacity: 0; visibility: hidden; transform: scale(1.35) rotate(-6deg); transition: opacity .15s, transform .32s cubic-bezier(.2, 1.6, .4, 1), visibility 0s .32s; }
+.flag .ack { font-size: .86rem; color: var(--muted); opacity: 0; visibility: hidden; transition: opacity .4s .25s, visibility 0s .65s; }
+.door.is-stamped .flag .stamp { opacity: 1; visibility: visible; transform: scale(1) rotate(-3deg); transition: opacity .15s, transform .32s cubic-bezier(.2, 1.6, .4, 1), visibility 0s; }
+.door.is-acked .flag .ack { opacity: 1; visibility: visible; transition: opacity .4s .25s, visibility 0s; }
 .flag .btn { display: none; }
 .door:not(.is-pin) .flag .btn { display: inline-flex; }
 .door:not(.is-pin):not(.is-snap) .flag .stamp, .door:not(.is-pin):not(.is-snap) .flag .ack { display: none; }
@@ -206,7 +210,8 @@ nav.top .btn { min-height: 42px; font-size: .95rem; }
 .seg-r .rtape { left: 0; padding-left: 10px; }
 .rtape .ch { display: inline-block; white-space: pre; }
 .notch { position: absolute; left: var(--notch); top: -30px; height: 60px; width: 0; border-left: 2px solid var(--ink); z-index: 3; }
-.notch b { position: absolute; left: 7px; top: 40px; font: 600 1rem/1 var(--font-data); }
+.notch b { position: absolute; left: 7px; top: 55px; font: 600 1rem/1 var(--font-data); white-space: nowrap; }
+.notch b small { font: 600 .72rem/1 var(--font-body); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-left: 3px; }
 .anno { position: absolute; left: calc(var(--notch) + 16px); bottom: 34px; display: grid; gap: 8px; max-width: calc(100% - var(--notch) - var(--bw) - 40px); }
 .drawn { margin: 0; font-size: .82rem; color: var(--muted); }
 .count { margin: 0; font: 500 .82rem/1.35 var(--font-data); color: var(--muted); }
@@ -215,26 +220,27 @@ nav.top .btn { min-height: 42px; font-size: .95rem; }
 .cells li { width: 17px; height: 17px; border: 2px solid var(--ink); border-radius: 2px; background: transparent; transition: background-color .12s, transform .12s; flex: none; }
 .cells li.on { background: var(--before); border-color: var(--before); }
 .cells li.fire { background: var(--after); border-color: var(--after); transform: scale(1.12); }
-.hint { position: absolute; left: calc(var(--notch) + 16px); top: 34px; margin: 0; font-size: .86rem; color: var(--muted); transition: opacity .3s; }
+.hint { position: absolute; left: calc(var(--notch) + 16px); top: 40px; margin: 0; font: 700 .95rem/1.2 var(--font-body); color: var(--ink); background: var(--panel); border: 2px solid var(--ink); border-radius: 3px; padding: 7px 10px; box-shadow: var(--shadow); transition: opacity .3s; }
 .hint .ar { display: inline-block; animation: nudge 1.6s ease-in-out infinite; }
 @keyframes nudge { 50% { transform: translateY(4px) } }
 .door:not(.is-pin) .hint, .door.is-snap .hint { opacity: 0; }
 
 /* the door card: the three real tripwires, as on a panel's schedule card (tall screens only) */
-.dcard { display: none; position: absolute; z-index: 1; right: calc(var(--pad) * .25); bottom: calc(var(--bh) * .375 + 26px); width: min(430px, 34vw);
+.dcard { display: none; pointer-events: none; position: absolute; z-index: 1; right: calc(var(--pad) * .25); bottom: calc(var(--bh) * .375 + 26px); width: min(430px, 34vw);
   background: var(--panel); border: 1px solid var(--rule); border-radius: 4px; box-shadow: var(--shadow); padding: 10px 14px 6px; transform: rotate(.6deg); }
 .dcard::before, .dcard::after { content: ""; position: absolute; top: 8px; width: 7px; height: 7px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff, #A89F8E 70%); }
 .dcard::before { left: 8px; } .dcard::after { right: 8px; }
 .dcard .lab { display: block; text-align: center; padding-bottom: 6px; border-bottom: 2px solid var(--ink); }
 .dcard ol { margin: 0; padding: 0; list-style: none; }
-.dcard li { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--rule); font-size: .82rem; line-height: 1.25; }
+.dcard li { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--rule); font-size: .82rem; line-height: 1.35; }
 .dcard li:last-child { border-bottom: 0; }
 .dcard .n { font: 800 1.75rem/1 var(--font-display); }
 .dcard .w { color: var(--muted); font-size: .76rem; display: block; }
 .dcard .s { font: 700 .66rem/1 var(--font-body); letter-spacing: .12em; text-transform: uppercase; }
-.dcard .s .t { display: none; color: var(--after); }
+.dcard .s .t { display: none; color: #fff; background: var(--after); padding: 4px 6px 3px; border-radius: 2px; }
 .dcard .s .a { color: var(--before); } .dcard .s .u { color: var(--muted); }
-.door.is-stamped .dcard .s .t { display: inline; } .door.is-stamped .dcard .s .a { display: none; }
+.door.is-stamped .dcard .s .t { display: inline-block; } .door.is-stamped .dcard .s .a { display: none; }
+.dcard.is-hidden { display: none !important; }
 @media (min-width: 1100px) and (min-height: 800px) { .dcard { display: block; } }
 
 /* the snap: halves recoil, the ends fray red, the right half hangs from the dropped lever, the module clunks */
@@ -256,18 +262,18 @@ nav.top .btn { min-height: 42px; font-size: .95rem; }
 /* load: the tape is printed letter by letter, the wire pulls taut, the headline settles (from visible defaults) */
 .js .door.is-load .h1 .ln { animation: rise .8s var(--ease-out) both; }
 .js .door.is-load .h1 .ln:nth-child(2) { animation-delay: .08s; } .js .door.is-load .h1 .ln:nth-child(3) { animation-delay: .16s; }
-.js .door.is-load .hero-bot, .js .door.is-load .idplate, .js .door.is-load .dcard, .js .door.is-load .anno { animation: fade .9s .35s var(--ease-out) both; }
+.js .door.is-load .dcard, .js .door.is-load .anno { animation: fade .9s .35s var(--ease-out) both; }
 .js .door.is-load .rtape .ch { animation: punch .16s steps(2, end) both; }
 .js .door.is-load .wire { animation: taut .9s .2s cubic-bezier(.2, 1.5, .35, 1) both; }
 .js .door.is-load .brk-wrap { animation: fade .8s .1s var(--ease-out) both; }
-@keyframes rise { from { transform: translateY(26px); opacity: 0 } }
+@keyframes rise { from { transform: translateY(26px) } }
 @keyframes fade { from { opacity: 0; transform: translateY(10px) } }
 @keyframes punch { from { opacity: 0; transform: translateY(-3px) scale(1.25) } }
 @keyframes taut { from { transform: translateY(14px) scaleY(1.6); opacity: .2 } }
 
 /* pinned scrub (large screens, set by JS): the door holds while the dwell runs */
-.door.is-pin { height: 210svh; }
-.door.is-pin .stage { position: sticky; top: 0; height: 100svh; overflow: hidden; }
+.door.is-pin { height: 180svh; }
+.door.is-pin .stage { position: sticky; top: 0; height: 100svh; overflow: clip; }
 
 /* ------------------------------------------------------------ sections */
 section { position: relative; }
@@ -275,7 +281,8 @@ section { position: relative; }
 .sec + .sec { padding-top: 0; }
 .h2 { margin: 0 0 .35em; font: 800 clamp(2.3rem, 4.4vw, 3.9rem)/.95 var(--font-display); text-transform: uppercase; text-wrap: balance; letter-spacing: .005em; }
 .lede { margin: 0; max-width: 62ch; color: #2D2A25; }
-.src { display: inline-block; margin-top: 12px; font: 500 .8rem/1.45 var(--font-data); color: var(--muted); overflow-wrap: anywhere; }
+.src { display: inline-block; margin-top: 12px; font: 500 .84rem/1.45 var(--font-data); color: #4A463D; overflow-wrap: anywhere; }
+.src a { display: inline-block; padding: 6px 0; }
 .src a { color: var(--muted); }
 .src a:hover { color: var(--before); }
 
@@ -285,15 +292,19 @@ section { position: relative; }
 .plate::before, .plate::after { content: ""; position: absolute; top: 10px; width: 7px; height: 7px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff, #A89F8E 70%); box-shadow: 0 1px 0 rgba(0,0,0,.15); }
 .plate::before { left: 10px; } .plate::after { right: 10px; }
 .plate .n { display: block; margin-top: 8px; font: 600 clamp(2.1rem, 3.6vw, 3.1rem)/1 var(--font-data); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
-.plate .n small { font-size: .5em; letter-spacing: 0; color: var(--muted); margin-left: .12em; }
+.plate .n small { font-size: .56em; letter-spacing: 0; color: var(--muted); margin-left: .12em; }
 .plate p { margin: 10px 0 0; font-size: .98rem; line-height: 1.45; flex: 1; }
 
 /* the overlay, shown at a size its text can be read; legend + terminal below */
 .shot { margin: 34px 0 0; }
 .shot .frame { position: relative; border: 2px solid var(--ink); border-radius: 6px; overflow: hidden; background: var(--panel); box-shadow: 0 26px 60px -30px rgba(59,53,42,.65); }
 .shot img { width: 100%; height: auto; }
-.shot figcaption { margin-top: 12px; font-size: .9rem; color: var(--muted); max-width: 80ch; }
-.qa { display: inline-block; font: 700 .72rem/1 var(--font-body); letter-spacing: .14em; text-transform: uppercase; color: var(--ink); border: 2px solid var(--ink); padding: 5px 6px 4px; margin-right: 6px; border-radius: 2px; background: var(--panel); }
+.shot figcaption { margin-top: 28px; font-size: .9rem; color: #4A463D; max-width: 80ch; }
+.shot .fi { position: relative; }
+.qaplate { position: absolute; right: 12px; top: 12px; font: 700 .8rem/1 var(--font-body); letter-spacing: .1em; text-transform: uppercase; color: var(--ink); background: var(--panel); border: 2px solid var(--ink); border-radius: 3px; padding: 7px 9px 6px; box-shadow: 0 6px 14px -8px rgba(0,0,0,.45); }
+.swipe { display: none; margin: 8px 0 0; font-size: .86rem; color: #4A463D; }
+.tsrc { margin-top: 28px; color: #4A463D; }
+.qa { display: inline-block; font: 700 .78rem/1 var(--font-body); letter-spacing: .14em; text-transform: uppercase; color: var(--ink); border: 2px solid var(--ink); padding: 5px 6px 4px; margin-right: 6px; border-radius: 2px; background: var(--panel); }
 .callout { position: absolute; width: 32px; height: 32px; margin: -16px 0 0 -16px; display: grid; place-items: center; border-radius: 50%; background: var(--ink); color: var(--panel); font: 600 .92rem/1 var(--font-data); box-shadow: 0 0 0 3px var(--panel), 0 6px 14px -6px rgba(0,0,0,.5); }
 .under { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 30px; align-items: start; margin-top: 24px; }
 .legend { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; font-size: .95rem; }
@@ -306,6 +317,7 @@ section { position: relative; }
 .term .bar button:focus-visible { outline: 3px solid #F0B323; outline-offset: 2px; }
 .term pre { margin: 0; padding: 16px 16px 18px; font: 500 .8rem/1.62 var(--font-data); white-space: pre-wrap; word-break: break-word; height: 30em; overflow: auto; }
 .term pre::-webkit-scrollbar-track { background: #1C1B18; } .term pre::-webkit-scrollbar-thumb { background: #4A463E; border-color: #1C1B18; }
+.term pre:focus-visible { outline: 3px solid #F0B323; outline-offset: -3px; }
 .term .ln { display: block; min-height: 1.62em; }
 .term .ln[hidden] { display: none; }
 .term .p { color: #F0B323; } .term .c { color: #9A9384; } .term .ok { color: #fff; font-weight: 600; } .term .neg { color: #C9C2B3; }
@@ -340,7 +352,7 @@ section { position: relative; }
 .sched-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 18px; padding: clamp(22px, 3vw, 34px) clamp(18px, 3vw, 34px) 18px; border-bottom: 2px solid var(--ink); }
 .sched-head .h2 { margin: 0; }
 .keys { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.cols { position: sticky; top: 0; z-index: 3; display: grid; grid-template-columns: 70px minmax(0, 1.25fr) minmax(0, 1.45fr) 170px; gap: 16px; padding: 10px clamp(18px, 3vw, 34px); background: var(--panel); border-bottom: 1px solid var(--rule); }
+.cols { position: sticky; top: 0; z-index: 3; height: 38px; display: grid; grid-template-columns: 70px minmax(0, 1.25fr) minmax(0, 1.45fr) 170px; gap: 16px; align-items: center; padding: 0 clamp(18px, 3vw, 34px); background: var(--panel); border-bottom: 1px solid var(--rule); }
 .row { border-bottom: 1px solid var(--rule); }
 .row:last-child { border-bottom: 0; }
 .row-h { position: sticky; top: 38px; z-index: 2; display: grid; grid-template-columns: 70px minmax(0, 1.25fr) minmax(0, 1.45fr) 170px; gap: 16px; align-items: center; padding: 14px clamp(18px, 3vw, 34px); background: var(--panel); border-bottom: 1px dashed var(--rule); }
@@ -383,16 +395,18 @@ section { position: relative; }
 .play { background: #FBF9F3; border: 2px solid var(--ink); border-radius: 4px; padding: 18px; }
 .play .opts { display: grid; grid-template-columns: auto 1fr; gap: 10px 14px; align-items: center; margin-bottom: 22px; font-size: .92rem; }
 .seg-ctl { display: inline-flex; justify-self: start; border: 2px solid var(--ink); border-radius: 3px; overflow: hidden; }
-.seg-ctl button { all: unset; cursor: pointer; padding: 8px 11px; font: 500 .84rem/1 var(--font-data); border-left: 1px solid var(--rule); transition: background .15s, color .15s; }
+.seg-ctl button { all: unset; cursor: pointer; padding: 12px 12px; font: 500 .84rem/1 var(--font-data); border-left: 1px solid var(--rule); transition: background .15s, color .15s; }
 .seg-ctl button:first-child { border-left: 0; }
 .seg-ctl button:hover { background: rgba(29,78,137,.1); }
 .seg-ctl button[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
 .seg-ctl button:focus-visible { outline: 3px solid var(--before); outline-offset: -3px; }
+.seg-ctl button[aria-pressed="true"]:focus-visible { outline-color: var(--wire); }
 .wins { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
-.wins button { all: unset; cursor: pointer; position: relative; aspect-ratio: 3 / 4; border: 2px solid var(--ink); border-radius: 3px; display: grid; place-items: end center; padding-bottom: 4px; font: 500 .68rem/1 var(--font-data); color: var(--muted); transition: background .12s, transform .12s, border-color .12s; }
+.wins button { all: unset; cursor: pointer; position: relative; aspect-ratio: 3 / 4; border: 2px solid var(--ink); border-radius: 3px; display: grid; place-items: end center; padding-bottom: 4px; font: 500 .76rem/1 var(--font-data); color: var(--muted); transition: background .12s, transform .12s, border-color .12s; }
 .wins button:hover { transform: translateY(-2px); border-color: var(--before); }
 .wins button[aria-pressed="true"] { background: var(--before); border-color: var(--before); color: #fff; }
 .wins button.fire { background: var(--after); border-color: var(--after); color: #fff; }
+.wins button[aria-pressed="true"]::after { content: "▲"; position: absolute; top: 5px; font-size: .62rem; line-height: 1; }
 .wins button.fire::before { content: "TRIP"; position: absolute; top: -19px; font: 700 .66rem/1 var(--font-body); letter-spacing: .12em; color: var(--after); }
 .wins button:focus-visible { outline: 3px solid var(--before); outline-offset: 2px; }
 .read { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: baseline; font: 500 .86rem/1.4 var(--font-data); }
@@ -404,8 +418,10 @@ section { position: relative; }
 
 /* 04 · act */
 .inv { margin: 0; padding: 0; list-style: none; display: grid; gap: 14px; }
-.inv li { display: grid; grid-template-columns: 54px 1fr; gap: 12px; align-items: baseline; }
-.inv b { font: 800 1.85rem/1 var(--font-display); }
+.inv li { display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 12px; align-items: baseline; }
+.inv b { font: 600 1.2rem/1 var(--font-data); }
+.row-b p.after { margin-top: 1em; }
+code { overflow-wrap: anywhere; }
 .shot.small { margin: 0; }
 .shot.small .frame { max-width: 460px; }
 
@@ -427,7 +443,7 @@ section { position: relative; }
 /* honest by design: printed warning labels */
 .labels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; margin-top: 30px; }
 .label { position: relative; margin: 0; background: #FBF9F3; border: 3px solid var(--ink); border-radius: 4px; padding: 0 0 18px; box-shadow: var(--shadow); }
-.label .lh { display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: var(--ink); color: var(--panel); font: 700 .86rem/1.2 var(--font-body); letter-spacing: .14em; text-transform: uppercase; }
+.label .lh { display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: var(--ink); color: var(--panel); font: 700 .86rem/1.35 var(--font-body); letter-spacing: .12em; text-transform: uppercase; }
 .label .lh svg { width: 20px; height: 20px; flex: none; }
 .label blockquote { margin: 16px 18px 0; font-size: 1.04rem; line-height: 1.5; }
 .label figcaption { margin: 12px 18px 0; font: 500 .78rem/1.3 var(--font-data); color: var(--muted); }
@@ -451,14 +467,48 @@ footer { padding: 54px 0 70px; border-top: 2px solid var(--ink); margin-top: 20p
 .foot nav { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
 .foot .fine { grid-column: 1 / -1; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 18px; padding-top: 18px; border-top: 1px solid var(--rule); font-size: .86rem; color: var(--muted); }
 
+
+/* ------------------------------------------------------------ round-1 additions */
+.status { margin: 14px 0 0; font-size: .9rem; color: #4A463D; max-width: 58ch; }
+.status b { color: var(--ink); }
+details.more { margin-top: .4em; }
+details.more summary { cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font: 700 .86rem/1 var(--font-body); letter-spacing: .1em; text-transform: uppercase; color: var(--before); padding: 10px 0; list-style: none; }
+details.more summary::-webkit-details-marker { display: none; }
+details.more summary::before { content: "+"; display: inline-grid; place-items: center; width: 20px; height: 20px; border: 2px solid currentColor; border-radius: 2px; font: 600 .9rem/1 var(--font-data); transition: transform .2s var(--ease-out); }
+details.more[open] summary::before { transform: rotate(45deg); }
+details.more summary:hover { color: var(--ink); }
+details.more > div { padding-top: 4px; }
+
+/* the rating plate: one engraved plate, four fields */
+.rplate { position: relative; margin-top: 30px; background: linear-gradient(180deg, #F7F4EC, #EDE9DF); border: 2px solid var(--ink); border-radius: 6px; box-shadow: 0 1px 0 rgba(255,255,255,.7), 0 12px 24px -14px rgba(59,53,42,.5); }
+.rplate::before, .rplate::after { content: ""; position: absolute; top: 12px; width: 10px; height: 10px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff, #A89F8E 70%); box-shadow: 0 1px 0 rgba(0,0,0,.2); }
+.rplate::before { left: 12px; } .rplate::after { right: 12px; }
+.rp-head { display: flex; justify-content: space-between; gap: 12px; padding: 12px 34px 10px; border-bottom: 2px solid var(--ink); font: 700 .8rem/1 var(--font-body); letter-spacing: .16em; text-transform: uppercase; }
+.rp-head span:last-child { color: var(--muted); }
+.rp-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.rf { display: flex; flex-direction: column; padding: 22px 24px 18px; border-left: 1px solid var(--rule); }
+.rf:first-child { border-left: 0; }
+.rf .n { display: block; margin-top: 8px; font: 600 clamp(2.1rem, 3.6vw, 3.1rem)/1 var(--font-data); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.rf .n small { font-size: .56em; letter-spacing: 0; color: var(--muted); margin-left: .12em; }
+.rf p { margin: 10px 0 0; font-size: .98rem; line-height: 1.45; flex: 1; }
+
+@media (forced-colors: active) {
+  .wins button[aria-pressed="true"], .seg-ctl button[aria-pressed="true"] { forced-color-adjust: none; background: Highlight; color: HighlightText; border-color: Highlight; }
+  .wins button.fire { forced-color-adjust: none; background: Mark; color: MarkText; }
+  .cells li.on, .cells li.fire { forced-color-adjust: none; background: Highlight; }
+}
+@media (max-height: 500px) { .cols, .row-h { position: static; } }
+
 /* ------------------------------------------------------------ responsive */
 @media (max-width: 1099px) {
   .hero { --bh: clamp(200px, 30vw, 300px); }
   .hero-top { grid-column: 1 / -1; }
   .hero-bot { grid-column: 1 / span 6; padding-top: 70px; }
   .rig { --notch: 50%; margin-top: calc(var(--bh) * .375 + 40px); }
+  .sld-wide { display: none; } .sld-tall { display: block; max-width: 460px; margin: 0 auto; }
+  nav.top .links { gap: 14px; } nav.top .links a { font-size: .9rem; }
+  .rp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .rf:nth-child(3) { border-left: 0; } .rf:nth-child(n+3) { border-top: 1px solid var(--rule); }
   .brk .stamp { font: 700 32px/1 var(--font-body); }
-  .plates { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .under { grid-template-columns: minmax(0, 1fr); }
   .row-b { grid-template-columns: minmax(0, 1fr); padding-left: clamp(18px, 3vw, 34px); }
   .labels { grid-template-columns: minmax(0, 1fr); }
@@ -469,21 +519,24 @@ footer { padding: 54px 0 70px; border-top: 2px solid var(--ink); margin-top: 20p
   .screw { width: 16px; height: 16px; } .screw.tl, .screw.bl { left: 16px; } .screw.tr, .screw.br { right: 16px; }
   .screw.tl, .screw.tr { top: 16px; } .screw.bl, .screw.br { bottom: 16px; }
   nav.top { padding: 18px 18px 0; } nav.top .links { display: none; } nav.top .btn span { display: none; } nav.top .btn { margin-left: auto; padding: 0 .8em; }
-  .hero { padding: 0 18px; --pad: 18px; --bh: 190px; column-gap: 0; }
+  .hero { padding: 0 18px; --pad: 18px; --bh: 150px; column-gap: 0; }
+  .hero-bot { display: contents; }
+  .hero-top { order: 1; } .ctas { order: 2; grid-column: 1 / -1; margin-top: 22px; } .rig { order: 3; } .sub { order: 4; grid-column: 1 / -1; margin-top: calc(var(--bh) * .625 + 150px); } .proof { order: 5; grid-column: 1 / -1; } .status { order: 6; grid-column: 1 / -1; }
   .h1 { font-size: clamp(2.7rem, 13.4vw, 4.2rem); }
   .hero-top { padding-top: 34px; }
-  .hero-bot { grid-column: 1 / -1; padding-top: calc(var(--bh) * .625 + 168px); }
-  .rig { --notch: 50%; margin-top: calc(var(--bh) * .375 + 64px); }
-  .rtape { height: 30px; top: -15px; font-size: .74rem; letter-spacing: .07em; padding: 0 7px; }
+  .rig { --notch: 37%; margin-top: calc(var(--bh) * .375 + 78px); }
+  .rtape { height: 28px; top: -14px; font-size: .66rem; letter-spacing: .05em; padding: 0 6px; }
   .seg-l .rtape { padding-right: 6px; } .seg-r .rtape { padding-left: 6px; }
-  .notch { top: -24px; height: 48px; } .notch b { top: 30px; }
-  .anno { left: 0; bottom: 30px; max-width: calc(100% - var(--bw) - 6px); }
+  .notch { top: -22px; height: 44px; } .notch b { top: 40px; } .notch b small { display: none; }
+  .anno { left: 0; bottom: 26px; max-width: calc(100% - var(--bw) - 6px); }
   .cells li { width: 13px; height: 13px; } .cells { gap: 4px; }
   .count { white-space: normal; }
   .brk .stamp { font: 700 34px/1 var(--font-body); }
   .flag { top: calc(100% + 8px); left: auto; right: 0; transform: none; justify-items: end; width: 70vw; text-align: right; } .flag .stamp { font-size: 1.8rem; } .flag .ack { font-size: .76rem; }
   .idplate { flex-wrap: wrap; row-gap: 8px; }
-  .plates { grid-template-columns: minmax(0, 1fr); }
+  .rp-grid { grid-template-columns: minmax(0, 1fr); } .rf { border-left: 0 !important; border-top: 1px solid var(--rule); } .rf:first-child { border-top: 0; }
+  .shot .frame { overflow-x: auto; } .shot .frame .fi { width: 820px; } .swipe { display: block; }
+  .row-h .stamp { white-space: normal; text-align: center; }
   .cols { display: none; }
   .row-h { top: 0; grid-template-columns: 52px minmax(0, 1fr) auto; row-gap: 6px; }
   .row-h .rating { grid-column: 2 / -1; grid-row: 2; }
@@ -493,7 +546,6 @@ footer { padding: 54px 0 70px; border-top: 2px solid var(--ink); margin-top: 20p
   .speeds { grid-template-columns: minmax(0, 1fr); }
   .wins { grid-template-columns: repeat(6, minmax(0, 1fr)); row-gap: 26px; }
   .callout { width: 24px; height: 24px; margin: -12px 0 0 -12px; font-size: .74rem; }
-  .sld-wide { display: none; } .sld-tall { display: block; max-width: 420px; margin: 0 auto; }
   .foot { grid-template-columns: minmax(0, 1fr); } .foot nav { justify-content: flex-start; }
   .term pre { font-size: .74rem; height: 26em; }
   .proof ul { flex-direction: column; gap: 2px; } .proof li + li::before { content: none; }
@@ -513,7 +565,7 @@ footer { padding: 54px 0 70px; border-top: 2px solid var(--ink); margin-top: 20p
 
 /* ------------------------------------------------------------ the deck: a 1920 × 1080 stage on the same enamel door */
 /* Press C to toggle contrast debug mode */
-html, body { height: 100%; }
+html, body { height: 100%; overscroll-behavior: none; }
 body.deck { margin: 0; overflow: hidden; background-color: var(--bg); }
 .viewport { position: fixed; inset: 0; overflow: hidden; }
 .dstage { position: absolute; left: 50%; top: 50%; width: 1920px; height: 1080px; transform: translate(-50%, -50%) scale(var(--s, 1)); font-size: 26px; line-height: 1.45; }
@@ -526,7 +578,7 @@ body.deck { margin: 0; overflow: hidden; background-color: var(--bg); }
 .slide .screw { width: 28px; height: 28px; }
 .slide .screw.tl { left: 34px; top: 34px; } .slide .screw.tr { right: 34px; top: 34px; }
 .slide .screw.bl { left: 34px; bottom: 34px; } .slide .screw.br { right: 34px; bottom: 34px; }
-.sfoot { position: absolute; left: 120px; right: 120px; bottom: 54px; display: flex; justify-content: space-between; align-items: center; font: 500 18px/1 var(--font-data); color: var(--muted); border: 0; padding: 0; margin: 0; }
+.sfoot { position: absolute; left: 120px; right: 120px; bottom: 50px; display: flex; justify-content: space-between; align-items: center; font: 500 20px/1 var(--font-data); color: #4A463D; border: 0; padding: 0; margin: 0; }
 .sfoot .ver { color: var(--ink); }
 .sh { position: absolute; left: 120px; top: 104px; margin: 0; font: 800 112px/.9 var(--font-display); text-transform: uppercase; letter-spacing: .005em; max-width: 1680px; }
 .sh .tape { padding: 0 .12em .02em; transform: rotate(-1deg); }
@@ -546,20 +598,20 @@ body.deck { margin: 0; overflow: hidden; background-color: var(--bg); }
 .drig .seg-r { right: calc(var(--bw) * .5); }
 .drig .brk-wrap { right: 0; }
 .drig .anno { bottom: 46px; left: calc(var(--notch) + 22px); gap: 10px; max-width: none; }
-.drig .drawn { font-size: 18px; } .drig .count { font-size: 18px; }
-.drig .cells li { width: 24px; height: 24px; } .drig .cells { gap: 7px; }
+.drig .drawn { font-size: 24px; } .drig .count { font-size: 24px; }
+.drig .cells li { width: 28px; height: 28px; } .drig .cells { gap: 8px; }
 .door.static .flag .stamp { opacity: 1; transform: scale(1) rotate(-3deg); transition: none; }
 .door.static .flag .ack { opacity: 1; transition: none; }
 
 /* 01 cover */
-.cover-h { position: absolute; left: 120px; top: 200px; margin: 0; font: 800 150px/.88 var(--font-display); text-transform: uppercase; }
+.cover-h { position: absolute; left: 120px; top: 206px; margin: 0; font: 800 138px/.88 var(--font-display); text-transform: uppercase; }
 .cover-h .ln { display: block; }
 .cover-h .tape { padding: 0 .1em .02em; margin-left: -.05em; transform: rotate(-1.2deg); }
 .s-cover .idplate { position: absolute; left: 120px; top: 118px; margin: 0; font-size: 20px; }
 .s-cover .drig { --notch: 46%; --bh: 360px; --bw: 216px; --drop: 82.8px; }
-.s-cover .term { position: absolute; right: 120px; top: 120px; width: 560px; }
-.s-cover .term pre { height: auto; font-size: 17px; line-height: 1.55; padding: 18px 20px; }
-.s-cover .term .bar { font-size: 15px; }
+.s-cover .term { position: absolute; right: 110px; top: 110px; width: 640px; }
+.s-cover .term pre { height: auto; font-size: 20px; line-height: 1.45; padding: 18px 22px; }
+.s-cover .term .bar { font-size: 18px; }
 .s-cover .idplate .s-icon { width: 40px; height: 40px; margin-right: 6px; }
 
 /* 02 hook */
@@ -587,31 +639,37 @@ body.deck { margin: 0; overflow: hidden; background-color: var(--bg); }
 .vf i { position: absolute; width: 60px; height: 60px; border: 6px solid var(--ink); }
 .vf i:nth-child(1) { left: 0; top: 0; border-right: 0; border-bottom: 0; } .vf i:nth-child(2) { right: 0; top: 0; border-left: 0; border-bottom: 0; }
 .vf i:nth-child(3) { left: 0; bottom: 0; border-right: 0; border-top: 0; } .vf i:nth-child(4) { right: 0; bottom: 0; border-left: 0; border-top: 0; }
-.vf .vlab { position: absolute; left: 84px; top: 22px; font: 500 20px/1 var(--font-data); color: var(--muted); }
+.vf .vlab { position: absolute; left: 84px; top: 18px; font: 500 24px/1 var(--font-data); color: #4A463D; }
 .s-frozen .drig { top: 470px; --notch: 47%; }
 .s-frozen .quote { position: absolute; left: 120px; right: 440px; top: 742px; margin: 0; font: 800 60px/.98 var(--font-display); text-transform: uppercase; }
-.s-frozen .drawnlab { position: absolute; left: 204px; top: 160px; margin: 0; font-size: 20px; color: var(--muted); }
+.s-frozen .drawnlab { position: absolute; left: 204px; top: 160px; margin: 0; font-size: 26px; color: #4A463D; }
 
 /* 05 the wiring */
-.s-wire .sldbox { position: absolute; left: 120px; right: 120px; top: 236px; height: 712px; display: grid; place-items: center; }
-.s-wire .sld { width: 1378px; height: auto; }
+.s-wire .sldbox { position: absolute; left: 120px; right: 120px; top: 250px; height: 700px; display: grid; place-items: center; }
+.s-wire .sld { width: 1680px; height: auto; }
+.sld .dk-t { font: 700 28px var(--font-body); letter-spacing: .05em; fill: #1A1916; }
+.sld .dk-s { font: 400 24px var(--font-body); fill: #4A463D; }
+.sld .dk-k { font: 700 22px var(--font-body); letter-spacing: .14em; fill: #4A463D; }
+.sld .dk-red { fill: #D2281C; font-weight: 700; }
+.s-wire .sld .sl-l { font-size: 24px; stroke-width: 8px; }
+.s-wire .sld .sl-a { stroke-width: 2.6; }
 
 /* 06 the demo */
-.s-demo .shotbox { position: absolute; left: 120px; top: 238px; width: 1210px; }
+.s-demo .shotbox { position: absolute; left: 120px; top: 236px; width: 1300px; }
 .s-demo .shotbox .frame { position: relative; border: 3px solid var(--ink); border-radius: 8px; overflow: hidden; box-shadow: 0 30px 60px -30px rgba(59,53,42,.65); }
 .s-demo .shotbox img { width: 100%; height: auto; }
 .s-demo .callout { width: 54px; height: 54px; margin: -27px 0 0 -27px; font-size: 26px; box-shadow: 0 0 0 5px var(--panel), 0 8px 18px -6px rgba(0,0,0,.5); }
-.s-demo .legend { position: absolute; left: 1390px; right: 110px; top: 252px; gap: 26px; font-size: 27px; line-height: 1.3; }
+.s-demo .legend { position: absolute; left: 1470px; right: 100px; top: 252px; gap: 30px; font-size: 28px; line-height: 1.25; }
 .s-demo .legend b { width: 44px; height: 44px; font-size: 22px; }
-.s-demo .qacap { position: absolute; left: 120px; top: 896px; margin: 0; font-size: 22px; color: var(--muted); }
-.s-demo .qa { font-size: 16px; padding: 7px 9px 6px; }
+.s-demo .qacap { position: absolute; left: 120px; top: 908px; margin: 0; font-size: 26px; color: #4A463D; }
+.s-demo .qa { font-size: 20px; padding: 8px 10px 7px; }
 
 /* 07 the rule */
 .s-rule .inv { position: absolute; left: 120px; top: 360px; width: 780px; gap: 44px; }
 .s-rule .inv li { grid-template-columns: 110px 1fr; font-size: 40px; line-height: 1.3; }
 .s-rule .inv b { font-size: 68px; }
 .cellsbig { position: absolute; left: 980px; top: 380px; width: 820px; }
-.cellsbig ol { display: grid; grid-template-columns: repeat(12, 1fr); gap: 10px; margin: 0; padding: 0; list-style: none; }
+.cellsbig ol { display: grid; grid-template-columns: repeat(10, 1fr); gap: 12px; margin: 0; padding: 0; list-style: none; }
 .cellsbig li { aspect-ratio: 3 / 4; border: 4px solid var(--ink); border-radius: 5px; display: grid; place-items: end center; padding-bottom: 8px; font: 500 18px/1 var(--font-data); color: var(--muted); position: relative; }
 .cellsbig li.on { background: var(--before); border-color: var(--before); color: #fff; }
 .cellsbig li.fire { background: var(--after); border-color: var(--after); color: #fff; }
@@ -662,9 +720,10 @@ body.moved .navbtn, body.touch .navbtn { opacity: .92; }
 .hint.gone { opacity: 0; pointer-events: none; }
 .rotate { display: none; position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 6; margin: 0; font: 600 14px/1.3 var(--font-body); background: var(--ink); color: var(--panel); padding: 10px 14px; border-radius: 3px; text-align: center; width: max-content; max-width: 90vw; }
 @media (orientation: portrait) and (max-width: 700px) { .rotate { display: block; } .hint { display: none; } }
-.notes { display: none; position: fixed; left: 0; right: 0; bottom: 0; height: 20vh; z-index: 4; background: var(--ink); color: var(--panel); padding: 18px 28px; font-size: 19px; line-height: 1.5; overflow: auto; }
+.notes { display: none; position: fixed; left: 0; right: 0; bottom: 0; min-height: 20vh; max-height: 34vh; z-index: 4; background: var(--ink); color: var(--panel); padding: 16px 28px; font-size: clamp(14px, 2.2vh, 19px); line-height: 1.5; overflow: auto; }
+.notes:focus-visible { outline: 3px solid var(--wire); outline-offset: -3px; }
 .notes b { display: block; font: 600 14px/1 var(--font-data); color: var(--wire); margin-bottom: 10px; letter-spacing: .04em; }
-.presenter .notes { display: block; } .presenter .viewport { bottom: 20vh; }
+.presenter .notes { display: block; }
 .presenter { cursor: none; } .presenter.moved { cursor: auto; }
 .debug-contrast .contrast-check, .debug-contrast .slide.on :is(h1, h2, h3, p, li, span) { outline: 1px dashed var(--after); }
 body.overview { overflow: auto; }
@@ -673,6 +732,7 @@ body.overview { overflow: auto; }
 .overview .sframe { position: relative; width: 384px; height: 216px; overflow: hidden; cursor: pointer; pointer-events: auto; background: var(--bg); outline: 1.5px solid var(--rule); transition: outline-color .2s, transform .2s var(--ease-out); }
 .overview .sframe:hover { outline: 2px solid var(--ink); transform: translateY(-2px); }
 .overview .sframe.cur { outline: 3px solid var(--before); }
+.overview .sframe:focus-visible { outline: 4px solid var(--ink); outline-offset: 4px; }
 .overview .slide { opacity: 1; visibility: visible; width: 1920px; height: 1080px; transform: scale(.2); transform-origin: 0 0; transition: none; pointer-events: none; }
 .overview .navbtn, .overview .hint, .overview .rotate { display: none; }
 
@@ -687,18 +747,41 @@ body.overview { overflow: auto; }
   .navbtn, .hint, .notes, .speaker-notes, .rotate { display: none !important; }
 }
 
+/* 03 · the comparison as a ruled table */
+.cmp-t { position: absolute; left: 120px; right: 120px; top: 330px; width: calc(100% - 240px); border-collapse: collapse; font-size: 36px; }
+.cmp-t th, .cmp-t td { text-align: left; padding: 26px 20px; border-bottom: 2px solid var(--rule); vertical-align: middle; }
+.cmp-t thead th { font: 700 22px/1 var(--font-body); letter-spacing: .14em; text-transform: uppercase; color: #4A463D; border-bottom: 3px solid var(--ink); padding-top: 0; }
+.cmp-t tbody th { font: 700 34px/1.2 var(--font-body); white-space: nowrap; }
+.cmp-t .glyph { display: inline-block; width: 92px; vertical-align: middle; margin-right: 18px; }
+.cmp-t .glyph svg { width: 92px; height: auto; }
+.cmp-t tr.us th, .cmp-t tr.us td { background: var(--panel); }
+.cmp-t tr.us th { color: var(--before); }
+.cmp-t tr.us td:last-child { font-weight: 700; }
+
+/* 09 · the receipts as one ruled schedule */
+.rcp { position: absolute; left: 120px; right: 120px; top: 320px; width: calc(100% - 240px); border-collapse: collapse; background: var(--panel); border: 3px solid var(--ink); }
+.rcp th, .rcp td { text-align: left; padding: 30px 32px; border-bottom: 2px solid var(--rule); vertical-align: middle; }
+.rcp tr:last-child th, .rcp tr:last-child td { border-bottom: 0; }
+.rcp th { font: 700 24px/1.2 var(--font-body); letter-spacing: .12em; text-transform: uppercase; color: var(--before); width: 330px; }
+.rcp td.w { font: 800 60px/1 var(--font-display); text-transform: uppercase; letter-spacing: .01em; }
+.rcp td.r { font: 500 30px/1.35 var(--font-data); text-align: right; }
+
+.phone { display: none; position: fixed; left: 50%; top: 12px; transform: translateX(-50%); z-index: 7; margin: 0; width: max-content; max-width: 92vw; font: 600 14px/1.35 var(--font-body); background: var(--panel); color: var(--ink); border: 2px solid var(--ink); border-radius: 3px; padding: 9px 12px; text-align: center; }
+.phone a { color: var(--before); }
+@media (max-width: 900px) { .phone { display: block; } .hint { display: none; } }
+
 </style>
 <script>document.documentElement.classList.add("js");</script>
 </head>
 <body class="deck">
-<div class="viewport"><div class="dstage" id="dstage">
+<main class="viewport" id="main"><div class="dstage" id="dstage">
 
 <div class="sframe"><section class="slide s-cover" data-title="Cover" aria-label="Slide 1: cover">
  <div class="rim" aria-hidden="true"></div><svg class="screw tl" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9.5" fill="#C9C2B3" stroke="#6E685B"/><circle cx="9.5" cy="9" r="5" fill="#EFEBE1" opacity=".7"/><path d="M6.5 11h9M11 6.5v9" stroke="#4A453C" stroke-width="2.2" stroke-linecap="round" transform="rotate(12 11 11)"/></svg><svg class="screw tr" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9.5" fill="#C9C2B3" stroke="#6E685B"/><circle cx="9.5" cy="9" r="5" fill="#EFEBE1" opacity=".7"/><path d="M6.5 11h9M11 6.5v9" stroke="#4A453C" stroke-width="2.2" stroke-linecap="round" transform="rotate(38 11 11)"/></svg><svg class="screw bl" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9.5" fill="#C9C2B3" stroke="#6E685B"/><circle cx="9.5" cy="9" r="5" fill="#EFEBE1" opacity=".7"/><path d="M6.5 11h9M11 6.5v9" stroke="#4A453C" stroke-width="2.2" stroke-linecap="round" transform="rotate(71 11 11)"/></svg><svg class="screw br" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9.5" fill="#C9C2B3" stroke="#6E685B"/><circle cx="9.5" cy="9" r="5" fill="#EFEBE1" opacity=".7"/><path d="M6.5 11h9M11 6.5v9" stroke="#4A453C" stroke-width="2.2" stroke-linecap="round" transform="rotate(25 11 11)"/></svg>
  <p class="idplate"><img class="s-icon" src="../assets/icon.svg" alt="" width="40" height="40"><span class="tag">CCT 01</span><span class="t2">Physical AI · Nebius Global AI Hackathon</span></p>
  <h1 class="cover-h"><span class="ln">Type a sentence.</span><span class="ln">The plug</span><span class="ln"><span class="tape">keeps watch.</span></span></h1>
- <figure class="term"><div class="bar"><span>zsh · jaga compile · 17 Oct</span><span>real run</span></div><pre><span class="ln c"># ran 2026-10-17T08:11:10+0700 at commit 1355077</span><span class="ln"><span class="p">$ </span>jaga compile &quot;nggak ada orang di meja setrika&quot;</span><span class="ln">“nggak ada orang di meja setrika” → IRONING BOARD EMPTY  (visual=True)</span><span class="ln">  + empty ironing board with iron on top</span><span class="ln">  + ironing board clear of people</span><span class="ln">  + vacant ironing table seen from above</span><span class="ln neg">  − person standing at ironing board</span><span class="ln neg">  − someone ironing a shirt on the board</span><span class="ln neg">  − hand resting on the ironing board</span><span class="ln">  dwell 60 s → notify · cool-down 600 s · language id</span><span class="ln">  nvidia/nemotron-3-super-120b-a12b · request e2a1f11c4ffc3a50c9d5bad87ea17a4c · 2.28 s</span></pre></figure>
- <div class="drig door" style="top:742px"><div class="rig" aria-hidden="true"><div class="seg seg-l"><div class="wire"></div><span class="end"></span><span class="rtape tape">NOBODY IS AT THE</span></div><div class="seg seg-r"><div class="wire"></div><span class="end"></span><span class="rtape tape">IRONING BOARD</span></div><div class="notch"><b>θ</b></div><div class="anno"><p class="count"><b>0</b> of 12 windows above θ · trips at <b>10</b></p><ol class="cells"><li class=""></li><li class=""></li><li class=""></li><li class=""></li><li class=""></li><li class=""></li><li class=""></li><li class=""></li><li class=""></li><li class=""></li><li class=""></li><li class=""></li></ol></div><div class="brk-wrap"><svg class="brk" viewBox="0 0 240 400" role="img" aria-labelledby="da-t">
+ <figure class="term"><div class="bar"><span>zsh · jaga compile · 17 Oct</span><span>real run</span></div><pre><span class="ln"><span class="p">$ </span>jaga compile &quot;nggak ada orang di meja setrika&quot;</span><span class="ln">“nggak ada orang di meja setrika” → IRONING BOARD EMPTY  (visual=True)</span><span class="ln">  + empty ironing board with iron on top</span><span class="ln">  + ironing board clear of people</span><span class="ln">  + vacant ironing table seen from above</span><span class="ln neg">  − person standing at ironing board</span><span class="ln neg">  − someone ironing a shirt on the board</span><span class="ln neg">  − hand resting on the ironing board</span><span class="ln">  nvidia/nemotron-3-super-120b-a12b · request e2a1f11c4ffc3a50c9d5bad87ea17a4c · 2.28 s</span></pre></figure>
+ <div class="drig door" style="top:742px"><div class="rig" aria-hidden="true"><div class="seg seg-l"><div class="wire"></div><span class="end"></span><span class="rtape tape">NOBODY IS AT THE</span></div><div class="seg seg-r"><div class="wire"></div><span class="end"></span><span class="rtape tape">IRONING BOARD</span></div><div class="notch"><b>θ</b></div><div class="anno"><p class="count"><b>0</b> of 10 above θ · trips at <b>8</b></p><ol class="cells"><li class=""></li><li class=""></li><li class=""></li><li class=""></li><li class=""></li><li class=""></li><li class=""></li><li class=""></li><li class=""></li><li class=""></li></ol></div><div class="brk-wrap"><svg class="brk" viewBox="0 0 240 400" role="img" aria-labelledby="da-t">
 <title id="da-t">Breaker for circuit 01: lever up at ON; it drops to OFF on a trip</title>
 <defs>
  <linearGradient id="da-body" x1="0" x2="1"><stop offset="0" stop-color="#FBF9F3"/><stop offset=".72" stop-color="#F2EEE4"/><stop offset="1" stop-color="#DAD3C3"/></linearGradient>
@@ -736,8 +819,8 @@ body.overview { overflow: auto; }
 <rect class="trip-win" x="92" y="310" width="56" height="13" rx="3"/>
 <text x="120" y="320" text-anchor="middle" class="trip-t">TRIP</text>
 </svg><div class="flag"><span class="stamp">Tripped</span><span class="ack">OFF acknowledged by the plug</span></div></div></div></div>
- <footer class="sfoot"><span>jaga · built for the Nebius Global AI Hackathon, Physical AI track</span><span class="ver">01 / 10 · v0.0.0-dev</span></footer>
- <aside class="speaker-notes"><p>jaga is Indonesian for "keep watch". You type one sentence, a webcam on your laptop watches for it, and a cheap smart plug cuts the power when it comes true.</p><p>The terminal on the right is a real compile, captured on 17 October: an Indonesian sentence in, English captions back.</p></aside>
+ <footer class="sfoot"><span>jaga · built for the Nebius Global AI Hackathon, Physical AI track</span><span class="ver">01 / 10 · v0.1.0 · untagged</span></footer>
+ <aside class="speaker-notes"><p>jaga is Indonesian for "keep watch". It is built so that you type one sentence, a webcam on your laptop watches for it, and a cheap smart plug cuts the power when it comes true. So far it has run on recordings and fake plugs; the real hardware run is still to be recorded.</p><p>The terminal on the right is a real compile, captured on 17 October: an Indonesian sentence in, English captions back.</p></aside>
 </section></div>
 
 <div class="sframe"><section class="slide s-hook" data-title="Hook" aria-label="Slide 2: hook">
@@ -746,26 +829,29 @@ body.overview { overflow: auto; }
  <p class="sl"><span class="sc">A scenario:</span> Bu Sari leaves the iron on and runs to the warung. Her CCTV stays silent.</p>
  <div class="mdet" role="img" aria-label="What a motion detector reads in an empty room: motion none, alert none"><span class="lab-lg">A motion detector reads</span>
   <p class="read"><span>motion</span><span>none</span><span>alert</span><span>none</span></p><small>Nothing moves, so nothing fires.</small></div>
- <footer class="sfoot"><span>02 · the hook</span><span class="ver">02 / 10 · v0.0.0-dev</span></footer>
- <aside class="speaker-notes"><p>Bu Sari is a composite scenario, not a real person. The point is structural: the dangerous state — nobody at the board — is the one a motion camera cannot see.</p><p>Absence is the event. That is what jaga is built to watch.</p></aside>
+ <footer class="sfoot"><span>02 · the hook</span><span class="ver">02 / 10 · v0.1.0 · untagged</span></footer>
+ <aside class="speaker-notes"><p>Bu Sari is a composite scenario, not a real person. The point is structural: the dangerous state, nobody at the board, is the one a motion camera cannot see.</p><p>Absence is the event. That is what jaga is built to watch.</p></aside>
 </section></div>
 
 <div class="sframe"><section class="slide s-prob" data-title="Problem" aria-label="Slide 3: problem">
  <div class="rim" aria-hidden="true"></div><svg class="screw tl" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9.5" fill="#C9C2B3" stroke="#6E685B"/><circle cx="9.5" cy="9" r="5" fill="#EFEBE1" opacity=".7"/><path d="M6.5 11h9M11 6.5v9" stroke="#4A453C" stroke-width="2.2" stroke-linecap="round" transform="rotate(12 11 11)"/></svg><svg class="screw tr" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9.5" fill="#C9C2B3" stroke="#6E685B"/><circle cx="9.5" cy="9" r="5" fill="#EFEBE1" opacity=".7"/><path d="M6.5 11h9M11 6.5v9" stroke="#4A453C" stroke-width="2.2" stroke-linecap="round" transform="rotate(38 11 11)"/></svg><svg class="screw bl" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9.5" fill="#C9C2B3" stroke="#6E685B"/><circle cx="9.5" cy="9" r="5" fill="#EFEBE1" opacity=".7"/><path d="M6.5 11h9M11 6.5v9" stroke="#4A453C" stroke-width="2.2" stroke-linecap="round" transform="rotate(71 11 11)"/></svg><svg class="screw br" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9.5" fill="#C9C2B3" stroke="#6E685B"/><circle cx="9.5" cy="9" r="5" fill="#EFEBE1" opacity=".7"/><path d="M6.5 11h9M11 6.5v9" stroke="#4A453C" stroke-width="2.2" stroke-linecap="round" transform="rotate(25 11 11)"/></svg>
  <h2 class="sh">Motion is the wrong question.</h2>
- <div class="cmp">
-  <div><div class="glyph"><svg viewBox="0 0 160 120" fill="none" stroke="#1A1916" stroke-width="5" stroke-linejoin="round" aria-hidden="true"><path d="M20 30h86l20 20v30H20z"/><circle cx="58" cy="55" r="14"/><path d="M126 50l22-12v44l-22-12"/><path d="M40 80v26h40"/><path d="M118 22l-14 14M134 30l-14 14" stroke-dasharray="4 6" opacity=".45"/></svg></div><h3>Motion camera</h3><p>Silent: an empty room does not move.</p></div>
-  <div><div class="glyph"><svg viewBox="0 0 160 120" fill="none" stroke="#1A1916" stroke-width="5" aria-hidden="true"><rect x="34" y="10" width="92" height="100" rx="14"/><circle cx="80" cy="58" r="28"/><path d="M80 58V40M80 58l14 8" stroke-linecap="round"/><path d="M60 98h40"/></svg></div><h3>Plug countdown timer</h3><p>Cuts after T minutes — mid-ironing, or long after you left.</p></div>
-  <div class="us"><div class="glyph"><svg viewBox="0 0 160 120" aria-hidden="true"><rect x="96" y="8" width="52" height="104" rx="8" fill="#F5F2EA" stroke="#1A1916" stroke-width="4"/><rect x="110" y="30" width="24" height="50" rx="4" fill="#1A1916"/><rect x="0" y="50" width="104" height="6" rx="3" fill="#F0B323"/><rect x="8" y="40" width="70" height="26" fill="#1D4E89"/><path d="M84 46v20" stroke="#1A1916" stroke-width="3"/></svg></div><h3>jaga</h3><p>Cuts only when your sentence holds for the whole dwell.</p></div>
- </div>
- <footer class="sfoot"><span>03 · the problem</span><span class="ver">03 / 10 · v0.0.0-dev</span></footer>
- <aside class="speaker-notes"><p>The two cheap alternatives watch the wrong thing: one watches movement, the other watches the clock. Neither watches the state you care about.</p><p>Both are baselines in the pre-registered protocol — jaga will be compared with them under the same rule.</p></aside>
+ <table class="cmp-t">
+  <thead><tr><td></td><th scope="col">Watches</th><th scope="col">And so</th></tr></thead>
+  <tbody>
+   <tr><th scope="row"><span class="glyph"><svg viewBox="0 0 160 120" fill="none" stroke="#1A1916" stroke-width="5" stroke-linejoin="round" aria-hidden="true"><path d="M20 30h86l20 20v30H20z"/><circle cx="58" cy="55" r="14"/><path d="M126 50l22-12v44l-22-12"/><path d="M40 80v26h40"/><path d="M118 22l-14 14M134 30l-14 14" stroke-dasharray="4 6" opacity=".45"/></svg></span>Motion camera</th><td>movement</td><td>stays silent in an empty room</td></tr>
+   <tr><th scope="row"><span class="glyph"><svg viewBox="0 0 160 120" fill="none" stroke="#1A1916" stroke-width="5" aria-hidden="true"><rect x="34" y="10" width="92" height="100" rx="14"/><circle cx="80" cy="58" r="28"/><path d="M80 58V40M80 58l14 8" stroke-linecap="round"/><path d="M60 98h40"/></svg></span>Plug countdown timer</th><td>the clock</td><td>cuts at T minutes, ironing or not</td></tr>
+   <tr class="us"><th scope="row"><span class="glyph"><svg viewBox="0 0 160 120" aria-hidden="true"><rect x="96" y="8" width="52" height="104" rx="8" fill="#F5F2EA" stroke="#1A1916" stroke-width="4"/><rect x="110" y="30" width="24" height="50" rx="4" fill="#1A1916"/><rect x="0" y="50" width="104" height="6" rx="3" fill="#F0B323"/><rect x="8" y="40" width="70" height="26" fill="#1D4E89"/><path d="M84 46v20" stroke="#1A1916" stroke-width="3"/></svg></span>jaga</th><td>your sentence</td><td>cuts when most of the dwell matches it</td></tr>
+  </tbody>
+ </table>
+ <footer class="sfoot"><span>03 · the problem</span><span class="ver">03 / 10 · v0.1.0 · untagged</span></footer>
+ <aside class="speaker-notes"><p>The two cheap alternatives watch the wrong thing: one watches movement, the other watches the clock. Neither watches the state you care about.</p><p>A stillness timer (the motion camera's logic, turned around) and a plug countdown timer are both baselines in the pre-registered protocol, scored by the same rule as jaga.</p></aside>
 </section></div>
 
 <div class="sframe"><section class="slide s-frozen" data-title="The moment" aria-label="Slide 4: the frozen moment">
  <div class="rim" aria-hidden="true"></div><svg class="screw tl" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9.5" fill="#C9C2B3" stroke="#6E685B"/><circle cx="9.5" cy="9" r="5" fill="#EFEBE1" opacity=".7"/><path d="M6.5 11h9M11 6.5v9" stroke="#4A453C" stroke-width="2.2" stroke-linecap="round" transform="rotate(12 11 11)"/></svg><svg class="screw tr" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9.5" fill="#C9C2B3" stroke="#6E685B"/><circle cx="9.5" cy="9" r="5" fill="#EFEBE1" opacity=".7"/><path d="M6.5 11h9M11 6.5v9" stroke="#4A453C" stroke-width="2.2" stroke-linecap="round" transform="rotate(38 11 11)"/></svg><svg class="screw bl" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9.5" fill="#C9C2B3" stroke="#6E685B"/><circle cx="9.5" cy="9" r="5" fill="#EFEBE1" opacity=".7"/><path d="M6.5 11h9M11 6.5v9" stroke="#4A453C" stroke-width="2.2" stroke-linecap="round" transform="rotate(71 11 11)"/></svg><svg class="screw br" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9.5" fill="#C9C2B3" stroke="#6E685B"/><circle cx="9.5" cy="9" r="5" fill="#EFEBE1" opacity=".7"/><path d="M6.5 11h9M11 6.5v9" stroke="#4A453C" stroke-width="2.2" stroke-linecap="round" transform="rotate(25 11 11)"/></svg>
  <div class="vf" aria-hidden="true"><i></i><i></i><i></i><i></i><span class="vlab">camera · 1 frame a second</span></div>
- <div class="drig door replay is-snap is-off is-stamped is-acked static" style="top:440px"><div class="rig" aria-hidden="true"><div class="seg seg-l"><div class="wire"></div><span class="end"></span><span class="rtape tape">NOBODY IS AT THE</span></div><div class="seg seg-r"><div class="wire"></div><span class="end"></span><span class="rtape tape">IRONING BOARD</span></div><div class="notch"><b>θ</b></div><div class="anno"><p class="count"><b>10</b> of 12 windows above θ · trips at <b>10</b></p><ol class="cells"><li class="on"></li><li class="on"></li><li class="on"></li><li class="on"></li><li class="on"></li><li class="on"></li><li class="on"></li><li class="on"></li><li class="on"></li><li class="fire"></li><li class=""></li><li class=""></li></ol></div><div class="brk-wrap"><svg class="brk" viewBox="0 0 240 400" role="img" aria-labelledby="dt-t">
+ <div class="drig door replay is-snap is-off is-stamped is-acked static" style="top:440px"><div class="rig" aria-hidden="true"><div class="seg seg-l"><div class="wire"></div><span class="end"></span><span class="rtape tape">NOBODY IS AT THE</span></div><div class="seg seg-r"><div class="wire"></div><span class="end"></span><span class="rtape tape">IRONING BOARD</span></div><div class="notch"><b>θ</b></div><div class="anno"><p class="count"><b>8</b> of 10 above θ · trips at <b>8</b></p><ol class="cells"><li class="on"></li><li class="on"></li><li class="on"></li><li class="on"></li><li class="on"></li><li class="on"></li><li class="on"></li><li class="fire"></li><li class=""></li><li class=""></li></ol></div><div class="brk-wrap"><svg class="brk" viewBox="0 0 240 400" role="img" aria-labelledby="dt-t">
 <title id="dt-t">Breaker for circuit 01: lever up at ON; it drops to OFF on a trip</title>
 <defs>
  <linearGradient id="dt-body" x1="0" x2="1"><stop offset="0" stop-color="#FBF9F3"/><stop offset=".72" stop-color="#F2EEE4"/><stop offset="1" stop-color="#DAD3C3"/></linearGradient>
@@ -803,28 +889,28 @@ body.overview { overflow: auto; }
 <rect class="trip-win" x="92" y="310" width="56" height="13" rx="3"/>
 <text x="120" y="320" text-anchor="middle" class="trip-t">TRIP</text>
 </svg><div class="flag"><span class="stamp">Tripped</span><span class="ack">OFF acknowledged by the plug</span></div></div></div></div>
- <p class="drawnlab">The rule, drawn — not a recording.</p>
+ <p class="drawnlab">The rule, drawn. Not a recording.</p>
  <p class="quote">A typed sentence stretched across a live camera snaps — and the plug beneath it clicks to OFF.</p>
- <footer class="sfoot"><span>04 · the moment</span><span class="ver">04 / 10 · v0.0.0-dev</span></footer>
+ <footer class="sfoot"><span>04 · the moment</span><span class="ver">04 / 10 · v0.1.0 · untagged</span></footer>
  <aside class="speaker-notes"><p>This is the whole product in one picture. The sentence is a tripwire tied to the breaker's lever. When it holds for the dwell, the wire snaps and the lever drops.</p><p>A trip can only ever switch power off — never on.</p></aside>
 </section></div>
 
 <div class="sframe"><section class="slide s-wire" data-title="How it works" aria-label="Slide 5: how it works">
  <div class="rim" aria-hidden="true"></div><svg class="screw tl" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9.5" fill="#C9C2B3" stroke="#6E685B"/><circle cx="9.5" cy="9" r="5" fill="#EFEBE1" opacity=".7"/><path d="M6.5 11h9M11 6.5v9" stroke="#4A453C" stroke-width="2.2" stroke-linecap="round" transform="rotate(12 11 11)"/></svg><svg class="screw tr" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9.5" fill="#C9C2B3" stroke="#6E685B"/><circle cx="9.5" cy="9" r="5" fill="#EFEBE1" opacity=".7"/><path d="M6.5 11h9M11 6.5v9" stroke="#4A453C" stroke-width="2.2" stroke-linecap="round" transform="rotate(38 11 11)"/></svg><svg class="screw bl" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9.5" fill="#C9C2B3" stroke="#6E685B"/><circle cx="9.5" cy="9" r="5" fill="#EFEBE1" opacity=".7"/><path d="M6.5 11h9M11 6.5v9" stroke="#4A453C" stroke-width="2.2" stroke-linecap="round" transform="rotate(71 11 11)"/></svg><svg class="screw br" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9.5" fill="#C9C2B3" stroke="#6E685B"/><circle cx="9.5" cy="9" r="5" fill="#EFEBE1" opacity=".7"/><path d="M6.5 11h9M11 6.5v9" stroke="#4A453C" stroke-width="2.2" stroke-linecap="round" transform="rotate(25 11 11)"/></svg>
  <h2 class="sh">One sentence, wired to a plug.</h2>
- <div class="sldbox"><svg class="sld" viewBox="0 0 1200 620" role="img" aria-label="jaga&#x27;s one flow as an electrician&#x27;s single-line diagram"><defs><marker id="sl-head-w" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#1A1916"/></marker></defs><rect x="20" y="16" width="1160" height="112" rx="10" class="sl-zone"/><text x="40" y="44" class="sl-k">NEBIUS AI CLOUD</text><rect x="20" y="168" width="850" height="432" rx="10" class="sl-bound"/><text x="40" y="588" class="sl-k">THE LAPTOP · the overlay listens on 127.0.0.1 only</text><g class="sl-cloud"><rect x="260" y="36" width="300" height="78" rx="4" class="sl-box"/><text x="274" y="62" class="sl-t">NEMOTRON 3 SUPER</text><text x="274" y="83" class="sl-s">Token Factory · JSON schema</text><text x="274" y="101" class="sl-c">nemotron-3-super-120b-a12b</text></g><g class="sl-cloud"><rect x="640" y="36" width="220" height="78" rx="4" class="sl-box"/><text x="654" y="62" class="sl-t">OBJECT STORAGE</text><text x="654" y="83" class="sl-s">two presigned URLs</text><text x="654" y="101" class="sl-c">jaga-calib · eu-west1</text></g><g class="sl-cloud"><rect x="930" y="36" width="230" height="78" rx="4" class="sl-box"/><text x="944" y="62" class="sl-t">SERVERLESS JOB</text><text x="944" y="83" class="sl-s">fits θ, recall ≥ 0.9</text><text x="944" y="101" class="sl-c">cpu-d3 · 4vcpu-16gb</text></g><g class="sl-node"><rect x="44" y="214" width="200" height="78" rx="4" class="sl-box"/><text x="58" y="240" class="sl-t">YOUR SENTENCE</text><text x="58" y="261" class="sl-s">typed in the overlay</text><text x="58" y="279" class="sl-c">plain text</text></g><g class="sl-node"><rect x="310" y="214" width="250" height="78" rx="4" class="sl-box"/><text x="324" y="240" class="sl-t">CAPTIONS + NEGATIVES</text><text x="324" y="261" class="sl-s">text vectors, same space</text><text x="324" y="279" class="sl-c">3–5 + 3–6 · 256-d</text></g><g class="sl-node"><rect x="44" y="346" width="150" height="78" rx="4" class="sl-box"/><text x="58" y="372" class="sl-t">CAMERA</text><text x="58" y="393" class="sl-s">webcam, 1 frame/s</text><text x="58" y="411" class="sl-c">OpenCV</text></g><g class="sl-node"><rect x="226" y="346" width="190" height="78" rx="4" class="sl-box"/><text x="240" y="372" class="sl-t">COSMOS-EMBED1</text><text x="240" y="393" class="sl-s">last 8 frames → 1 vector</text><text x="240" y="411" class="sl-c">224p · fp32 · MPS</text></g><g class="sl-node"><rect x="448" y="346" width="160" height="78" rx="4" class="sl-box"/><text x="462" y="372" class="sl-t">MARGIN</text><text x="462" y="393" class="sl-s">best + minus best −</text><text x="462" y="411" class="sl-c">cosine</text></g><g class="sl-node"><rect x="640" y="346" width="200" height="78" rx="4" class="sl-box"/><text x="654" y="372" class="sl-t">THE RULE</text><text x="654" y="393" class="sl-s">k of n over the dwell</text><text x="654" y="411" class="sl-c">k = ⌈0.8 n⌉ · ≥ 2</text></g><g class="sl-stop"><rect x="44" y="490" width="372" height="74" rx="4" class="sl-box"/><text x="58" y="518" class="sl-t">VIDEO FRAMES STAY HERE</text><text x="58" y="541" class="sl-s">frames, window vectors, thumbnails</text></g><g class="sl-node"><rect x="930" y="346" width="130" height="78" rx="4" class="sl-box"/><text x="944" y="372" class="sl-t">BREAKER</text><text x="944" y="393" class="sl-s">OFF or notify</text><text x="944" y="411" class="sl-c">I1 · I2 · I3</text></g><path d="M144 214 L144 75 L260 75" class="sl-a" marker-end="url(#sl-head-w)"/><text x="152" y="150" class="sl-l" text-anchor="start">the sentence, as text</text><path d="M435 114 L435 214" class="sl-a" marker-end="url(#sl-head-w)"/><text x="443" y="150" class="sl-l" text-anchor="start">captions back</text><path d="M435 292 L435 318 L528 318 L528 346" class="sl-a" marker-end="url(#sl-head-w)"/><path d="M194 385 L226 385" class="sl-a" marker-end="url(#sl-head-w)"/><path d="M416 385 L448 385" class="sl-a" marker-end="url(#sl-head-w)"/><path d="M608 385 L640 385" class="sl-a" marker-end="url(#sl-head-w)"/><path d="M705 346 L705 114" class="sl-a" marker-end="url(#sl-head-w)"/><text x="697" y="252" class="sl-l" text-anchor="end">labelled margins</text><path d="M800 114 L800 346" class="sl-a" marker-end="url(#sl-head-w)"/><text x="808" y="252" class="sl-l" text-anchor="start">θ back</text><path d="M860 64 L930 64" class="sl-a" marker-end="url(#sl-head-w)"/><text x="895" y="56" class="sl-l" text-anchor="middle">input</text><path d="M930 92 L860 92" class="sl-a" marker-end="url(#sl-head-w)"/><text x="895" y="108" class="sl-l" text-anchor="middle">result</text><path d="M840 385 L930 385" class="sl-a" marker-end="url(#sl-head-w)"/><text x="900" y="372" class="sl-l" text-anchor="middle">trip</text><g class="sl-x"><path d="M416 527 H858" class="sl-xl"/><path d="M862 519l16 16m0-16l-16 16"/></g><path d="M1060 385 H1076" class="sl-pw"/><g class="sl-sym"><circle cx="1076" cy="385" r="3" class="sl-dot"/><path d="M1076 385 L1106 370" class="sl-blade"/><path d="M1108 379l7 7m0-7l-7 7"/></g><path d="M1114 385 H1150 V424" class="sl-pw"/><g class="sl-sym"><path d="M1134 436 A16 16 0 0 0 1166 436"/><path d="M1150 452 V470"/></g><text x="1128" y="446" text-anchor="end" class="sl-k2">WI‑FI PLUG</text><text x="1128" y="465" text-anchor="end" class="sl-s2">home network</text><g class="sl-sym"><circle cx="1150" cy="506" r="18"/><path d="M1137.4 493.4L1162.6 518.6M1162.6 493.4L1137.4 518.6"/></g><text x="1150" y="550" text-anchor="middle" class="sl-s2">iron · lamp</text></svg></div>
- <footer class="sfoot"><span>05 · the wiring</span><span class="ver">05 / 10 · v0.0.0-dev</span></footer>
- <aside class="speaker-notes"><p>Nemotron 3 Super on Token Factory turns the sentence into captions and hard negatives. Cosmos-Embed1 embeds the last eight frames on the laptop. Code — not the model — decides.</p><p>Only text and numbers cross the dashed line. Video frames never do.</p></aside>
+ <div class="sldbox"><svg class="sld" viewBox="0 0 1600 660" role="img" aria-label="jaga&#x27;s one flow, simplified for a slide"><defs><marker id="sl-head-d" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#1A1916"/></marker></defs><rect x="20" y="14" width="1560" height="150" rx="12" class="sl-zone"/><text x="44" y="52" class="dk-k">NEBIUS AI CLOUD</text><rect x="20" y="214" width="1250" height="430" rx="12" class="sl-bound"/><text x="44" y="628" class="dk-k">THE LAPTOP · 127.0.0.1 only</text><g class="sl-cloud"><rect x="330" y="40" width="400" height="108" rx="6" class="sl-box"/><text x="352" y="84" class="dk-t">NEMOTRON 3 SUPER</text><text x="352" y="122" class="dk-s">Token Factory</text></g><g class="sl-cloud"><rect x="860" y="40" width="330" height="108" rx="6" class="sl-box"/><text x="882" y="84" class="dk-t">OBJECT STORAGE</text><text x="882" y="122" class="dk-s">presigned URLs</text></g><g class="sl-cloud"><rect x="1250" y="40" width="310" height="108" rx="6" class="sl-box"/><text x="1272" y="84" class="dk-t">SERVERLESS JOB</text><text x="1272" y="122" class="dk-s">fits θ</text></g><g class="sl-node"><rect x="44" y="250" width="250" height="108" rx="6" class="sl-box"/><text x="66" y="294" class="dk-t">SENTENCE</text><text x="66" y="332" class="dk-s">typed</text></g><g class="sl-node"><rect x="44" y="410" width="250" height="108" rx="6" class="sl-box"/><text x="66" y="454" class="dk-t">CAMERA</text><text x="66" y="492" class="dk-s">1 frame/s</text></g><g class="sl-node"><rect x="350" y="410" width="330" height="108" rx="6" class="sl-box"/><text x="372" y="454" class="dk-t">COSMOS-EMBED1</text><text x="372" y="492" class="dk-s">on the laptop</text></g><g class="sl-node"><rect x="740" y="410" width="380" height="108" rx="6" class="sl-box"/><text x="762" y="454" class="dk-t">THE RULE</text><text x="762" y="492" class="dk-s">margin vs θ, k of n</text></g><g class="sl-node"><rect x="1300" y="410" width="260" height="108" rx="6" class="sl-box"/><text x="1322" y="454" class="dk-t">BREAKER</text><text x="1322" y="492" class="dk-s">OFF or notify</text></g><path d="M169 250 L169 94 L330 94" class="sl-a" marker-end="url(#sl-head-d)"/><text x="178" y="200" class="sl-l" text-anchor="start">text</text><path d="M530 148 L530 330 L930 330 L930 410" class="sl-a" marker-end="url(#sl-head-d)"/><text x="548" y="300" class="sl-l" text-anchor="start">captions</text><path d="M294 464 L350 464" class="sl-a" marker-end="url(#sl-head-d)"/><path d="M680 464 L740 464" class="sl-a" marker-end="url(#sl-head-d)"/><path d="M1000 410 L1000 148" class="sl-a" marker-end="url(#sl-head-d)"/><text x="1012" y="280" class="sl-l" text-anchor="start">margins</text><path d="M1090 148 L1090 410" class="sl-a" marker-end="url(#sl-head-d)"/><text x="1102" y="360" class="sl-l" text-anchor="start">θ</text><path d="M1190 94 L1250 94" class="sl-a" marker-end="url(#sl-head-d)" marker-start="url(#sl-head-d)"/><path d="M1120 464 L1300 464" class="sl-a" marker-end="url(#sl-head-d)"/><text x="1210" y="450" class="sl-l" text-anchor="middle">trip</text><g class="sl-x"><path d="M169 518 V592 H1258" class="sl-xl"/><path d="M1252 584l16 16m0-16l-16 16"/></g><text x="200" y="584" class="dk-s dk-red">video frames stay here</text><path d="M1430 518 V560" class="sl-pw"/><g class="sl-sym"><circle cx="1430" cy="590" r="24"/><path d="M1413.2 573.2L1446.8 606.8M1446.8 573.2L1413.2 606.8"/></g></svg></div>
+ <footer class="sfoot"><span>05 · the wiring</span><span class="ver">05 / 10 · v0.1.0 · untagged</span></footer>
+ <aside class="speaker-notes"><p>Nemotron 3 Super on Token Factory turns the sentence into captions and hard negatives. Cosmos-Embed1 embeds the last eight frames on the laptop. Code decides, not the model.</p><p>Only text and numbers cross the dashed line. Video frames never do.</p></aside>
 </section></div>
 
 <div class="sframe"><section class="slide s-demo" data-title="The overlay" aria-label="Slide 6: the overlay">
  <div class="rim" aria-hidden="true"></div><svg class="screw tl" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9.5" fill="#C9C2B3" stroke="#6E685B"/><circle cx="9.5" cy="9" r="5" fill="#EFEBE1" opacity=".7"/><path d="M6.5 11h9M11 6.5v9" stroke="#4A453C" stroke-width="2.2" stroke-linecap="round" transform="rotate(12 11 11)"/></svg><svg class="screw tr" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9.5" fill="#C9C2B3" stroke="#6E685B"/><circle cx="9.5" cy="9" r="5" fill="#EFEBE1" opacity=".7"/><path d="M6.5 11h9M11 6.5v9" stroke="#4A453C" stroke-width="2.2" stroke-linecap="round" transform="rotate(38 11 11)"/></svg><svg class="screw bl" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9.5" fill="#C9C2B3" stroke="#6E685B"/><circle cx="9.5" cy="9" r="5" fill="#EFEBE1" opacity=".7"/><path d="M6.5 11h9M11 6.5v9" stroke="#4A453C" stroke-width="2.2" stroke-linecap="round" transform="rotate(71 11 11)"/></svg><svg class="screw br" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9.5" fill="#C9C2B3" stroke="#6E685B"/><circle cx="9.5" cy="9" r="5" fill="#EFEBE1" opacity=".7"/><path d="M6.5 11h9M11 6.5v9" stroke="#4A453C" stroke-width="2.2" stroke-linecap="round" transform="rotate(25 11 11)"/></svg>
  <h2 class="sh">The overlay, tripped.</h2>
- <div class="shotbox"><div class="frame"><img src="../assets/page/overlay-tripped.webp" width="1600" height="837" alt="jaga's overlay, tripped: the label-tape sentence snapped across a test card, the dwell full, the breaker at OFF with a red TRIPPED flag"><span class="callout" style="left:41.2%;top:23.5%" aria-hidden="true">1</span><span class="callout" style="left:20.0%;top:58.5%" aria-hidden="true">2</span><span class="callout" style="left:85.0%;top:26.0%" aria-hidden="true">3</span><span class="callout" style="left:65.5%;top:84.3%" aria-hidden="true">4</span></div></div>
- <ol class="legend"><li><b>1</b><span>Tape snapped at θ</span></li><li><b>2</b><span>Dwell held: 30 s demo</span></li><li><b>3</b><span>Breaker OFF, acknowledged</span></li><li><b>4</b><span>Schedule row: tripped</span></li></ol>
- <p class="qacap"><span class="qa">QA render</span> scripted windows, a fake plug, a test card — not a camera</p>
- <footer class="sfoot"><span>06 · the overlay</span><span class="ver">06 / 10 · v0.0.0-dev</span></footer>
- <aside class="speaker-notes"><p>This is the real overlay the laptop serves on 127.0.0.1, rendered by our QA harness: scripted windows, a fake plug, a test card. It is labelled as a QA render everywhere.</p><p>The hardware run is filmed separately; this slide shows only what the software renders.</p></aside>
+ <div class="shotbox"><div class="frame"><img src="../assets/page/overlay-deck.webp" width="1540" height="760" alt="jaga's overlay, tripped: the label-tape sentence snapped across a test card, the dwell full, the breaker at OFF with a red TRIPPED flag"><span class="callout" style="left:26.7%;top:23.0%" aria-hidden="true">1</span><span class="callout" style="left:11.5%;top:76.5%" aria-hidden="true">2</span><span class="callout" style="left:81.3%;top:34.3%" aria-hidden="true">3</span><span class="callout" style="left:59.6%;top:47.5%" aria-hidden="true">4</span></div></div>
+ <ol class="legend"><li><b>1</b><span>Tape snapped at θ</span></li><li><b>2</b><span>Dwell held: 30 s demo</span></li><li><b>3</b><span>Breaker OFF, acknowledged</span></li><li><b>4</b><span>Trace past θ</span></li></ol>
+ <p class="qacap"><span class="qa">QA render</span> scripted windows, a fake plug, a test card instead of a camera</p>
+ <footer class="sfoot"><span>06 · the overlay</span><span class="ver">06 / 10 · v0.1.0 · untagged</span></footer>
+ <aside class="speaker-notes"><p>This is the real overlay the laptop serves on 127.0.0.1, rendered by our QA harness: scripted windows, a fake plug, a test card. It is labelled as a QA render on the slide and in the picture.</p><p>The hardware run has not been recorded yet; this slide shows only what the software renders.</p></aside>
 </section></div>
 
 <div class="sframe"><section class="slide s-rule" data-title="The rule" aria-label="Slide 7: the rule">
@@ -835,11 +921,11 @@ body.overview { overflow: auto; }
   <li><b>I2</b><span>Never fewer than two windows.</span></li>
   <li><b>I3</b><span>OFF shows only once the plug acknowledges.</span></li>
  </ul>
- <div class="cellsbig" role="img" aria-label="Twelve windows all above θ; with k = 10 of n = 12 the rule trips at window 10"><ol><li class="on">1</li><li class="on">2</li><li class="on">3</li><li class="on">4</li><li class="on">5</li><li class="on">6</li><li class="on">7</li><li class="on">8</li><li class="on">9</li><li class="fire">10</li><li class="">11</li><li class="">12</li></ol>
-  <p class="kn">k = 10 of n = 12</p>
+ <div class="cellsbig" role="img" aria-label="Ten windows all above θ; with k = 8 of n = 10 the rule trips at window 8"><ol><li class="on">1</li><li class="on">2</li><li class="on">3</li><li class="on">4</li><li class="on">5</li><li class="on">6</li><li class="on">7</li><li class="fire">8</li><li class="">9</li><li class="">10</li></ol>
+  <p class="kn">k = 8 of n = 10</p>
   <p class="big">49,152<small> patterns</small></p><p class="cap">all match an independent oracle</p></div>
- <footer class="sfoot"><span>07 · the rule</span><span class="ver">07 / 10 · v0.0.0-dev</span></footer>
- <aside class="speaker-notes"><p>Twelve windows, all above θ: k = ⌈0.8 × 12⌉ = 10, so it trips on the tenth. The decision rule is small enough to check exhaustively: every pattern of twelve windows, at four strides and three dwells, against a separate implementation.</p><p>One stray window can never cut the power.</p></aside>
+ <footer class="sfoot"><span>07 · the rule</span><span class="ver">07 / 10 · v0.1.0 · untagged</span></footer>
+ <aside class="speaker-notes"><p>Ten windows, all above θ: k = ⌈0.8 × 10⌉ = 8, so it trips on the eighth. The decision rule is small enough to check exhaustively: every pattern of twelve windows, at four strides and three dwells, against a separate implementation.</p><p>One stray window can never cut the power.</p></aside>
 </section></div>
 
 <div class="sframe"><section class="slide s-sched" data-title="Measured and pending" aria-label="Slide 8: measured and pending">
@@ -847,38 +933,41 @@ body.overview { overflow: auto; }
  <h2 class="sh">Measured, and still pending.</h2>
  <div class="sheetcard"><ul class="sheet"><li><span class="t">Cosmos, laptop GPU</span><span class="v">p50 1.24 s</span><span class="stamp s-measured">Measured</span></li><li><span class="t">Rule, all patterns</span><span class="v">49,152 / 49,152</span><span class="stamp s-tested">Tested</span></li><li><span class="t">Clips · Soak B · outside people</span><span class="v"></span><span class="stamp s-pending">Pending</span></li></ul></div>
  <p class="target">Target, set first: under half the timer's cuts; ≥ 0.8 of exits.</p>
- <footer class="sfoot"><span>08 · the schedule of test results</span><span class="ver">08 / 10 · v0.0.0-dev</span></footer>
+ <footer class="sfoot"><span>08 · the schedule of test results</span><span class="ver">08 / 10 · v0.1.0 · untagged</span></footer>
  <aside class="speaker-notes"><p>We say plainly what is not measured yet. Accuracy needs recordings a person has to make; the protocol was committed before any of them.</p><p>If jaga misses the target, the counts are read out with no claim of a win.</p></aside>
 </section></div>
 
 <div class="sframe"><section class="slide s-built" data-title="Built on" aria-label="Slide 9: built on Nebius and NVIDIA">
  <div class="rim" aria-hidden="true"></div><svg class="screw tl" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9.5" fill="#C9C2B3" stroke="#6E685B"/><circle cx="9.5" cy="9" r="5" fill="#EFEBE1" opacity=".7"/><path d="M6.5 11h9M11 6.5v9" stroke="#4A453C" stroke-width="2.2" stroke-linecap="round" transform="rotate(12 11 11)"/></svg><svg class="screw tr" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9.5" fill="#C9C2B3" stroke="#6E685B"/><circle cx="9.5" cy="9" r="5" fill="#EFEBE1" opacity=".7"/><path d="M6.5 11h9M11 6.5v9" stroke="#4A453C" stroke-width="2.2" stroke-linecap="round" transform="rotate(38 11 11)"/></svg><svg class="screw bl" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9.5" fill="#C9C2B3" stroke="#6E685B"/><circle cx="9.5" cy="9" r="5" fill="#EFEBE1" opacity=".7"/><path d="M6.5 11h9M11 6.5v9" stroke="#4A453C" stroke-width="2.2" stroke-linecap="round" transform="rotate(71 11 11)"/></svg><svg class="screw br" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9.5" fill="#C9C2B3" stroke="#6E685B"/><circle cx="9.5" cy="9" r="5" fill="#EFEBE1" opacity=".7"/><path d="M6.5 11h9M11 6.5v9" stroke="#4A453C" stroke-width="2.2" stroke-linecap="round" transform="rotate(25 11 11)"/></svg>
  <h2 class="sh">Built on Nebius and NVIDIA.</h2>
- <div class="rcards"><div class="rcard"><h3>Token Factory</h3><span class="what">Nemotron 3 Super</span><p>3 frozen compiles<br>9727b666068a…</p></div><div class="rcard"><h3>On the laptop</h3><span class="what">Cosmos-Embed1</span><p>p50 1.24 s · MPS</p></div><div class="rcard"><h3>Serverless Job</h3><span class="what">Calibration</span><p>aijob-e01e9n3qk4qq8zzk13<br><span>smoke run</span></p></div><div class="rcard"><h3>Object Storage</h3><span class="what">Presigned only</span><p>PUT 200 · GET 200</p></div></div>
- <footer class="sfoot"><span>09 · receipts</span><span class="ver">09 / 10 · v0.0.0-dev</span></footer>
- <aside class="speaker-notes"><p>Every sponsor call leaves a receipt: Token Factory request IDs on each frozen tripwire, a Serverless Job ID with its wall clock and cost, an Object Storage round trip.</p><p>Cosmos-Embed1 runs on the laptop itself, in fp32 — outside what its card tested.</p></aside>
+ <table class="rcp"><tbody><tr><th scope="row">Token Factory</th><td class="w">Nemotron 3 Super</td><td class="r">3 frozen compiles<br>9727b666068a…</td></tr><tr><th scope="row">On the laptop</th><td class="w">Cosmos-Embed1</td><td class="r">p50 1.24 s · MPS</td></tr><tr><th scope="row">Serverless Job</th><td class="w">Calibration</td><td class="r">aijob-e01e9n3qk4qq8zzk13<br>smoke run</td></tr><tr><th scope="row">Object Storage</th><td class="w">Two presigned URLs</td><td class="r">PUT 200 · GET 200</td></tr></tbody></table>
+ <footer class="sfoot"><span>09 · receipts</span><span class="ver">09 / 10 · v0.1.0 · untagged</span></footer>
+ <aside class="speaker-notes"><p>Each sponsor service has a receipt: the three frozen compiles carry Token Factory request IDs, the Job has an ID and a computed (not billed) cost, and Object Storage has a recorded round trip.</p><p>Cosmos-Embed1 runs on the laptop itself, in fp32 — outside what its card tested.</p></aside>
 </section></div>
 
 <div class="sframe"><section class="slide s-ask" data-title="The ask" aria-label="Slide 10: the ask">
  <div class="rim" aria-hidden="true"></div><svg class="screw tl" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9.5" fill="#C9C2B3" stroke="#6E685B"/><circle cx="9.5" cy="9" r="5" fill="#EFEBE1" opacity=".7"/><path d="M6.5 11h9M11 6.5v9" stroke="#4A453C" stroke-width="2.2" stroke-linecap="round" transform="rotate(12 11 11)"/></svg><svg class="screw tr" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9.5" fill="#C9C2B3" stroke="#6E685B"/><circle cx="9.5" cy="9" r="5" fill="#EFEBE1" opacity=".7"/><path d="M6.5 11h9M11 6.5v9" stroke="#4A453C" stroke-width="2.2" stroke-linecap="round" transform="rotate(38 11 11)"/></svg><svg class="screw bl" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9.5" fill="#C9C2B3" stroke="#6E685B"/><circle cx="9.5" cy="9" r="5" fill="#EFEBE1" opacity=".7"/><path d="M6.5 11h9M11 6.5v9" stroke="#4A453C" stroke-width="2.2" stroke-linecap="round" transform="rotate(71 11 11)"/></svg><svg class="screw br" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9.5" fill="#C9C2B3" stroke="#6E685B"/><circle cx="9.5" cy="9" r="5" fill="#EFEBE1" opacity=".7"/><path d="M6.5 11h9M11 6.5v9" stroke="#4A453C" stroke-width="2.2" stroke-linecap="round" transform="rotate(25 11 11)"/></svg>
  <h2 class="sh">Judge the protocol first.</h2>
  <ol class="asks">
-  <li><b>1</b><span>Read docs/PROTOCOL.md — written before any data.</span></li>
+  <li><b>1</b><span>Read docs/PROTOCOL.md: written before any data.</span></li>
   <li><b>2</b><span>Run <code>pytest</code>: 187 tests, no model or key.</span></li>
-  <li><b>3</b><span>Every number traces to DEMO.md.</span></li>
+  <li><b>3</b><span>Every measured number traces to DEMO.md.</span></li>
  </ol>
  <div class="qrbox"><svg class="qr" viewBox="0 0 29 29" width="360" height="360" role="img" aria-label="QR code for https://jaga.edycu.dev/" shape-rendering="crispEdges"><rect width="29" height="29" fill="#F5F2EA"/><path d="M2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM5 2h1v1h-1zM6 2h1v1h-1zM7 2h1v1h-1zM8 2h1v1h-1zM10 2h1v1h-1zM11 2h1v1h-1zM13 2h1v1h-1zM15 2h1v1h-1zM20 2h1v1h-1zM21 2h1v1h-1zM22 2h1v1h-1zM23 2h1v1h-1zM24 2h1v1h-1zM25 2h1v1h-1zM26 2h1v1h-1zM2 3h1v1h-1zM8 3h1v1h-1zM10 3h1v1h-1zM11 3h1v1h-1zM13 3h1v1h-1zM15 3h1v1h-1zM18 3h1v1h-1zM20 3h1v1h-1zM26 3h1v1h-1zM2 4h1v1h-1zM4 4h1v1h-1zM5 4h1v1h-1zM6 4h1v1h-1zM8 4h1v1h-1zM10 4h1v1h-1zM11 4h1v1h-1zM12 4h1v1h-1zM14 4h1v1h-1zM15 4h1v1h-1zM16 4h1v1h-1zM18 4h1v1h-1zM20 4h1v1h-1zM22 4h1v1h-1zM23 4h1v1h-1zM24 4h1v1h-1zM26 4h1v1h-1zM2 5h1v1h-1zM4 5h1v1h-1zM5 5h1v1h-1zM6 5h1v1h-1zM8 5h1v1h-1zM11 5h1v1h-1zM12 5h1v1h-1zM13 5h1v1h-1zM15 5h1v1h-1zM16 5h1v1h-1zM18 5h1v1h-1zM20 5h1v1h-1zM22 5h1v1h-1zM23 5h1v1h-1zM24 5h1v1h-1zM26 5h1v1h-1zM2 6h1v1h-1zM4 6h1v1h-1zM5 6h1v1h-1zM6 6h1v1h-1zM8 6h1v1h-1zM10 6h1v1h-1zM12 6h1v1h-1zM15 6h1v1h-1zM16 6h1v1h-1zM18 6h1v1h-1zM20 6h1v1h-1zM22 6h1v1h-1zM23 6h1v1h-1zM24 6h1v1h-1zM26 6h1v1h-1zM2 7h1v1h-1zM8 7h1v1h-1zM15 7h1v1h-1zM16 7h1v1h-1zM20 7h1v1h-1zM26 7h1v1h-1zM2 8h1v1h-1zM3 8h1v1h-1zM4 8h1v1h-1zM5 8h1v1h-1zM6 8h1v1h-1zM7 8h1v1h-1zM8 8h1v1h-1zM10 8h1v1h-1zM12 8h1v1h-1zM14 8h1v1h-1zM16 8h1v1h-1zM18 8h1v1h-1zM20 8h1v1h-1zM21 8h1v1h-1zM22 8h1v1h-1zM23 8h1v1h-1zM24 8h1v1h-1zM25 8h1v1h-1zM26 8h1v1h-1zM15 9h1v1h-1zM16 9h1v1h-1zM2 10h1v1h-1zM5 10h1v1h-1zM6 10h1v1h-1zM7 10h1v1h-1zM8 10h1v1h-1zM9 10h1v1h-1zM10 10h1v1h-1zM13 10h1v1h-1zM14 10h1v1h-1zM16 10h1v1h-1zM19 10h1v1h-1zM22 10h1v1h-1zM24 10h1v1h-1zM25 10h1v1h-1zM26 10h1v1h-1zM2 11h1v1h-1zM6 11h1v1h-1zM7 11h1v1h-1zM10 11h1v1h-1zM11 11h1v1h-1zM13 11h1v1h-1zM14 11h1v1h-1zM16 11h1v1h-1zM17 11h1v1h-1zM21 11h1v1h-1zM22 11h1v1h-1zM23 11h1v1h-1zM24 11h1v1h-1zM25 11h1v1h-1zM4 12h1v1h-1zM5 12h1v1h-1zM8 12h1v1h-1zM11 12h1v1h-1zM12 12h1v1h-1zM13 12h1v1h-1zM17 12h1v1h-1zM19 12h1v1h-1zM20 12h1v1h-1zM23 12h1v1h-1zM26 12h1v1h-1zM2 13h1v1h-1zM4 13h1v1h-1zM5 13h1v1h-1zM9 13h1v1h-1zM14 13h1v1h-1zM20 13h1v1h-1zM22 13h1v1h-1zM23 13h1v1h-1zM24 13h1v1h-1zM25 13h1v1h-1zM26 13h1v1h-1zM2 14h1v1h-1zM3 14h1v1h-1zM4 14h1v1h-1zM5 14h1v1h-1zM8 14h1v1h-1zM9 14h1v1h-1zM12 14h1v1h-1zM17 14h1v1h-1zM18 14h1v1h-1zM20 14h1v1h-1zM21 14h1v1h-1zM26 14h1v1h-1zM2 15h1v1h-1zM3 15h1v1h-1zM5 15h1v1h-1zM9 15h1v1h-1zM12 15h1v1h-1zM14 15h1v1h-1zM15 15h1v1h-1zM16 15h1v1h-1zM17 15h1v1h-1zM18 15h1v1h-1zM22 15h1v1h-1zM25 15h1v1h-1zM2 16h1v1h-1zM3 16h1v1h-1zM5 16h1v1h-1zM6 16h1v1h-1zM8 16h1v1h-1zM10 16h1v1h-1zM12 16h1v1h-1zM15 16h1v1h-1zM16 16h1v1h-1zM17 16h1v1h-1zM19 16h1v1h-1zM20 16h1v1h-1zM22 16h1v1h-1zM23 16h1v1h-1zM24 16h1v1h-1zM25 16h1v1h-1zM26 16h1v1h-1zM2 17h1v1h-1zM7 17h1v1h-1zM14 17h1v1h-1zM19 17h1v1h-1zM21 17h1v1h-1zM23 17h1v1h-1zM24 17h1v1h-1zM26 17h1v1h-1zM2 18h1v1h-1zM4 18h1v1h-1zM6 18h1v1h-1zM7 18h1v1h-1zM8 18h1v1h-1zM10 18h1v1h-1zM11 18h1v1h-1zM12 18h1v1h-1zM13 18h1v1h-1zM14 18h1v1h-1zM15 18h1v1h-1zM17 18h1v1h-1zM18 18h1v1h-1zM19 18h1v1h-1zM20 18h1v1h-1zM21 18h1v1h-1zM22 18h1v1h-1zM24 18h1v1h-1zM25 18h1v1h-1zM10 19h1v1h-1zM11 19h1v1h-1zM12 19h1v1h-1zM13 19h1v1h-1zM16 19h1v1h-1zM18 19h1v1h-1zM22 19h1v1h-1zM24 19h1v1h-1zM25 19h1v1h-1zM2 20h1v1h-1zM3 20h1v1h-1zM4 20h1v1h-1zM5 20h1v1h-1zM6 20h1v1h-1zM7 20h1v1h-1zM8 20h1v1h-1zM10 20h1v1h-1zM11 20h1v1h-1zM12 20h1v1h-1zM14 20h1v1h-1zM18 20h1v1h-1zM20 20h1v1h-1zM22 20h1v1h-1zM26 20h1v1h-1zM2 21h1v1h-1zM8 21h1v1h-1zM10 21h1v1h-1zM11 21h1v1h-1zM13 21h1v1h-1zM15 21h1v1h-1zM16 21h1v1h-1zM17 21h1v1h-1zM18 21h1v1h-1zM22 21h1v1h-1zM25 21h1v1h-1zM2 22h1v1h-1zM4 22h1v1h-1zM5 22h1v1h-1zM6 22h1v1h-1zM8 22h1v1h-1zM10 22h1v1h-1zM13 22h1v1h-1zM14 22h1v1h-1zM17 22h1v1h-1zM18 22h1v1h-1zM19 22h1v1h-1zM20 22h1v1h-1zM21 22h1v1h-1zM22 22h1v1h-1zM25 22h1v1h-1zM26 22h1v1h-1zM2 23h1v1h-1zM4 23h1v1h-1zM5 23h1v1h-1zM6 23h1v1h-1zM8 23h1v1h-1zM10 23h1v1h-1zM12 23h1v1h-1zM14 23h1v1h-1zM15 23h1v1h-1zM16 23h1v1h-1zM19 23h1v1h-1zM20 23h1v1h-1zM25 23h1v1h-1zM26 23h1v1h-1zM2 24h1v1h-1zM4 24h1v1h-1zM5 24h1v1h-1zM6 24h1v1h-1zM8 24h1v1h-1zM11 24h1v1h-1zM12 24h1v1h-1zM13 24h1v1h-1zM14 24h1v1h-1zM15 24h1v1h-1zM18 24h1v1h-1zM19 24h1v1h-1zM22 24h1v1h-1zM23 24h1v1h-1zM24 24h1v1h-1zM25 24h1v1h-1zM26 24h1v1h-1zM2 25h1v1h-1zM8 25h1v1h-1zM11 25h1v1h-1zM13 25h1v1h-1zM14 25h1v1h-1zM16 25h1v1h-1zM19 25h1v1h-1zM20 25h1v1h-1zM21 25h1v1h-1zM22 25h1v1h-1zM24 25h1v1h-1zM25 25h1v1h-1zM26 25h1v1h-1zM2 26h1v1h-1zM3 26h1v1h-1zM4 26h1v1h-1zM5 26h1v1h-1zM6 26h1v1h-1zM7 26h1v1h-1zM8 26h1v1h-1zM10 26h1v1h-1zM12 26h1v1h-1zM13 26h1v1h-1zM14 26h1v1h-1zM15 26h1v1h-1zM16 26h1v1h-1zM17 26h1v1h-1zM18 26h1v1h-1zM20 26h1v1h-1zM23 26h1v1h-1zM26 26h1v1h-1z" fill="#1A1916"/></svg><p>jaga.edycu.dev</p><small>github.com/edycutjong/jaga</small></div>
  <p class="close"><span class="tape">jaga</span> keeps watch.</p>
- <footer class="sfoot"><span>10 · the ask</span><span class="ver">10 / 10 · v0.0.0-dev</span></footer>
- <aside class="speaker-notes"><p>Our ask is simple: hold us to the protocol. The numbers will land in DEMO.md as the recordings are made — none is estimated.</p><p>jaga means "keep watch". Thank you for watching it.</p></aside>
+ <footer class="sfoot"><span>10 · the ask</span><span class="ver">10 / 10 · v0.1.0 · untagged</span></footer>
+ <aside class="speaker-notes"><p>Our ask is simple: hold us to the protocol. The numbers will land in DEMO.md as the recordings are made; none is estimated.</p><p>jaga means "keep watch". Thank you for watching it.</p></aside>
 </section></div>
 
-</div></div>
+</div></main>
 <button class="navbtn prev" type="button" aria-label="Previous slide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
 <button class="navbtn next" type="button" aria-label="Next slide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
 <p class="hint" id="hint">← → slides · Esc overview · P notes · ⌘P PDF</p>
 <p class="rotate">Turn your phone sideways · swipe for the next slide</p>
-<div class="notes" id="notes" aria-live="polite"></div>
+<div class="notes" id="notes" tabindex="0" aria-label="Speaker notes"></div>
+<p class="sr-only" role="status" id="slidestatus"></p>
+<p class="phone">A 16:9 slideshow, best on a laptop. On a phone, <a href="../">read the landing page</a> instead.</p>
+<noscript><style>.dstage{position:static;transform:none;width:auto;height:auto}.sframe{position:relative;width:1920px;height:1080px}.slide{opacity:1;visibility:visible;position:relative}.hint,.navbtn{display:none}body.deck{overflow:auto}</style></noscript>
 <script>
 (function () {
   "use strict";
@@ -891,8 +980,9 @@ body.overview { overflow: auto; }
   /* scale from the layout viewport (clientWidth/Height), never innerWidth: phones zoom out a 1920 stage otherwise */
   var fit = function () {
     if (body.classList.contains("overview")) return;
-    var w = root.clientWidth, h = root.clientHeight * (body.classList.contains("presenter") ? 0.8 : 1);
+    var w = root.clientWidth, h = root.clientHeight - (body.classList.contains("presenter") ? notes.offsetHeight : 0);
     stage.style.setProperty("--s", Math.min(w / 1920, h / 1080));
+    document.querySelector(".viewport").style.bottom = body.classList.contains("presenter") ? notes.offsetHeight + "px" : "";
   };
   var show = function (k) {
     i = Math.min(N - 1, Math.max(0, k));
@@ -900,6 +990,8 @@ body.overview { overflow: auto; }
     frames.forEach(function (f, j) { f.classList.toggle("cur", j === i); });
     var n = slides[i].querySelector(".speaker-notes");
     notes.innerHTML = "<b>Slide " + String(i + 1).padStart(2, "0") + " of " + N + " · " + (slides[i].getAttribute("data-title") || "") + "</b>" + (n ? n.innerHTML : "");
+    var ss = document.getElementById("slidestatus"); if (ss) ss.textContent = "Slide " + (i + 1) + " of " + N + ": " + (slides[i].getAttribute("data-title") || "");
+    if (body.classList.contains("presenter")) fit();
     /* the frozen slide snaps each time it is shown */
     var d = slides[i].querySelector(".door.replay");
     if (d && !capture) { d.classList.remove("is-snap", "is-off", "is-stamped", "is-acked"); void d.offsetWidth;
