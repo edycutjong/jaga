@@ -7,12 +7,10 @@ A section that has not run says so; nothing here is estimated.
 
 | device | precision | timed calls | p50 s/clip | p95 s/clip | torch | threads | 1-min load average before → after |
 |---|---|---|---|---|---|---|---|
-| MPS | fp32 | 200 | 1.0904 | 1.3371 | 2.14.1 | 8 | 5.26 → 6.23 |
-| CPU | fp32 | 200 | 3.5211 | 5.1541 | 2.14.1 | 8 | 8.42 → 15.74 |
+| MPS | fp32 | 200 | 1.2378 | 2.9058 | 2.14.1 | 8 | 4.55 → 9.82 |
+| CPU | fp32 | 200 | 3.0935 | 3.717 | 2.14.1 | 8 | 9.42 → 5.95 |
 
-200 timed calls on one window (8 frames → `preprocess` + `get_video_embeddings`), after 5 warm-up calls; input `javelin_throw.webm` (the model card's own sample video). Other processes on the machine were not stopped; the load column shows how busy it was. *ran 2026-10-15T12:09:15+0700 at commit `6cfef48` on Apple M1 Max (macOS-26.5.2-arm64-arm-64bit); 1-min load average when the result was written: 15.74*
-
-**The 1-min load average went above the machine's 10 cores during the CPU row** (CPU 8.42 → 15.74) — other processes were competing for it, so read it as a loaded machine, not an idle one. Day-0 stage COSMOS measured MPS p50 0.8617 s over 20 calls (`evidence/day0/cosmos-mps.json`).
+200 timed calls on one window (8 frames → `preprocess` + `get_video_embeddings`), after 5 warm-up calls; input `javelin_throw.webm` (the model card's own sample video). Other processes on the machine were not stopped; the load column shows how busy it was. *ran 2026-10-17T08:10:00+0700 at commit `7735988` on Apple M1 Max (macOS-26.5.2-arm64-arm-64bit); 1-min load average when the result was written: 5.95*
 
 Reproduce: `python scripts/bench.py speed --n 200`
 
