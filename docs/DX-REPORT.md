@@ -35,7 +35,7 @@ where the evidence is. It feeds the hackathon's feedback form.
    for the answer, strip any think block, and treat empty content as a compile error — never as a spec (`jaga/compile.py`; test `test_reasoning_only_reply_is_an_error_never_an_invented_spec`).
 8. **At the recommended temperature (1.0) the proposed action and dwell vary.** Five repeat compiles of the same
    sentence ("nobody is at the ironing board", same prompt) proposed `notify` four times and `plug_off` once, with
-   dwells of 30, 60, 60, 120 and 60 s (`fixtures/tripwires/variance/01-k*.json`). Separately, the very first compile of
+   dwells of 60, 30, 60, 120 and 60 s for k1–k5 (`fixtures/tripwires/variance/01-k*.json`). Separately, the very first compile of
    the fridge sentence (before a compiler-prompt revision, so not a temperature effect) proposed `plug_off` for a fridge
    (cutting a fridge's power is the harm). We made the action and dwell an explicit choice shown before arming, kept a
    code-side "never cut" list (fridge, freezer, medical…), and recorded K = 5 extra compiles per sentence
