@@ -187,12 +187,12 @@ nav.top .btn { min-height: 42px; font-size: .95rem; white-space: nowrap; }
 .brk { width: 100%; height: 100%; overflow: visible; }
 .brk .tag-t { font: 700 15px/1 var(--font-body); letter-spacing: .14em; }
 .brk .stamp { font: 800 36px/1 var(--font-display); letter-spacing: .02em; border: 0; padding: 0; }
-.brk .st-on { fill: var(--ink); } .brk .st-off { fill: #7D7568; }
+.brk .st-on { fill: var(--ink); } .brk .st-off { fill: #5C574C; }
 .brk .trip-win { fill: #CFC8B8; transition: fill .2s; }
 .brk .trip-t { font: 700 9px/1 var(--font-body); letter-spacing: .2em; fill: #fff; opacity: 0; }
 .brk .lever { transition: transform .26s cubic-bezier(.55, 0, .8, .4); }
 .door.is-off .brk .lever { transform: translateY(92px); }
-.door.is-off .brk .st-on { fill: #7D7568; } .door.is-off .brk .st-off { fill: var(--ink); }
+.door.is-off .brk .st-on { fill: #5C574C; } .door.is-off .brk .st-off { fill: var(--ink); }
 .door.is-off .brk .trip-win { fill: var(--after); } .door.is-off .brk .trip-t { opacity: 1; }
 .flag { position: absolute; left: 50%; top: calc(100% + 14px); transform: translateX(-50%); display: grid; justify-items: center; gap: 8px; width: max-content; }
 .flag .stamp { font: 800 clamp(1.8rem, 2.6vw, 2.4rem)/1 var(--font-display); letter-spacing: .04em; color: var(--after); background: var(--panel); border-width: 3px; padding: .18em .45em .12em; opacity: 0; visibility: hidden; transform: scale(1.35) rotate(-6deg); transition: opacity .15s, transform .32s cubic-bezier(.2, 1.6, .4, 1), visibility 0s .32s; }
@@ -219,17 +219,21 @@ nav.top .btn { min-height: 42px; font-size: .95rem; white-space: nowrap; }
 .notch { position: absolute; left: var(--notch); top: -30px; height: 60px; width: 0; border-left: 2px solid var(--ink); z-index: 3; }
 .notch b { position: absolute; left: 7px; top: 55px; font: 600 1rem/1 var(--font-data); white-space: nowrap; }
 .notch b small { font: 600 .72rem/1 var(--font-body); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-left: 3px; }
-.anno { position: absolute; left: calc(var(--notch) + 16px); bottom: 34px; display: grid; gap: 8px; max-width: calc(100% - var(--notch) - var(--bw) - 40px); }
+.anno { position: absolute; left: calc(var(--notch) + 6px); bottom: 30px; display: grid; gap: 8px; padding: 12px 14px 13px; max-width: calc(100% - var(--notch) - var(--bw) - 30px); }
+.vfc { position: absolute; inset: 0; pointer-events: none; }
+.vfc i { position: absolute; width: 14px; height: 14px; border: 2px solid var(--ink); }
+.vfc i:nth-child(1) { left: 0; top: 0; border-right: 0; border-bottom: 0; } .vfc i:nth-child(2) { right: 0; top: 0; border-left: 0; border-bottom: 0; }
+.vfc i:nth-child(3) { left: 0; bottom: 0; border-right: 0; border-top: 0; } .vfc i:nth-child(4) { right: 0; bottom: 0; border-left: 0; border-top: 0; }
 .drawn { margin: 0; display: flex; align-items: center; gap: 6px; font-size: .82rem; color: var(--muted); }
 .drawn .ic { width: 17px; height: 17px; flex: none; color: var(--ink); }
-.count { margin: 0; font: 500 .82rem/1.35 var(--font-data); color: var(--muted); white-space: nowrap; }
+.count { margin: 0; font: 500 .82rem/1.35 var(--font-data); color: var(--muted); max-width: 100%; }
 .count b { color: var(--ink); font-weight: 600; }
 .cells { display: flex; gap: 5px; margin: 0; padding: 0; list-style: none; }
 .cells li { width: 17px; height: 17px; border: 2px solid var(--ink); border-radius: 2px; background: transparent; transition: background-color .12s, transform .12s; flex: none; }
 .cells li.on { background: var(--before); border-color: var(--before); }
 .cells li.fire { background: var(--after); border-color: var(--after); transform: scale(1.12); }
 .hint { position: absolute; left: calc(var(--notch) + 16px); top: 78px; margin: 0; cursor: pointer; font: 700 .95rem/1.2 var(--font-body); color: var(--ink); background: var(--panel); border: 2px solid var(--ink); border-radius: 3px; padding: 7px 10px; box-shadow: var(--shadow); transition: opacity .3s, visibility 0s, transform .18s var(--ease-out), background-color .18s; }
-.hint:hover { transform: translateY(-2px); background: #fff; }
+.rig .hint:hover { transform: translateY(-2px); background: #fff; }
 .hint .ar { display: inline-block; animation: nudge 1.6s ease-in-out 3; }
 @keyframes nudge { 50% { transform: translateY(4px) } }
 .door:not(.is-pin) .hint, .door.is-snap .hint { opacity: 0; visibility: hidden; transition: opacity .3s, visibility 0s .3s; }
@@ -251,6 +255,8 @@ nav.top .btn { min-height: 42px; font-size: .95rem; white-space: nowrap; }
 .door.is-stamped .dcard .s .t { display: inline-block; } .door.is-stamped .dcard .s .a { display: none; }
 .dcard.is-hidden { display: none !important; }
 @media (min-width: 1100px) and (min-height: 800px) { .dcard { display: block; } }
+@media (max-height: 959px) { .dcard .w { display: none; } .dcard li { padding: 4px 0; } }
+.dcard.measuring { animation: none !important; transform: none !important; }
 
 /* the snap: halves recoil, the ends fray red, the right half hangs from the dropped lever, the module clunks */
 .door.is-snap .end { opacity: 1; }
@@ -289,7 +295,7 @@ section { position: relative; }
 .sec { padding: clamp(64px, 11vh, 128px) 0; }
 .sec + .sec { padding-top: 0; }
 .h2 { margin: 0 0 .35em; font: 800 clamp(2.3rem, 4.4vw, 3.9rem)/.95 var(--font-display); text-transform: uppercase; text-wrap: balance; letter-spacing: .005em; }
-.lede { margin: 0; max-width: 62ch; color: #2D2A25; }
+.lede { margin: 0; max-width: 34em; color: #2D2A25; }
 .src { display: inline-block; margin-top: 12px; font: 400 .9rem/1.5 var(--font-body); color: #4A463D; overflow-wrap: anywhere; }
 .src a { font: 500 .93em/1.45 var(--font-data); }
 .src a { display: inline; padding: 6px 0; }
@@ -310,7 +316,7 @@ figcaption .src { margin-top: 0; }
 .shot { margin: 34px 0 0; }
 .shot .frame { position: relative; border: 2px solid var(--ink); border-radius: 6px; overflow: hidden; background: var(--panel); box-shadow: 0 26px 60px -30px rgba(59,53,42,.65); }
 .shot img { width: 100%; height: auto; }
-.shot figcaption { margin-top: 28px; font-size: .9rem; color: #4A463D; max-width: 72ch; }
+.shot figcaption { margin-top: 28px; font-size: .9rem; color: #4A463D; max-width: 38em; }
 .shot .fi { position: relative; }
 .qaplate { position: absolute; right: 12px; top: 12px; font: 700 .8rem/1 var(--font-body); letter-spacing: .1em; text-transform: uppercase; color: var(--ink); background: var(--panel); border: 2px solid var(--ink); border-radius: 3px; padding: 7px 9px 6px; box-shadow: 0 6px 14px -8px rgba(0,0,0,.45); }
 .swipe { display: none; margin: 8px 0 0; font-size: .86rem; color: #4A463D; }
@@ -327,7 +333,7 @@ figcaption .src { margin-top: 0; }
 .term .bar button:hover { background: #2C2A25; border-color: #E9E5DA; }
 .term .bar button[hidden] { display: none; }
 .term .bar button:focus-visible { outline: 3px solid #E9E5DA; outline-offset: 2px; }
-.term pre { margin: 0; padding: 16px 16px 18px; font: 500 .8rem/1.62 var(--font-data); white-space: pre-wrap; word-break: break-word; height: 30em; overflow: auto; }
+.term pre { margin: 0; padding: 16px 16px 18px; font: 500 .8rem/1.62 var(--font-data); white-space: pre-wrap; word-break: break-word; height: 19em; overflow: auto; }
 .term pre::-webkit-scrollbar-track { background: #1C1B18; } .term pre::-webkit-scrollbar-thumb { background: #4A463E; border-color: #1C1B18; }
 .term pre:focus-visible { outline: 3px solid #E9E5DA; outline-offset: -3px; }
 .term .ln { display: block; min-height: 1.62em; }
@@ -436,7 +442,7 @@ figcaption .src { margin-top: 0; }
 .row-b p.after { margin-top: 1em; }
 code { overflow-wrap: anywhere; }
 .shot.small { margin: 0; }
-.shot.small .frame { max-width: 460px; }
+.shot.small .frame { max-width: 400px; }
 
 /* 05 · calibrate: the receipt */
 .receipt { background: #FBF9F3; border: 2px solid var(--ink); border-radius: 4px; padding: 18px 20px; font: 500 .84rem/1.6 var(--font-data); position: relative; }
@@ -470,7 +476,7 @@ code { overflow-wrap: anywhere; }
 .faq summary:hover { color: var(--before); }
 .faq summary .pm { width: 28px; height: 28px; border: 2px solid currentColor; border-radius: 3px; display: grid; place-items: center; font: 600 1.1rem/1 var(--font-data); transition: transform .25s var(--ease-out); }
 .faq details[open] summary .pm { transform: rotate(45deg); }
-.faq .a { padding: 0 44px 22px 4px; max-width: 70ch; }
+.faq .a { padding: 0 44px 22px 4px; max-width: 34em; }
 .faq .a p { margin: 0 0 .7em; }
 
 /* footer */
@@ -481,12 +487,17 @@ footer { padding: 54px 0 70px; border-top: 2px solid var(--ink); margin-top: 0; 
    the plate again. Text on #DFD9CC: ink 12.6:1, muted 5.0:1; on ink: cream 14.4:1, #C9C2B3 9.7:1. */
 .sec.band { padding: clamp(60px, 10vh, 112px) 0; }
 .sec.band + .sec { padding-top: clamp(64px, 11vh, 128px); }
-.band-plate { background-color: #DFD9CC; box-shadow: inset 0 1px 0 rgba(255,255,255,.55), inset 0 -1px 0 rgba(26,25,22,.12); }
+.band { position: relative; }
+.band-plate { background-color: #DFD9CC;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .24 0 0 0 0 .2 0 0 0 0 .14 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E");
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.7), inset 0 2px 0 rgba(60,52,40,.12), inset 0 22px 34px -26px rgba(255,255,255,.8), inset 0 -22px 34px -28px rgba(59,53,42,.4), inset 0 -1px 0 rgba(26,25,22,.18); }
 .band-plate .shot .frame { background: var(--panel); }
 .band-ink { background-color: var(--ink); color: #E9E5DA; }
 .band-ink .h2 { color: #F5F2EA; }
 .band-ink .lede { color: #C9C2B3; }
 .band-ink .label { border-color: #E9E5DA; box-shadow: 0 18px 34px -22px rgba(0,0,0,.9); }
+.band-ink .label:nth-child(1) { transform: rotate(-.7deg); } .band-ink .label:nth-child(2) { transform: translateY(12px) rotate(.5deg); } .band-ink .label:nth-child(3) { transform: translateY(-5px) rotate(-.3deg); }
+.band-ink .screw circle { stroke: #000; }
 .band-ink .label .lh { background: #E9E5DA; color: var(--ink); border-bottom: 3px solid var(--ink); }
 .band-ink .label blockquote { color: var(--ink); }
 .band-ink ::selection { background: #E9E5DA; color: var(--ink); }
@@ -522,6 +533,7 @@ details.more > div { padding-top: 4px; }
 .rf p { margin: 10px 0 0; font-size: .98rem; line-height: 1.45; flex: 1; }
 .rp-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 14px 24px; border-top: 2px solid var(--ink); }
 .rp-foot .lab { color: var(--ink); }
+.rp-note { font-size: .86rem; color: #4A463D; }
 .cs { font: 600 .86rem/1.3 var(--font-body); color: var(--before); }
 .cs:empty { display: none; }
 
@@ -534,11 +546,13 @@ details.more > div { padding-top: 4px; }
 @media (max-height: 500px) { .cols, .row-h { position: static; } }
 
 /* ------------------------------------------------------------ responsive */
+@media (min-width: 1100px) and (max-width: 1279px) { .cells li { width: 13px; height: 13px; } .cells { gap: 3px; } .anno { padding: 10px 10px 11px; } }
 @media (max-width: 1099px) {
   .hero { --bh: clamp(200px, 30vw, 300px); }
   .hero-top { grid-column: 1 / -1; }
   .hero-bot { grid-column: 1 / span 6; padding-top: 70px; }
   .rig { --notch: 50%; margin-top: calc(var(--bh) * .375 + 40px); }
+  .hero-top .anno { position: relative; left: auto; bottom: auto; width: max-content; max-width: 100%; margin-top: 20px; }
   .cells li { width: 14px; height: 14px; } .cells { gap: 3px; }
   .sld-wide { display: none; } .sld-tall { display: block; max-width: 460px; margin: 0 auto; }
   nav.top .links { gap: 14px; } nav.top .links a { font-size: .9rem; }
@@ -557,14 +571,13 @@ details.more > div { padding-top: 4px; }
   nav.top { padding: 20px 18px 0; } nav.top .links { display: none; } nav.top .btn span { display: none; } nav.top .btn { margin-left: auto; padding: 0 .8em; }
   .hero { padding: 0 18px; --pad: 18px; --bh: 150px; column-gap: 0; }
   .hero-bot { display: contents; }
-  .hero-top { order: 1; } .rig { order: 2; } .ctas { order: 3; grid-column: 1 / -1; margin-top: calc(var(--bh) * .625 + 150px); } .sub { order: 4; grid-column: 1 / -1; margin-top: 26px; } .proof { order: 5; grid-column: 1 / -1; } .status { order: 6; grid-column: 1 / -1; }
+  .hero-top { order: 1; } .rig { order: 2; } .ctas { order: 3; grid-column: 1 / -1; margin-top: calc(var(--bh) * .625 + 9.4em); } .sub { order: 4; grid-column: 1 / -1; margin-top: 26px; } .proof { order: 5; grid-column: 1 / -1; } .status { order: 6; grid-column: 1 / -1; }
   .h1 { font-size: clamp(2.7rem, 13.4vw, 4.2rem); }
   .hero-top { padding-top: 34px; }
-  .rig { --notch: 37%; margin-top: calc(var(--bh) * .375 + 78px); }
+  .rig { --notch: 37%; margin-top: calc(var(--bh) * .375 + 36px); }
   .rtape { height: 28px; top: -14px; font-size: .66rem; letter-spacing: .05em; padding: 0 6px; }
   .seg-l .rtape { padding-right: 6px; } .seg-r .rtape { padding-left: 6px; }
   .notch { top: -22px; height: 44px; } .notch b { top: 40px; } .notch b small { display: none; }
-  .anno { left: 0; bottom: 26px; max-width: calc(100% - var(--bw) - 6px); }
   .cells li { width: 13px; height: 13px; } .cells { gap: 4px; }
   .count { white-space: normal; }
   .brk .stamp { font: 700 34px/1 var(--font-body); }
@@ -583,7 +596,7 @@ details.more > div { padding-top: 4px; }
   .wins { grid-template-columns: repeat(6, minmax(0, 1fr)); row-gap: 26px; }
   .callout { width: 26px; height: 26px; margin: -13px 0 0 -13px; font-size: .75rem; }
   .foot { grid-template-columns: minmax(0, 1fr); } .foot nav { justify-content: flex-start; }
-  .term pre { font-size: .75rem; height: 26em; }
+  .term pre { font-size: .75rem; height: 19em; }
   .proof ul { flex-direction: column; gap: 2px; } .proof li::after { content: none !important; }
   .brk .trip-t { display: none; }
 }
@@ -593,13 +606,15 @@ details.more > div { padding-top: 4px; }
   .row-h .cct { grid-row: 1 / span 3; align-self: start; }
   .row-h .rating { grid-column: 2; grid-row: 2; }
   .row-h .stamp { grid-column: 2; grid-row: 3; justify-self: start; }
-  .receipt .rstamp { position: static; display: inline-block; margin: 0 0 12px; transform: rotate(-2deg); }
 }
+@media (max-width: 560px) { .receipt .rstamp { position: static; display: inline-block; margin: 0 0 12px; transform: rotate(-2deg); } }
+@media (max-width: 640px) { .row-h { position: static; } }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
 @media print {
+  .band-ink { background: none; color: var(--ink); } .band-ink .h2 { color: var(--ink); } .band-ink .lede { color: #4A463D; }
   .door.is-pin { height: auto; } .door.is-pin .stage { position: relative; height: auto; }
   .hint, nav.top .links, .term .bar button, .play .row2, .cmd button, .flag .btn { display: none !important; }
   .row-h, .cols { position: static; }
@@ -633,10 +648,10 @@ details.more > div { padding-top: 4px; }
      <div class="seg seg-l" aria-hidden="true"><div class="wire"></div><span class="end"></span><span class="rtape tape"><span class="ch" style="animation-delay:0.350s">N</span><span class="ch" style="animation-delay:0.382s">O</span><span class="ch" style="animation-delay:0.414s">B</span><span class="ch" style="animation-delay:0.446s">O</span><span class="ch" style="animation-delay:0.478s">D</span><span class="ch" style="animation-delay:0.510s">Y</span><span class="ch" style="animation-delay:0.542s"> </span><span class="ch" style="animation-delay:0.574s">I</span><span class="ch" style="animation-delay:0.606s">S</span><span class="ch" style="animation-delay:0.638s"> </span><span class="ch" style="animation-delay:0.670s">A</span><span class="ch" style="animation-delay:0.702s">T</span><span class="ch" style="animation-delay:0.734s"> </span><span class="ch" style="animation-delay:0.766s">T</span><span class="ch" style="animation-delay:0.798s">H</span><span class="ch" style="animation-delay:0.830s">E</span></span></div>
      <div class="seg seg-r" aria-hidden="true"><div class="wire"></div><span class="end"></span><span class="rtape tape"><span class="ch" style="animation-delay:0.862s">I</span><span class="ch" style="animation-delay:0.894s">R</span><span class="ch" style="animation-delay:0.926s">O</span><span class="ch" style="animation-delay:0.958s">N</span><span class="ch" style="animation-delay:0.990s">I</span><span class="ch" style="animation-delay:1.022s">N</span><span class="ch" style="animation-delay:1.054s">G</span><span class="ch" style="animation-delay:1.086s"> </span><span class="ch" style="animation-delay:1.118s">B</span><span class="ch" style="animation-delay:1.150s">O</span><span class="ch" style="animation-delay:1.182s">A</span><span class="ch" style="animation-delay:1.214s">R</span><span class="ch" style="animation-delay:1.246s">D</span></span></div>
      <div class="notch" aria-hidden="true"><b>θ <small>threshold</small></b></div>
-     <div class="anno" aria-hidden="true"><p class="drawn"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="1.5"/><path d="M16 10l5-3v10l-5-3"/><circle cx="9.5" cy="12" r="2.5"/></svg><span>The camera's view, drawn. Not a recording.</span></p>
-      <p class="count"><b class="k-on">0</b> of 10 above θ · trips at <b>8</b></p>
+     <div class="anno" aria-hidden="true"><span class="vfc"><i></i><i></i><i></i><i></i></span><p class="drawn"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="1.5"/><path d="M16 10l5-3v10l-5-3"/><circle cx="9.5" cy="12" r="2.5"/></svg><span>Camera view · drawn, not recorded</span></p>
+      <p class="count"><b class="k-on">0</b>&nbsp;of&nbsp;10 above θ · trips at&nbsp;<b>8</b></p>
       <ol class="cells"><li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li></ol></div>
-     <button type="button" class="hint" id="hintbtn">Scroll to run the dwell <span class="ar" aria-hidden="true">↓</span></button>
+     <button type="button" class="hint" id="hintbtn">Scroll to watch it trip <span class="ar" aria-hidden="true">↓</span></button>
      <p class="sr-only" role="status" id="tripstatus">The drawing shows tripwire 01 armed: nobody at the ironing board, the plug on.</p>
      <div class="dcard" aria-hidden="true"><span class="lab">Schedule · the drawn camera</span><ol><li><span class="n">01</span><span>nobody is at the ironing board<span class="w">plug OFF after 120 s</span></span><span class="s"><span class="a">Armed</span><span class="t">Tripped</span></span></li><li><span class="n">02</span><span>the fridge door is left open and nobody is there<span class="w">notify after 60 s; a fridge is never cut</span></span><span class="s"><span class="u">Not armed</span></span></li><li><span class="n">03</span><span>the door is left open and nobody is there<span class="w">notify after 60 s</span></span><span class="s"><span class="u">Not armed</span></span></li></ol></div>
      <div class="brk-wrap"><svg class="brk" viewBox="0 0 240 400" role="img" aria-labelledby="hb-t">
@@ -676,10 +691,10 @@ details.more > div { padding-top: 4px; }
 <text x="162" y="292" class="stamp st-off">OFF</text>
 <rect class="trip-win" x="92" y="310" width="56" height="13" rx="3"/>
 <text x="120" y="320" text-anchor="middle" class="trip-t">TRIP</text>
-</svg><div class="flag"><span class="stamp">Tripped</span><span class="ack">OFF acknowledged by the plug</span><button class="btn btn-sm" type="button" id="runbtn" aria-controls="tripstatus">Run the dwell</button></div></div>
+</svg><div class="flag"><span class="stamp">Tripped</span><span class="ack">OFF acknowledged by the plug</span><button class="btn btn-sm" type="button" id="runbtn" aria-controls="tripstatus">Watch it trip</button></div></div>
     </div>
     <div class="hero-bot">
-     <p class="sub"><span class="sc">A scenario:</span> Bu Sari leaves the iron on and runs to the warung. Her CCTV stays silent: an empty room has no motion. jaga is built for that sentence: <b>Nemotron 3 Super</b> compiles it, <b>Cosmos-Embed1</b> watches the webcam on the laptop (<b>1.24 s</b> a window), and a trip can only switch a cheap smart plug <b>OFF</b>.</p>
+     <p class="sub"><span class="sc">A scenario:</span> Bu Sari leaves the iron on and runs to the warung. Her CCTV stays silent: an empty room has no motion. jaga is built for that sentence: <b>Nemotron 3 Super</b> on Nebius Token Factory compiles it, <b>Cosmos-Embed1</b> watches the laptop's webcam (<b>1.24 s</b> a window, timed on a sample clip), and a trip can only switch a cheap smart plug <b>OFF</b>.</p>
      <div class="ctas">
       <a class="btn btn-ink" href="https://github.com/edycutjong/jaga"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>Source on GitHub</a>
       <a class="btn" href="pitch/"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="1"/><path d="M12 16v4M8 20h8"/></svg>Pitch deck</a>
@@ -700,11 +715,11 @@ details.more > div { padding-top: 4px; }
 <section class="sec" id="receipts" aria-labelledby="rc-h">
  <div class="wrap">
   <h2 class="h2" id="rc-h">Measured so far, and where it is written down.</h2>
-  <div class="rplate"><div class="rp-head"><span>Rating plate</span><span>measured so far</span></div><div class="rp-grid"><div class="rf" data-count="187" data-dec="0"><span class="lab">Tests pass</span><span class="n"><span class="v">187</span></span><p>with no model, no key and no camera: the safety invariants, the decision rule, the measurement rules</p><span class="src">→&nbsp;<a href="https://github.com/edycutjong/jaga/blob/main/evidence/runs/2026-10-17-pytest.txt">evidence/runs · pytest</a></span></div><div class="rf" data-count="49152" data-dec="0"><span class="lab">Rule, every pattern</span><span class="n"><span class="v">49,152</span></span><p>window patterns: the decision rule trips where an independent oracle says, and one window never trips</p><span class="src">→&nbsp;<a href="https://github.com/edycutjong/jaga/blob/main/tests/test_decision_exhaustive.py">tests/…exhaustive.py</a></span></div><div class="rf" data-count="1.2378" data-dec="2"><span class="lab">Cosmos on the laptop</span><span class="n"><span class="v">1.24</span><small>s</small></span><p>per 8-frame window on the laptop's GPU, fp32: p50 of 200 timed calls (p95 2.91 s on a busy machine)</p><span class="src">→&nbsp;<a href="https://github.com/edycutjong/jaga/blob/main/DEMO.md">DEMO.md §1</a></span></div><div class="rf" data-count="5" data-dec="0"><span class="lab">Sentences compiled</span><span class="n"><span class="v">5</span><small>/5</small></span><p>camera-visible sentences, each a valid tripwire from Nemotron 3 Super, 2 of 2 in Indonesian; a 6th a camera cannot see was refused</p><span class="src">→&nbsp;<a href="https://github.com/edycutjong/jaga/blob/main/evidence/day0/tf-stage-t.json">day0/tf-stage-t.json</a></span></div></div><div class="rp-foot"><span class="lab">Run the 187 tests</span><span class="cmd"><span>pip install -e ".[test]" &amp;&amp; pytest</span><button type="button" data-copy='pip install -e ".[test]" &amp;&amp; pytest' aria-label="Copy the install-and-test command"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="1.5"/><path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8"/></svg></button></span><span class="cs" role="status" id="copystatus"></span></div></div>
+  <div class="rplate"><div class="rp-head"><span>Rating plate</span><span>measured so far</span></div><div class="rp-grid"><div class="rf" data-count="187" data-dec="0"><span class="lab">Tests pass</span><span class="n"><span class="v">187</span></span><p>with no model, no key and no camera: the safety invariants, the decision rule, the measurement rules</p><span class="src">→&nbsp;<a href="https://github.com/edycutjong/jaga/blob/main/evidence/runs/2026-10-17-pytest.txt">evidence/runs · pytest</a></span></div><div class="rf" data-count="49152" data-dec="0"><span class="lab">Rule, every pattern</span><span class="n"><span class="v">49,152</span></span><p>window patterns: the decision rule trips where an independent oracle says, and one window never trips</p><span class="src">→&nbsp;<a href="https://github.com/edycutjong/jaga/blob/main/tests/test_decision_exhaustive.py">tests/…exhaustive.py</a></span></div><div class="rf" data-count="1.2378" data-dec="2"><span class="lab">Cosmos on the laptop</span><span class="n"><span class="v">1.24</span><small>s</small></span><p>per 8-frame window on the laptop's GPU, fp32: p50 of 200 timed calls (p95 2.91 s on a busy machine)</p><span class="src">→&nbsp;<a href="https://github.com/edycutjong/jaga/blob/main/DEMO.md">DEMO.md §1</a></span></div><div class="rf" data-count="5" data-dec="0"><span class="lab">Sentences compiled</span><span class="n"><span class="v">5</span><small>/5</small></span><p>camera-visible sentences, each a valid tripwire from Nemotron 3 Super, 2 of 2 in Indonesian; a 6th a camera cannot see was refused</p><span class="src">→&nbsp;<a href="https://github.com/edycutjong/jaga/blob/main/evidence/day0/tf-stage-t.json">day0/tf-stage-t.json</a></span></div></div><div class="rp-foot"><span class="lab">Run the 187 tests</span><span class="cmd"><span>pip install -e ".[test]" &amp;&amp; pytest</span><button type="button" data-copy='pip install -e ".[test]" &amp;&amp; pytest' aria-label="Copy the install-and-test command"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="1.5"/><path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8"/></svg></button></span><span class="rp-note">3 of them need ffmpeg on PATH</span><span class="cs" role="status" id="copystatus"></span></div></div>
  </div>
 </section>
 
-<section class="sec band band-plate" id="overlay" aria-labelledby="ov-h">
+<section class="sec band band-plate" id="overlay" aria-labelledby="ov-h"><svg class="screw tl" viewBox="0 0 22 22" aria-hidden="true"><defs><radialGradient id="scptl" cx=".36" cy=".32" r=".8"><stop offset="0" stop-color="#FBF9F3"/><stop offset=".6" stop-color="#B9B2A3"/><stop offset="1" stop-color="#7D7667"/></radialGradient></defs><circle cx="11" cy="11" r="9.5" fill="url(#scptl)" stroke="#6E685B"/><path d="M6.5 11h9M11 6.5v9" stroke="#4A453C" stroke-width="2.2" stroke-linecap="round" transform="rotate(33 11 11)"/></svg><svg class="screw tr" viewBox="0 0 22 22" aria-hidden="true"><defs><radialGradient id="scptr" cx=".36" cy=".32" r=".8"><stop offset="0" stop-color="#FBF9F3"/><stop offset=".6" stop-color="#B9B2A3"/><stop offset="1" stop-color="#7D7667"/></radialGradient></defs><circle cx="11" cy="11" r="9.5" fill="url(#scptr)" stroke="#6E685B"/><path d="M6.5 11h9M11 6.5v9" stroke="#4A453C" stroke-width="2.2" stroke-linecap="round" transform="rotate(61 11 11)"/></svg><svg class="screw bl" viewBox="0 0 22 22" aria-hidden="true"><defs><radialGradient id="scpbl" cx=".36" cy=".32" r=".8"><stop offset="0" stop-color="#FBF9F3"/><stop offset=".6" stop-color="#B9B2A3"/><stop offset="1" stop-color="#7D7667"/></radialGradient></defs><circle cx="11" cy="11" r="9.5" fill="url(#scpbl)" stroke="#6E685B"/><path d="M6.5 11h9M11 6.5v9" stroke="#4A453C" stroke-width="2.2" stroke-linecap="round" transform="rotate(8 11 11)"/></svg><svg class="screw br" viewBox="0 0 22 22" aria-hidden="true"><defs><radialGradient id="scpbr" cx=".36" cy=".32" r=".8"><stop offset="0" stop-color="#FBF9F3"/><stop offset=".6" stop-color="#B9B2A3"/><stop offset="1" stop-color="#7D7667"/></radialGradient></defs><circle cx="11" cy="11" r="9.5" fill="url(#scpbr)" stroke="#6E685B"/><path d="M6.5 11h9M11 6.5v9" stroke="#4A453C" stroke-width="2.2" stroke-linecap="round" transform="rotate(47 11 11)"/></svg>
  <div class="wrap">
   <h2 class="h2" id="ov-h">The overlay you arm it from.</h2>
   <p class="lede">What jaga serves on 127.0.0.1 while it watches, and beside it, real runs of the command line.</p>
@@ -713,7 +728,7 @@ details.more > div { padding-top: 4px; }
  </div>
 </section>
 
-<section class="sec" id="wiring" aria-labelledby="wi-h" style="padding-top:0">
+<section class="sec" id="wiring" aria-labelledby="wi-h">
  <div class="wrap">
   <h2 class="h2" id="wi-h">One sentence, wired to a plug.</h2>
   <p class="lede">Electricians draw a circuit as a single line; this is jaga&#x27;s. The sentence goes out as text and captions come back; frames stay on the laptop; the calibration Job sees only labelled margins.</p>
@@ -734,7 +749,7 @@ details.more > div { padding-top: 4px; }
  </div>
 </section>
 
-<section class="sec band band-ink" id="honest" aria-labelledby="ho-h">
+<section class="sec band band-ink" id="honest" aria-labelledby="ho-h"><svg class="screw tl" viewBox="0 0 22 22" aria-hidden="true"><defs><radialGradient id="scktl" cx=".36" cy=".32" r=".8"><stop offset="0" stop-color="#FBF9F3"/><stop offset=".6" stop-color="#B9B2A3"/><stop offset="1" stop-color="#7D7667"/></radialGradient></defs><circle cx="11" cy="11" r="9.5" fill="url(#scktl)" stroke="#6E685B"/><path d="M6.5 11h9M11 6.5v9" stroke="#4A453C" stroke-width="2.2" stroke-linecap="round" transform="rotate(52 11 11)"/></svg><svg class="screw tr" viewBox="0 0 22 22" aria-hidden="true"><defs><radialGradient id="scktr" cx=".36" cy=".32" r=".8"><stop offset="0" stop-color="#FBF9F3"/><stop offset=".6" stop-color="#B9B2A3"/><stop offset="1" stop-color="#7D7667"/></radialGradient></defs><circle cx="11" cy="11" r="9.5" fill="url(#scktr)" stroke="#6E685B"/><path d="M6.5 11h9M11 6.5v9" stroke="#4A453C" stroke-width="2.2" stroke-linecap="round" transform="rotate(19 11 11)"/></svg><svg class="screw bl" viewBox="0 0 22 22" aria-hidden="true"><defs><radialGradient id="sckbl" cx=".36" cy=".32" r=".8"><stop offset="0" stop-color="#FBF9F3"/><stop offset=".6" stop-color="#B9B2A3"/><stop offset="1" stop-color="#7D7667"/></radialGradient></defs><circle cx="11" cy="11" r="9.5" fill="url(#sckbl)" stroke="#6E685B"/><path d="M6.5 11h9M11 6.5v9" stroke="#4A453C" stroke-width="2.2" stroke-linecap="round" transform="rotate(70 11 11)"/></svg><svg class="screw br" viewBox="0 0 22 22" aria-hidden="true"><defs><radialGradient id="sckbr" cx=".36" cy=".32" r=".8"><stop offset="0" stop-color="#FBF9F3"/><stop offset=".6" stop-color="#B9B2A3"/><stop offset="1" stop-color="#7D7667"/></radialGradient></defs><circle cx="11" cy="11" r="9.5" fill="url(#sckbr)" stroke="#6E685B"/><path d="M6.5 11h9M11 6.5v9" stroke="#4A453C" stroke-width="2.2" stroke-linecap="round" transform="rotate(4 11 11)"/></svg>
  <div class="wrap">
   <h2 class="h2" id="ho-h">Read the labels before you wire it.</h2>
   <p class="lede">Three limits, quoted from the README as written. A judge should know them before believing anything above.</p>
@@ -745,7 +760,7 @@ details.more > div { padding-top: 4px; }
 <section class="sec" id="faq" aria-labelledby="fq-h">
  <div class="wrap">
   <h2 class="h2" id="fq-h">Questions a judge would ask.</h2>
-  <div class="faq"><details><summary>Does any video leave the laptop?<span class="pm" aria-hidden="true">+</span></summary><div class="a"><p>No. The typed sentence goes to Token Factory; labelled margins (no vectors) go to the calibration Job. The overlay listens on 127.0.0.1. An offline check blocks every non-local connection, then trips a tripwire and switches the fake plug OFF. A Tuya plug's own firmware may call Tuya's cloud; the Shelly path stays local.</p></div></details><details><summary>How accurate is it?<span class="pm" aria-hidden="true">+</span></summary><div class="a"><p>Not measured yet. The clips, two attended soaks and one night are pre-registered in docs/PROTOCOL.md, committed before any data. An accuracy number appears here only once bench.py writes it to DEMO.md.</p></div></details><details><summary>Is anything on this page mocked?<span class="pm" aria-hidden="true">+</span></summary><div class="a"><p>The overlay pictures are QA renders (the real app on scripted windows, a fake plug and a test card) and say so. The breaker at the top is a drawing of the rule. The terminal is typed back from real transcripts. Every measured number links its file.</p></div></details><details><summary>Can it tell whether the iron is hot?<span class="pm" aria-hidden="true">+</span></summary><div class="a"><p>No. At 224p jaga sees scene states (a person there or not, a door open), not an iron's power light. So tripwire 01 watches for nobody at the board.</p></div></details><details><summary>What stops a wrong trip from doing harm?<span class="pm" aria-hidden="true">+</span></summary><div class="a"><p>A trip can only cut power or notify (I1, tested); one window never trips (I2, all 49,152 patterns); OFF shows only on the plug's acknowledgement (I3). Only heating or cooking appliances can be cut, and a person switches power back on.</p></div></details><details><summary>Why does Nemotron rewrite my sentence?<span class="pm" aria-hidden="true">+</span></summary><div class="a"><p>The Cosmos-Embed1 card says prompts unlike its short action captions may not align with video. Super writes that register, plus hard negatives that make “nobody” a visual contrast. What that is worth is a planned ablation (DEMO.md §5), not run yet.</p></div></details></div>
+  <div class="faq"><details><summary>Does any video leave the laptop?<span class="pm" aria-hidden="true">+</span></summary><div class="a"><p>No. The typed sentence goes to Token Factory; labelled margins (no vectors) go to the calibration Job; an optional push, off unless you turn it on, sends one text line per alert. The overlay listens on 127.0.0.1. An offline check refuses every connection outside the home network, then trips a tripwire on stand-in window vectors and switches the fake plug OFF. A Tuya plug's own firmware may call Tuya's cloud; the Shelly path can be fully local.</p></div></details><details><summary>How accurate is it?<span class="pm" aria-hidden="true">+</span></summary><div class="a"><p>Not measured yet. The clips, two attended soaks and one night are pre-registered in docs/PROTOCOL.md, committed before any data. An accuracy number appears here only once bench.py writes it to DEMO.md.</p></div></details><details><summary>Is anything on this page mocked?<span class="pm" aria-hidden="true">+</span></summary><div class="a"><p>The overlay pictures are QA renders (the real app on scripted windows, a fake plug and a test card) and say so. The breaker at the top is a drawing of the rule. The terminal is typed back from real transcripts. Every measured number links its file.</p></div></details><details><summary>Can it tell whether the iron is hot?<span class="pm" aria-hidden="true">+</span></summary><div class="a"><p>No. At 224p jaga sees scene states (a person there or not, a door open), not an iron's power light. So tripwire 01 watches for nobody at the board.</p></div></details><details><summary>What stops a wrong trip from doing harm?<span class="pm" aria-hidden="true">+</span></summary><div class="a"><p>A trip can only cut power or notify (I1, tested); one window never trips (I2, all 49,152 patterns); OFF shows only on the plug's acknowledgement (I3). Only heating or cooking appliances can be cut, and a person switches power back on.</p></div></details><details><summary>Why does Nemotron rewrite my sentence?<span class="pm" aria-hidden="true">+</span></summary><div class="a"><p>The Cosmos-Embed1 card says prompts unlike its short action captions may not align with video. Super writes that register, plus hard negatives that make “nobody” a visual contrast. What that is worth is a planned ablation (DEMO.md §5), not run yet.</p></div></details></div>
  </div>
 </section>
 
@@ -835,6 +850,15 @@ details.more > div { padding-top: 4px; }
   var door = $("#door"), rig = $("#rig");
   if (door && rig) {
     var cells = $$(".cells li", rig), kOn = $(".k-on", rig), btn = $("#runbtn"), status = $("#tripstatus");
+    var anno = $(".anno", rig), annoNext = anno ? anno.nextSibling : null, heroTop = $(".hero-top", door);
+    var narrow = window.matchMedia("(max-width: 1099px)");
+    var placeAnno = function () {
+      if (!anno || !heroTop) return;
+      if (narrow.matches) { if (anno.parentNode !== heroTop) heroTop.appendChild(anno); }
+      else if (anno.parentNode !== rig) rig.insertBefore(anno, annoNext);
+    };
+    placeAnno();
+    if (narrow.addEventListener) narrow.addEventListener("change", placeAnno); else if (narrow.addListener) narrow.addListener(placeAnno);
     var inner = $(".inner", door), nav = $("nav.top", door), dcard = $(".dcard", door), timers = [], played = false, loaded = false;
     var announced = false; /* a pinned scrub says the trip once, not at every crossing of the trip point */
     var N = cells.length, all = [];
@@ -861,7 +885,7 @@ details.more > div { padding-top: 4px; }
       later(function () { door.classList.add("is-off"); }, RM ? 0 : 240);
       later(function () { door.classList.add("is-stamped"); }, RM ? 0 : 520);
       later(function () { door.classList.add("is-acked"); if (speak) { announced = true; say("Drawing: window " + (TRIP + 1) + " of " + N + " held the rule, the wire snapped and the breaker dropped to OFF, acknowledged by the plug."); } }, RM ? 0 : 900);
-      if (btn) { btn.textContent = "Re-arm"; btn.setAttribute("aria-label", "Re-arm: a person switches the power back on"); }
+      if (btn) { btn.textContent = "Switch back on"; btn.setAttribute("aria-label", "Switch back on: a person restores the power"); }
     };
     var rearm = function (byPerson) {
       clear();
@@ -872,7 +896,7 @@ details.more > div { padding-top: 4px; }
         if (byPerson) say("Drawing: re-armed. A person switched the power back on; the wire is taut again.");
       }
       setCells(0);
-      if (btn) { btn.textContent = "Run the dwell"; btn.removeAttribute("aria-label"); }
+      if (btn) { btn.textContent = "Watch it trip"; btn.removeAttribute("aria-label"); }
     };
     var run = function () {
       rearm();
@@ -895,7 +919,10 @@ details.more > div { padding-top: 4px; }
       if (!dcard) return;
       dcard.classList.remove("is-hidden");
       if (getComputedStyle(dcard).display === "none") return;
-      if (dcard.getBoundingClientRect().top < nav.getBoundingClientRect().bottom + 18) dcard.classList.add("is-hidden");
+      dcard.classList.add("measuring");
+      var top = dcard.getBoundingClientRect().top;
+      dcard.classList.remove("measuring");
+      if (top < nav.getBoundingClientRect().bottom + 14) dcard.classList.add("is-hidden");
     };
 
     /* pinned scrub only where the whole door fits the window; elsewhere the dwell plays by itself, once, as soon as the
@@ -916,18 +943,30 @@ details.more > div { padding-top: 4px; }
       played = true; later(run, 300);
     };
     setTimeout(function () { loaded = true; maybePlay(); }, RM ? 0 : 1700);
+    var moved = false;
+    setTimeout(function () {
+      if (RM || moved || played || !door.classList.contains("is-pin") || window.pageYOffset > 2) return;
+      played = true; run();
+    }, 4500);
     /* keep the reader's place when the window (or the zoom) changes: remember what is at the top, restore it after */
     var marks = $$("#door, main > section, main article.row, footer"), place = null;
     var remember = function () {
+      /* the mark that starts nearest the top, in the upper half of the window (what the reader is reading); else the
+         innermost mark that holds the top. The hero (its height changes with the pin) only when nothing else qualifies. */
       place = null;
-      for (var j = 0; j < marks.length; j++) { var r = marks[j].getBoundingClientRect(); if (r.bottom > 1) { place = { el: marks[j], top: r.top }; return; } }
+      var best = null, bt = Infinity, H = window.innerHeight;
+      for (var j = 1; j < marks.length; j++) { var r = marks[j].getBoundingClientRect(); if (r.top >= 0 && r.top < H * 0.5 && r.top < bt) { best = marks[j]; bt = r.top; } }
+      if (!best) for (var k = marks.length - 1; k >= 0; k--) { var q = marks[k].getBoundingClientRect(); if (q.top <= 1 && q.bottom > 1) { best = marks[k]; bt = q.top; break; } }
+      if (best) place = { el: best, top: bt };
     };
     var ticking = false;
     window.addEventListener("scroll", function () {
+      if (window.pageYOffset > 2) moved = true;
       if (!ticking) { ticking = true; requestAnimationFrame(function () { ticking = false; onScroll(); maybePlay(); remember(); }); }
     }, { passive: true });
     var mode = function (e) {
       var keep = e && e.type === "resize" && window.pageYOffset > 0 ? place : null;
+      placeAnno(); /* before the restore: the media-query change event fires after the resize event */
       door.classList.remove("is-pin");
       var want = pinOK();
       door.classList.toggle("is-pin", want);
@@ -940,7 +979,7 @@ details.more > div { padding-top: 4px; }
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { mode(); });
     if ("IntersectionObserver" in window) {
       new IntersectionObserver(function (es) { es.forEach(function (e) { visible = e.isIntersecting; maybePlay(); }); },
-        { threshold: 0.6 }).observe($(".brk-wrap", rig));
+        { threshold: 0.5 }).observe($(".brk-wrap", rig));
     }
   }
 

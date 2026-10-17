@@ -5,6 +5,7 @@
  "server": "jaga.server.create_app + jaga.daemon.Watcher, the same code jaga serve runs",
  "camera_pane": "a test card played through jaga.capture.FileSource (no camera; it reads 'QA render \u00b7 scripted windows \u00b7 no camera')",
  "windows": "scripted: vectors placed on the negative side, then the positive side, so ARMED -> HOLDING -> TRIPPED happens on cue",
+ "theta": "set by the QA script: the midpoint of the scripted positive and negative margins (-0.0411, shown as 'v1'); not fitted from clips, not frozen, not a calibration",
  "dwell": "tripwire 01 with the 30 s demo dwell (default 120 s), as the overlay shows",
  "plug": "the test suite's fake LAN plug (tests/fakeplug.py) on loopback; its acknowledgement time is not a real plug's",
  "plug_calls": {
