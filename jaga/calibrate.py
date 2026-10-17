@@ -257,7 +257,8 @@ def dispatch(smoke: bool = False, input_csv: str | None = None, wait: bool = Tru
         result_via = "nebius ai job logs" if result else None
     result_ok = matches(result)
     t_start, t_end = _ts(st.get("started_at")), _ts(st.get("finished_at"))
-    wall = round(t_end - t_start, 1) if t_start and t_end else None
+    wall_raw = (t_end - t_start) if t_start and t_end else None
+    wall = None if wall_raw is None else round(wall_raw, 1)
     created = (info.get("metadata") or {}).get("created_at")
     ev = {"job_id": job_id, "kind": kind, "state": state, "run_id": run_id, "region": REGION, "platform": PLATFORM,
           "preset": PRESET, "image": IMAGE, "disk_size": DISK, "created_at": created,
@@ -268,8 +269,9 @@ def dispatch(smoke: bool = False, input_csv: str | None = None, wait: bool = Tru
           "input_rows": n_rows, "input_bytes": len(data), "input_sha256": hashlib.sha256(data).hexdigest(),
           "input": "fixtures/test/smoke_margins.csv (synthetic test fixture — plumbing only)" if smoke else
           (input_csv or "labelled clip margins + ✗ wrong marks (unscored sessions only)"),
-          "cost_usd_listed": None if wall is None else round(wall / 3600 * PRICE_LISTED, 6),
-          "cost_usd_listed_before_oct": None if wall is None else round(wall / 3600 * PRICE_BEFORE_OCT, 6),
+          # priced from the unrounded wall clock: a figure is rounded once, at the end
+          "cost_usd_listed": None if wall_raw is None else round(wall_raw / 3600 * PRICE_LISTED, 6),
+          "cost_usd_listed_before_oct": None if wall_raw is None else round(wall_raw / 3600 * PRICE_BEFORE_OCT, 6),
           "billed_usd": None, "billed_note": "read the billed amount from the Nebius console (the formula has no disk "
                                               "or provisioning term)", "result_matches_input": result_ok,
           "cancelled_by_dispatcher": bool(info.get("cancelled_by_dispatcher")), "result": result}

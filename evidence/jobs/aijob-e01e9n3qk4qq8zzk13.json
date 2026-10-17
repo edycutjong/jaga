@@ -19,8 +19,9 @@
   "input_bytes": 395,
   "input_sha256": "ce159f720b0be00da6f649edda481e87c26c9a31d37130f7926bf27776226ace",
   "input": "fixtures/test/smoke_margins.csv (synthetic test fixture — plumbing only)",
-  "cost_usd_docs_price": 1.7e-05,
-  "cost_usd_high_price": 2.2e-05,
+  "cost_usd_listed": 2.1e-05,
+  "cost_usd_listed_before_oct": 1.6e-05,
+  "cost_note": "recomputed 2026-10-17 from the unrounded wall clock (0.581 s); the first write priced the wall clock after rounding it to 0.6 s ($0.000022 / $0.000017)",
   "billed_usd": null,
   "billed_note": "read the billed amount from the Nebius console (the formula has no disk or provisioning term)",
   "result": {

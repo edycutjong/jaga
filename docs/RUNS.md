@@ -16,4 +16,4 @@ columns price the container's own wall clock only.
 
 | created (UTC) | job ID | kind | state | provisioning (s) | wall clock (s) | cost @ $0.132/h (listed) | cost @ $0.0992/h (before 2026-10-01) | input | result | result read via |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 2026-10-15 00:08:27 | `aijob-e01e9n3qk4qq8zzk13` | **smoke, not a calibration** | COMPLETED | 259 | 0.6 | $0.000022 | $0.000017 | 10 rows · sha256 `ce159f720b0b` | plumbing check: 10 rows in, result out (synthetic numbers, not reported) | object storage (presigned PUT by the Job) |
+| 2026-10-15 00:08:27 | `aijob-e01e9n3qk4qq8zzk13` | **smoke, not a calibration** | COMPLETED | 259 | 0.6 | $0.000021 | $0.000016 | 10 rows · sha256 `ce159f720b0b` | plumbing check: 10 rows in, result out (synthetic numbers, not reported) | object storage (presigned PUT by the Job) |
