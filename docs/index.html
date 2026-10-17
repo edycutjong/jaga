@@ -1,0 +1,886 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>jaga — type a sentence; the plug keeps watch</title>
+<meta name="description" content="jaga turns a typed sentence into a tripwire: Nemotron 3 Super compiles it, Cosmos-Embed1 watches a webcam on your laptop, and a smart plug switches OFF.">
+<meta name="author" content="Edy Cu">
+<meta name="theme-color" content="#E9E5DA">
+<link rel="canonical" href="https://jaga.edycu.dev/">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/icon-512.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="jaga">
+<meta property="og:title" content="jaga — type a sentence; the plug keeps watch">
+<meta property="og:description" content="A typed sentence becomes a tripwire: Cosmos-Embed1 watches on the laptop, and a smart plug switches OFF.">
+<meta property="og:url" content="https://jaga.edycu.dev/">
+<meta property="og:image" content="https://jaga.edycu.dev/assets/page/og.png?v=27053512">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="jaga: a typed sentence on blue label tape stretched across the page as a yellow wire, tied to a breaker at OFF">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="jaga — type a sentence; the plug keeps watch">
+<meta name="twitter:description" content="A typed sentence becomes a tripwire: Cosmos-Embed1 watches on the laptop, and a smart plug switches OFF.">
+<meta name="twitter:image" content="https://jaga.edycu.dev/assets/page/og.png?v=27053512">
+<meta name="twitter:image:alt" content="jaga: a typed sentence on blue label tape stretched across the page as a yellow wire, tied to a breaker at OFF">
+<link rel="preload" href="assets/fonts/bigshouldersstencil-800-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/atkinsonhyperlegiblenext-400-700-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/ibmplexmono-500-latin.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+@font-face{font-family:"Big Shoulders Stencil";font-style:normal;font-weight:800;font-display:swap;src:url("assets/fonts/bigshouldersstencil-800-latin-ext.woff2") format("woff2");unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF}
+@font-face{font-family:"Big Shoulders Stencil";font-style:normal;font-weight:800;font-display:swap;src:url("assets/fonts/bigshouldersstencil-800-latin.woff2") format("woff2");unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+@font-face{font-family:"Atkinson Hyperlegible Next";font-style:normal;font-weight:400 700;font-display:swap;src:url("assets/fonts/atkinsonhyperlegiblenext-400-700-latin-ext.woff2") format("woff2");unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF}
+@font-face{font-family:"Atkinson Hyperlegible Next";font-style:normal;font-weight:400 700;font-display:swap;src:url("assets/fonts/atkinsonhyperlegiblenext-400-700-latin.woff2") format("woff2");unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+@font-face{font-family:"IBM Plex Mono";font-style:normal;font-weight:400;font-display:swap;src:url("assets/fonts/ibmplexmono-400-latin-ext.woff2") format("woff2");unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF}
+@font-face{font-family:"IBM Plex Mono";font-style:normal;font-weight:400;font-display:swap;src:url("assets/fonts/ibmplexmono-400-latin.woff2") format("woff2");unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+@font-face{font-family:"IBM Plex Mono";font-style:normal;font-weight:500;font-display:swap;src:url("assets/fonts/ibmplexmono-500-latin-ext.woff2") format("woff2");unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF}
+@font-face{font-family:"IBM Plex Mono";font-style:normal;font-weight:500;font-display:swap;src:url("assets/fonts/ibmplexmono-500-latin.woff2") format("woff2");unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+@font-face{font-family:"IBM Plex Mono";font-style:normal;font-weight:600;font-display:swap;src:url("assets/fonts/ibmplexmono-600-latin-ext.woff2") format("woff2");unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF}
+@font-face{font-family:"IBM Plex Mono";font-style:normal;font-weight:600;font-display:swap;src:url("assets/fonts/ibmplexmono-600-latin.woff2") format("woff2");unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+@font-face{font-family:"Big Shoulders Stencil Fallback";src:local("Arial Narrow Bold"), local("ArialNarrow-Bold"), local("Arial Narrow");size-adjust:99.15%;ascent-override:99.39%;descent-override:21.63%;line-gap-override:0.00%}
+@font-face{font-family:"Atkinson Hyperlegible Next Fallback";src:local("Arial"), local("ArialMT");size-adjust:97.68%;ascent-override:100.74%;descent-override:32.35%;line-gap-override:0.00%}
+@font-face{font-family:"IBM Plex Mono Fallback";src:local("Courier New"), local("CourierNewPSMT");size-adjust:99.98%;ascent-override:102.52%;descent-override:27.50%;line-gap-override:0.00%}
+/* the design tokens, verbatim from the design direction (§4) */
+:root {
+  --bg:      #E9E5DA;  /* enamel cream of a steel panel door; survives phone-camera exposure in a lit kitchen */
+  --panel:   #F5F2EA;  /* the schedule card laid on the panel */
+  --ink:     #1A1916;  /* stencil-paint black; 14.0:1 on --bg */
+  --muted:   #5C574C;  /* pencil annotations on the card; 5.7:1 on --bg, body-safe */
+  --rule:    #BDB6A6;  /* ruled lines of the schedule card; rules only, never text */
+  --wire:    #F0B323;  /* hazard-tape yellow: the tripwire line itself, always present, never a state */
+  --before:  #1D4E89;  /* state: armed — label-tape blue; the wire is taut and watching */
+  --after:   #D2281C;  /* state: tripped — breaker red; ONLY when a tripwire trips (or its action / the watcher fails) */
+  --font-display: "Big Shoulders Stencil", "Big Shoulders Stencil Display", "Arial Narrow", sans-serif;  /* stencil caps of equipment markings sprayed on panel doors */
+  --font-body:    "Atkinson Hyperlegible Next", "Atkinson Hyperlegible", system-ui, sans-serif;  /* legibility on a filmed, slightly soft screen */
+  --font-data:    "IBM Plex Mono", ui-monospace, monospace;  /* ONLY numbers: margin, z, θ, dwell seconds, s/clip, FA/h, timestamps */
+}
+/* the same faces, self-hosted, with metric-matched local fallbacks so the swap does not move the page */
+:root {
+  --font-display: "Big Shoulders Stencil", "Big Shoulders Stencil Fallback", "Arial Narrow", sans-serif;
+  --font-body: "Atkinson Hyperlegible Next", "Atkinson Hyperlegible Next Fallback", system-ui, sans-serif;
+  --font-data: "IBM Plex Mono", "IBM Plex Mono Fallback", "SF Mono", Menlo, ui-monospace, monospace;
+  --hi: rgba(255, 255, 255, .62);
+  --lo: rgba(60, 52, 40, .16);
+  --shadow: 0 1px 0 rgba(255,255,255,.7), 0 10px 26px -12px rgba(59, 53, 42, .42);
+  --ease-out: cubic-bezier(.16, 1, .3, 1);
+  --pad: clamp(18px, 4vw, 64px);
+  --maxw: 1240px;
+}
+
+* { box-sizing: border-box; }
+html { overflow-x: clip; -webkit-text-size-adjust: 100%; scroll-padding-top: 24px; }
+body {
+  margin: 0; color: var(--ink); background-color: var(--bg);
+  background-image:
+    radial-gradient(120% 80% at 12% -10%, rgba(255,255,255,.55), transparent 60%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .24 0 0 0 0 .2 0 0 0 0 .14 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E");
+  font: 400 1.125rem/1.58 var(--font-body);
+  font-feature-settings: "kern"; text-rendering: optimizeLegibility;
+}
+::selection { background: var(--before); color: #fff; }
+:focus-visible { outline: 3px solid var(--before); outline-offset: 3px; border-radius: 2px; }
+input, textarea { caret-color: var(--before); }
+html { scrollbar-color: #8F8778 var(--bg); }
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: #A39B8B; border: 3px solid var(--bg); border-radius: 8px; }
+a { color: inherit; text-decoration-thickness: 1.5px; text-underline-offset: .18em; text-decoration-color: rgba(26,25,22,.45); transition: text-decoration-color .2s, color .2s; }
+a:hover { text-decoration-color: var(--before); color: var(--before); }
+code, .mono, .num { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+code { font-size: .86em; font-weight: 500; background: rgba(26,25,22,.06); padding: .08em .32em; border-radius: 3px; }
+b, strong { font-weight: 700; }
+img, svg { display: block; max-width: 100%; }
+.skip { position: absolute; left: -9999px; top: 8px; z-index: 50; background: var(--ink); color: var(--panel); padding: 10px 14px; }
+.skip:focus { left: 8px; }
+.wrap { width: 100%; max-width: var(--maxw); margin: 0 auto; padding: 0 var(--pad); }
+
+/* ------------------------------------------------------------ stamped labels, tape, buttons */
+.lab { font: 700 .78rem/1.2 var(--font-body); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.tape {
+  display: inline-block; position: relative; color: #fff; background: var(--before);
+  background-image: linear-gradient(180deg, rgba(255,255,255,.16) 0 34%, rgba(255,255,255,0) 34% 100%), linear-gradient(0deg, rgba(0,0,0,.14), rgba(0,0,0,0) 30%);
+  box-shadow: 0 1px 0 rgba(255,255,255,.5) inset, 0 -1px 0 rgba(0,0,0,.25) inset, 0 6px 14px -8px rgba(18,32,60,.6);
+  text-shadow: 0 -1px 0 rgba(0,0,0,.35), 0 1px 0 rgba(255,255,255,.18);
+  border-radius: 2px;
+}
+.h1 .tape { padding: 0 .12em .02em; margin-left: -.06em; transform: rotate(-1.2deg); }
+/* stamped state words: the body face in bold caps (the stencil face is kept for 28 px and up) */
+.stamp {
+  display: inline-block; font: 700 .76rem/1 var(--font-body); letter-spacing: .14em; text-transform: uppercase;
+  padding: .45em .6em .4em; border: 2px solid currentColor; border-radius: 3px; white-space: nowrap;
+}
+.s-measured { color: var(--ink); }
+.s-tested { color: var(--before); }
+.s-pending { color: var(--muted); border-style: dashed; }
+.s-smoke { color: var(--muted); }
+.btn {
+  display: inline-flex; align-items: center; gap: .55em; min-height: 48px; padding: 0 1.15em; border-radius: 3px;
+  font: 700 1rem/1 var(--font-body); letter-spacing: .01em; text-decoration: none; color: var(--ink);
+  border: 2px solid var(--ink); background: rgba(245,242,234,.55); cursor: pointer;
+  transition: transform .18s var(--ease-out), box-shadow .18s var(--ease-out), background-color .18s, color .18s;
+}
+.btn .ic { width: 1.15em; height: 1.15em; flex: none; }
+.btn:hover { transform: translateY(-2px); box-shadow: 0 8px 18px -10px rgba(26,25,22,.55); background: var(--panel); color: var(--ink); }
+.btn:active { transform: translateY(1px); box-shadow: none; }
+.btn-ink { background: var(--ink); color: var(--panel); }
+.btn-ink:hover { background: #000; color: #fff; box-shadow: 0 10px 22px -10px rgba(26,25,22,.75); }
+.btn-sm { min-height: 40px; font-size: .9rem; padding: 0 .9em; }
+
+/* ------------------------------------------------------------ the panel door (hero) */
+.door { position: relative; }
+.stage { position: relative; min-height: 100svh; padding: 14px; }
+.rim {
+  position: absolute; inset: 14px; border-radius: 10px; pointer-events: none;
+  box-shadow: inset 0 0 0 1px var(--hi), inset 0 0 0 2px var(--lo), inset 0 18px 30px -24px rgba(255,255,255,.9), inset 0 -18px 30px -26px rgba(59,53,42,.35);
+}
+.screw { position: absolute; width: 22px; height: 22px; pointer-events: none; }
+.screw.tl { left: 26px; top: 26px; } .screw.tr { right: 26px; top: 26px; }
+.screw.bl { left: 26px; bottom: 26px; } .screw.br { right: 26px; bottom: 26px; }
+.inner { position: relative; min-height: calc(100svh - 28px); display: grid; grid-template-rows: auto 1fr; }
+nav.top { display: flex; align-items: center; gap: clamp(12px, 2.4vw, 32px); padding: 22px calc(var(--pad) - 6px) 0; }
+.mark { font: 800 2rem/1 var(--font-display); letter-spacing: .02em; text-decoration: none; display: inline-flex; align-items: center; gap: .3em; }
+.mark img { width: 34px; height: 34px; }
+.mark:hover { color: var(--ink); }
+nav.top .links { display: flex; gap: clamp(10px, 2vw, 26px); margin-right: auto; }
+nav.top .links a { font-weight: 700; font-size: .95rem; text-decoration: none; padding: 6px 2px; border-bottom: 2px solid transparent; transition: border-color .2s, color .2s; }
+nav.top .links a:hover { border-color: var(--before); color: var(--before); }
+nav.top .btn { min-height: 42px; font-size: .95rem; }
+
+.hero { position: relative; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: 24px; align-content: center;
+  padding: 0 var(--pad); --bh: clamp(250px, min(46vh, 30vw), 430px); --bw: calc(var(--bh) * .6); --drop: calc(var(--bh) * .23); }
+.hero-top { grid-column: 1 / span 8; align-self: end; padding-top: clamp(16px, 3vh, 40px); }
+.hero-bot { grid-column: 1 / span 6; align-self: start; padding-top: clamp(46px, 7.5vh, 76px); }
+.idplate { display: inline-flex; align-items: center; gap: 10px; margin: 0 0 clamp(12px, 2.2vh, 22px); font: 700 .8rem/1 var(--font-body); letter-spacing: .14em; text-transform: uppercase; }
+.idplate .tag { background: var(--ink); color: var(--panel); padding: 7px 9px 6px; border-radius: 2px; white-space: nowrap; }
+.idplate .t2 { color: var(--muted); }
+.h1 { margin: 0; font: 800 min(6rem, 7.2vw, 10.4vh)/.9 var(--font-display); text-transform: uppercase; letter-spacing: .004em; }
+.h1 .ln { display: block; }
+.sub { margin: 0; max-width: 58ch; font-size: clamp(1.02rem, 1.22vw, 1.18rem); color: #2D2A25; }
+.sub .sc { color: var(--muted); }
+.ctas { display: flex; flex-wrap: wrap; gap: 12px; margin-top: clamp(18px, 3vh, 28px); }
+.proof { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-top: clamp(14px, 2.4vh, 22px); font-size: .9rem; color: var(--muted); }
+.proof ul { display: flex; flex-wrap: wrap; gap: 4px 0; margin: 0; padding: 0; list-style: none; }
+.proof li + li::before { content: "·"; margin: 0 .55em; color: var(--rule); }
+.cmd { display: inline-flex; align-items: center; gap: 8px; font: 500 .84rem/1 var(--font-data); background: var(--panel); border: 1px solid var(--rule); border-radius: 3px; padding: 7px 8px 7px 11px; color: var(--ink); }
+.cmd button { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 3px; color: var(--muted); transition: background .2s, color .2s; }
+.cmd button:hover, .cmd button.ok { background: rgba(26,25,22,.08); color: var(--ink); }
+.cmd button:focus-visible { outline: 3px solid var(--before); outline-offset: 2px; }
+.cmd .ic { width: 16px; height: 16px; }
+
+/* the rig: the wire (two halves meeting at θ), the tape, the drawn dwell, and the breaker it is tied to */
+.rig { grid-column: 1 / -1; position: relative; height: 0; margin-top: clamp(30px, 5vh, 52px); --notch: 58%; }
+.brk-wrap { position: absolute; z-index: 1; right: calc(var(--pad) * .25); top: calc(var(--bh) * -.375); width: var(--bw); height: var(--bh); }
+.brk { width: 100%; height: 100%; overflow: visible; }
+.brk .tag-t { font: 700 15px/1 var(--font-body); letter-spacing: .14em; }
+.brk .stamp { font: 800 36px/1 var(--font-display); letter-spacing: .02em; border: 0; padding: 0; }
+.brk .st-on { fill: var(--ink); } .brk .st-off { fill: #A49C8B; }
+.brk .trip-win { fill: #CFC8B8; transition: fill .2s; }
+.brk .trip-t { font: 700 9px/1 var(--font-body); letter-spacing: .2em; fill: #fff; opacity: 0; }
+.brk .lever { transition: transform .26s cubic-bezier(.55, 0, .8, .4); }
+.door.is-off .brk .lever { transform: translateY(92px); }
+.door.is-off .brk .st-on { fill: #A49C8B; } .door.is-off .brk .st-off { fill: var(--ink); }
+.door.is-off .brk .trip-win { fill: var(--after); } .door.is-off .brk .trip-t { opacity: 1; }
+.flag { position: absolute; left: 50%; top: calc(100% + 14px); transform: translateX(-50%); display: grid; justify-items: center; gap: 8px; width: max-content; }
+.flag .stamp { font: 800 clamp(1.8rem, 2.6vw, 2.4rem)/1 var(--font-display); letter-spacing: .04em; color: var(--after); background: var(--panel); border-width: 3px; padding: .18em .45em .12em; opacity: 0; transform: scale(1.35) rotate(-6deg); transition: opacity .15s, transform .32s cubic-bezier(.2, 1.6, .4, 1); }
+.flag .ack { font-size: .86rem; color: var(--muted); opacity: 0; transition: opacity .4s .25s; }
+.door.is-stamped .flag .stamp { opacity: 1; transform: scale(1) rotate(-3deg); }
+.door.is-acked .flag .ack { opacity: 1; }
+.flag .btn { display: none; }
+.door:not(.is-pin) .flag .btn { display: inline-flex; }
+.door:not(.is-pin):not(.is-snap) .flag .stamp, .door:not(.is-pin):not(.is-snap) .flag .ack { display: none; }
+.seg { position: absolute; top: 0; height: 0; z-index: 2; pointer-events: none; }
+.seg-l { left: calc(var(--pad) * -1 - 14px); width: calc(var(--notch) + var(--pad) + 14px); transform-origin: 0 0; }
+.seg-r { left: var(--notch); right: calc(var(--pad) * .25 + var(--bw) * .5); transform-origin: 100% 0; }
+.wire { position: absolute; left: 0; right: 0; top: -2.5px; height: 5px; border-radius: 3px; background: var(--wire);
+  background-image: linear-gradient(180deg, rgba(255,255,255,.45), rgba(255,255,255,0) 45%, rgba(0,0,0,.12)); box-shadow: 0 4px 5px -2px rgba(59,53,42,.35); }
+.seg-r .wire::after { content: ""; position: absolute; right: -6px; top: -4px; width: 9px; height: 9px; border: 2.5px solid var(--wire); border-radius: 50%; background: #0B0A09; }
+.end { position: absolute; top: -9px; width: 16px; height: 18px; opacity: 0; transition: opacity .12s;
+  background: repeating-linear-gradient(135deg, var(--after) 0 3px, transparent 3px 6px); }
+.seg-l .end { right: -8px; } .seg-r .end { left: -8px; }
+.rtape { position: absolute; top: -21px; height: 42px; display: flex; align-items: center; padding: 0 16px;
+  font: 700 clamp(.95rem, 1.5vw, 1.4rem)/1 var(--font-body); letter-spacing: .1em; text-transform: uppercase; white-space: nowrap; border-radius: 0; }
+.seg-l .rtape { right: 0; padding-right: 10px; }
+.seg-r .rtape { left: 0; padding-left: 10px; }
+.rtape .ch { display: inline-block; white-space: pre; }
+.notch { position: absolute; left: var(--notch); top: -30px; height: 60px; width: 0; border-left: 2px solid var(--ink); z-index: 3; }
+.notch b { position: absolute; left: 7px; top: 40px; font: 600 1rem/1 var(--font-data); }
+.anno { position: absolute; left: calc(var(--notch) + 16px); bottom: 34px; display: grid; gap: 8px; max-width: calc(100% - var(--notch) - var(--bw) - 40px); }
+.drawn { margin: 0; font-size: .82rem; color: var(--muted); }
+.count { margin: 0; font: 500 .82rem/1.35 var(--font-data); color: var(--muted); }
+.count b { color: var(--ink); font-weight: 600; }
+.cells { display: flex; gap: 5px; margin: 0; padding: 0; list-style: none; }
+.cells li { width: 17px; height: 17px; border: 2px solid var(--ink); border-radius: 2px; background: transparent; transition: background-color .12s, transform .12s; flex: none; }
+.cells li.on { background: var(--before); border-color: var(--before); }
+.cells li.fire { background: var(--after); border-color: var(--after); transform: scale(1.12); }
+.hint { position: absolute; left: calc(var(--notch) + 16px); top: 34px; margin: 0; font-size: .86rem; color: var(--muted); transition: opacity .3s; }
+.hint .ar { display: inline-block; animation: nudge 1.6s ease-in-out infinite; }
+@keyframes nudge { 50% { transform: translateY(4px) } }
+.door:not(.is-pin) .hint, .door.is-snap .hint { opacity: 0; }
+
+/* the door card: the three real tripwires, as on a panel's schedule card (tall screens only) */
+.dcard { display: none; position: absolute; z-index: 1; right: calc(var(--pad) * .25); bottom: calc(var(--bh) * .375 + 26px); width: min(430px, 34vw);
+  background: var(--panel); border: 1px solid var(--rule); border-radius: 4px; box-shadow: var(--shadow); padding: 10px 14px 6px; transform: rotate(.6deg); }
+.dcard::before, .dcard::after { content: ""; position: absolute; top: 8px; width: 7px; height: 7px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff, #A89F8E 70%); }
+.dcard::before { left: 8px; } .dcard::after { right: 8px; }
+.dcard .lab { display: block; text-align: center; padding-bottom: 6px; border-bottom: 2px solid var(--ink); }
+.dcard ol { margin: 0; padding: 0; list-style: none; }
+.dcard li { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--rule); font-size: .82rem; line-height: 1.25; }
+.dcard li:last-child { border-bottom: 0; }
+.dcard .n { font: 800 1.75rem/1 var(--font-display); }
+.dcard .w { color: var(--muted); font-size: .76rem; display: block; }
+.dcard .s { font: 700 .66rem/1 var(--font-body); letter-spacing: .12em; text-transform: uppercase; }
+.dcard .s .t { display: none; color: var(--after); }
+.dcard .s .a { color: var(--before); } .dcard .s .u { color: var(--muted); }
+.door.is-stamped .dcard .s .t { display: inline; } .door.is-stamped .dcard .s .a { display: none; }
+@media (min-width: 1100px) and (min-height: 800px) { .dcard { display: block; } }
+
+/* the snap: halves recoil, the ends fray red, the right half hangs from the dropped lever, the module clunks */
+.door.is-snap .end { opacity: 1; }
+/* the snapped pose itself (print, reduced motion and the deck see it without the animation) */
+.door.is-snap .seg-l { transform: translateX(-31px) rotate(2.2deg); }
+.door.is-snap .seg-r { transform: translateY(var(--drop)) rotate(-12deg); }
+.door.is-snap .seg-l { animation: recoil-l .95s cubic-bezier(.2, .7, .3, 1) both; }
+.door.is-snap .seg-r { animation: recoil-r .95s cubic-bezier(.2, .7, .3, 1) both; }
+.door.is-rearm .seg-l { animation: rejoin-l .6s var(--ease-out) both; }
+.door.is-rearm .seg-r { animation: rejoin-r .6s var(--ease-out) both; }
+@keyframes recoil-l { 0% { transform: none } 18% { transform: translateX(-40px) rotate(-.4deg) } 55% { transform: translateX(-30px) rotate(2.8deg) } 78% { transform: translateX(-32px) rotate(1.8deg) } 100% { transform: translateX(-31px) rotate(2.2deg) } }
+@keyframes recoil-r { 0% { transform: none } 20% { transform: translateX(26px) translateY(-6px) rotate(1deg) } 50% { transform: translateY(var(--drop)) rotate(-15deg) } 74% { transform: translateY(var(--drop)) rotate(-10deg) } 100% { transform: translateY(var(--drop)) rotate(-12deg) } }
+@keyframes rejoin-l { from { transform: translateX(-31px) rotate(2.2deg) } to { transform: none } }
+@keyframes rejoin-r { from { transform: translateY(var(--drop)) rotate(-12deg) } to { transform: none } }
+.door.is-off .brk-wrap { animation: clunk .34s cubic-bezier(.3, .7, .3, 1); }
+@keyframes clunk { 0% { transform: none } 30% { transform: translateY(3px) } 60% { transform: translateY(-1px) } 100% { transform: none } }
+
+/* load: the tape is printed letter by letter, the wire pulls taut, the headline settles (from visible defaults) */
+.js .door.is-load .h1 .ln { animation: rise .8s var(--ease-out) both; }
+.js .door.is-load .h1 .ln:nth-child(2) { animation-delay: .08s; } .js .door.is-load .h1 .ln:nth-child(3) { animation-delay: .16s; }
+.js .door.is-load .hero-bot, .js .door.is-load .idplate, .js .door.is-load .dcard, .js .door.is-load .anno { animation: fade .9s .35s var(--ease-out) both; }
+.js .door.is-load .rtape .ch { animation: punch .16s steps(2, end) both; }
+.js .door.is-load .wire { animation: taut .9s .2s cubic-bezier(.2, 1.5, .35, 1) both; }
+.js .door.is-load .brk-wrap { animation: fade .8s .1s var(--ease-out) both; }
+@keyframes rise { from { transform: translateY(26px); opacity: 0 } }
+@keyframes fade { from { opacity: 0; transform: translateY(10px) } }
+@keyframes punch { from { opacity: 0; transform: translateY(-3px) scale(1.25) } }
+@keyframes taut { from { transform: translateY(14px) scaleY(1.6); opacity: .2 } }
+
+/* pinned scrub (large screens, set by JS): the door holds while the dwell runs */
+.door.is-pin { height: 210svh; }
+.door.is-pin .stage { position: sticky; top: 0; height: 100svh; overflow: hidden; }
+
+/* ------------------------------------------------------------ sections */
+section { position: relative; }
+.sec { padding: clamp(64px, 11vh, 128px) 0; }
+.sec + .sec { padding-top: 0; }
+.h2 { margin: 0 0 .35em; font: 800 clamp(2.3rem, 4.4vw, 3.9rem)/.95 var(--font-display); text-transform: uppercase; text-wrap: balance; letter-spacing: .005em; }
+.lede { margin: 0; max-width: 62ch; color: #2D2A25; }
+.src { display: inline-block; margin-top: 12px; font: 500 .8rem/1.45 var(--font-data); color: var(--muted); overflow-wrap: anywhere; }
+.src a { color: var(--muted); }
+.src a:hover { color: var(--before); }
+
+/* receipts: rating plates */
+.plates { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; margin-top: 30px; }
+.plate { position: relative; display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--rule); border-radius: 4px; padding: 22px 22px 18px; box-shadow: var(--shadow); }
+.plate::before, .plate::after { content: ""; position: absolute; top: 10px; width: 7px; height: 7px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff, #A89F8E 70%); box-shadow: 0 1px 0 rgba(0,0,0,.15); }
+.plate::before { left: 10px; } .plate::after { right: 10px; }
+.plate .n { display: block; margin-top: 8px; font: 600 clamp(2.1rem, 3.6vw, 3.1rem)/1 var(--font-data); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.plate .n small { font-size: .5em; letter-spacing: 0; color: var(--muted); margin-left: .12em; }
+.plate p { margin: 10px 0 0; font-size: .98rem; line-height: 1.45; flex: 1; }
+
+/* the overlay, shown at a size its text can be read; legend + terminal below */
+.shot { margin: 34px 0 0; }
+.shot .frame { position: relative; border: 2px solid var(--ink); border-radius: 6px; overflow: hidden; background: var(--panel); box-shadow: 0 26px 60px -30px rgba(59,53,42,.65); }
+.shot img { width: 100%; height: auto; }
+.shot figcaption { margin-top: 12px; font-size: .9rem; color: var(--muted); max-width: 80ch; }
+.qa { display: inline-block; font: 700 .72rem/1 var(--font-body); letter-spacing: .14em; text-transform: uppercase; color: var(--ink); border: 2px solid var(--ink); padding: 5px 6px 4px; margin-right: 6px; border-radius: 2px; background: var(--panel); }
+.callout { position: absolute; width: 32px; height: 32px; margin: -16px 0 0 -16px; display: grid; place-items: center; border-radius: 50%; background: var(--ink); color: var(--panel); font: 600 .92rem/1 var(--font-data); box-shadow: 0 0 0 3px var(--panel), 0 6px 14px -6px rgba(0,0,0,.5); }
+.under { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 30px; align-items: start; margin-top: 24px; }
+.legend { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; font-size: .95rem; }
+.legend li { display: flex; gap: 12px; align-items: baseline; }
+.legend b { flex: none; display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--ink); color: var(--panel); font: 600 .8rem/1 var(--font-data); }
+.term { margin: 0; border-radius: 6px; background: #1C1B18; color: #E9E5DA; box-shadow: 0 22px 50px -26px rgba(26,25,22,.75); overflow: hidden; }
+.term .bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 14px; border-bottom: 1px solid #34312B; font: 500 .76rem/1 var(--font-data); color: #B9B2A3; }
+.term .bar button { all: unset; cursor: pointer; font: 600 .76rem/1 var(--font-body); letter-spacing: .08em; text-transform: uppercase; color: #E9E5DA; padding: 6px 8px; border-radius: 3px; border: 1px solid #4A463E; transition: background .2s, border-color .2s; }
+.term .bar button:hover { background: #2C2A25; border-color: #F0B323; }
+.term .bar button:focus-visible { outline: 3px solid #F0B323; outline-offset: 2px; }
+.term pre { margin: 0; padding: 16px 16px 18px; font: 500 .8rem/1.62 var(--font-data); white-space: pre-wrap; word-break: break-word; height: 30em; overflow: auto; }
+.term pre::-webkit-scrollbar-track { background: #1C1B18; } .term pre::-webkit-scrollbar-thumb { background: #4A463E; border-color: #1C1B18; }
+.term .ln { display: block; min-height: 1.62em; }
+.term .ln[hidden] { display: none; }
+.term .p { color: #F0B323; } .term .c { color: #9A9384; } .term .ok { color: #fff; font-weight: 600; } .term .neg { color: #C9C2B3; }
+
+/* the wiring (single-line diagram) */
+.sldfig { margin: 30px 0 0; background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: clamp(10px, 2vw, 26px); box-shadow: var(--shadow); }
+.sld { width: 100%; height: auto; font-family: var(--font-body); }
+.sld .sl-box { fill: #FBF9F3; stroke: #1A1916; stroke-width: 1.6; }
+.sld .sl-cloud .sl-box { fill: #fff; }
+.sld .sl-stop .sl-box { fill: #F5F2EA; stroke-dasharray: 6 4; }
+.sld .sl-t { font: 700 15px var(--font-body); letter-spacing: .08em; fill: #1A1916; }
+.sld .sl-t2 { font-size: 12.5px; letter-spacing: .04em; }
+.sld .sl-s { font: 400 14px var(--font-body); fill: #5C574C; }
+.sld .sl-c { font: 500 12.5px var(--font-data); fill: #1D4E89; }
+.sld .sl-k { font: 700 13px var(--font-body); letter-spacing: .16em; fill: #5C574C; }
+.sld .sl-k2 { font: 700 14px var(--font-body); letter-spacing: .08em; fill: #1A1916; }
+.sld .sl-s2 { font: 400 14px var(--font-body); fill: #5C574C; }
+.sld .sl-l { font: 500 12.5px var(--font-data); fill: #1A1916; paint-order: stroke; stroke: #F5F2EA; stroke-width: 5px; stroke-linejoin: round; }
+.sld .sl-a { fill: none; stroke: #1A1916; stroke-width: 1.8; }
+.sld .sl-quiet { stroke-dasharray: 4 4; }
+.sld .sl-pw { fill: none; stroke: #1A1916; stroke-width: 3.2; }
+.sld .sl-sym { fill: none; stroke: #1A1916; stroke-width: 2.4; }
+.sld .sl-sym .sl-dot { fill: #1A1916; }
+.sld .sl-bound { fill: none; stroke: #1D4E89; stroke-width: 2; stroke-dasharray: 10 7; }
+.sld .sl-zone { fill: rgba(29,78,137,.05); stroke: #BDB6A6; stroke-width: 1.5; }
+.sld .sl-x path { stroke: #D2281C; stroke-width: 3; fill: none; }
+.sld .sl-x .sl-xl { stroke-width: 2; stroke-dasharray: 5 5; }
+.sld-tall { display: none; }
+
+/* the schedule (the page's spine) */
+.card { background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; box-shadow: var(--shadow); }
+.sched-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 18px; padding: clamp(22px, 3vw, 34px) clamp(18px, 3vw, 34px) 18px; border-bottom: 2px solid var(--ink); }
+.sched-head .h2 { margin: 0; }
+.keys { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.cols { position: sticky; top: 0; z-index: 3; display: grid; grid-template-columns: 70px minmax(0, 1.25fr) minmax(0, 1.45fr) 170px; gap: 16px; padding: 10px clamp(18px, 3vw, 34px); background: var(--panel); border-bottom: 1px solid var(--rule); }
+.row { border-bottom: 1px solid var(--rule); }
+.row:last-child { border-bottom: 0; }
+.row-h { position: sticky; top: 38px; z-index: 2; display: grid; grid-template-columns: 70px minmax(0, 1.25fr) minmax(0, 1.45fr) 170px; gap: 16px; align-items: center; padding: 14px clamp(18px, 3vw, 34px); background: var(--panel); border-bottom: 1px dashed var(--rule); }
+.cct { font: 800 2.4rem/1 var(--font-display); }
+.what { display: flex; align-items: center; gap: 10px; font: 700 1.02rem/1.2 var(--font-body); letter-spacing: .1em; text-transform: uppercase; }
+.what .ic { width: 22px; height: 22px; flex: none; }
+.rating { font: 500 .84rem/1.35 var(--font-data); color: var(--before); overflow-wrap: anywhere; }
+.row-h .stamp { justify-self: start; }
+.row-b { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: clamp(22px, 4vw, 54px); padding: clamp(26px, 4vw, 46px) clamp(18px, 3vw, 34px) clamp(30px, 4.5vw, 54px) calc(70px + 16px + clamp(18px, 3vw, 34px)); }
+.row-b .h2 { font-size: clamp(2rem, 3.4vw, 3rem); }
+.row-b p { margin: 0 0 .9em; max-width: 60ch; }
+.row-b p:last-child { margin-bottom: 0; }
+.vis { min-width: 0; }
+
+/* 01 · the compile drawer, recreated from the frozen fixture */
+.drawer { background: #FBF9F3; border: 2px solid var(--ink); border-radius: 4px; padding: 18px; font-size: .95rem; }
+.drawer .you { margin: 0 0 14px; font-size: 1.05rem; }
+.drawer .two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.drawer h4 { margin: 0 0 8px; font: 700 .74rem/1.2 var(--font-body); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.drawer ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 7px; }
+.drawer .pos li { color: #fff; background: var(--before); padding: 8px 10px; font: 700 .8rem/1.3 var(--font-body); letter-spacing: .06em; text-transform: uppercase; border-radius: 2px; }
+.drawer .neg li { border: 2px solid var(--ink); padding: 6px 9px; font: 700 .8rem/1.3 var(--font-body); letter-spacing: .06em; text-transform: uppercase; border-radius: 2px; }
+.drawer .meta { margin: 14px 0 0; font: 500 .78rem/1.5 var(--font-data); color: var(--muted); overflow-wrap: anywhere; }
+.drawer .meta b { color: var(--ink); font-weight: 600; }
+
+/* 02 · the window strip + speed */
+.strip { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)) 40px auto; gap: 6px; align-items: center; }
+.strip i { aspect-ratio: 4 / 3; border: 2px solid var(--ink); border-radius: 2px; background: repeating-linear-gradient(135deg, #E2DDD0 0 6px, #EFEBE1 6px 12px); }
+.strip i:nth-of-type(8) { border-color: var(--wire); box-shadow: 0 0 0 2px var(--wire); }
+.strip .to { font: 600 1.2rem/1 var(--font-data); text-align: center; }
+.strip .vec { font: 500 .82rem/1.3 var(--font-data); background: var(--ink); color: var(--panel); padding: 8px 10px; border-radius: 3px; white-space: nowrap; }
+.speeds { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 20px; }
+.speeds div { border-top: 3px solid var(--ink); padding-top: 10px; }
+.speeds .k { display: block; font: 700 .72rem/1.3 var(--font-body); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.speeds .v { display: block; margin-top: 4px; font: 600 1.7rem/1.05 var(--font-data); }
+.speeds .v small { font-size: .55em; color: var(--muted); }
+.speeds .d { display: block; margin-top: 6px; font-size: .84rem; line-height: 1.4; color: var(--muted); }
+
+/* 03 · play the rule */
+.play { background: #FBF9F3; border: 2px solid var(--ink); border-radius: 4px; padding: 18px; }
+.play .opts { display: grid; grid-template-columns: auto 1fr; gap: 10px 14px; align-items: center; margin-bottom: 22px; font-size: .92rem; }
+.seg-ctl { display: inline-flex; justify-self: start; border: 2px solid var(--ink); border-radius: 3px; overflow: hidden; }
+.seg-ctl button { all: unset; cursor: pointer; padding: 8px 11px; font: 500 .84rem/1 var(--font-data); border-left: 1px solid var(--rule); transition: background .15s, color .15s; }
+.seg-ctl button:first-child { border-left: 0; }
+.seg-ctl button:hover { background: rgba(29,78,137,.1); }
+.seg-ctl button[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
+.seg-ctl button:focus-visible { outline: 3px solid var(--before); outline-offset: -3px; }
+.wins { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
+.wins button { all: unset; cursor: pointer; position: relative; aspect-ratio: 3 / 4; border: 2px solid var(--ink); border-radius: 3px; display: grid; place-items: end center; padding-bottom: 4px; font: 500 .68rem/1 var(--font-data); color: var(--muted); transition: background .12s, transform .12s, border-color .12s; }
+.wins button:hover { transform: translateY(-2px); border-color: var(--before); }
+.wins button[aria-pressed="true"] { background: var(--before); border-color: var(--before); color: #fff; }
+.wins button.fire { background: var(--after); border-color: var(--after); color: #fff; }
+.wins button.fire::before { content: "TRIP"; position: absolute; top: -19px; font: 700 .66rem/1 var(--font-body); letter-spacing: .12em; color: var(--after); }
+.wins button:focus-visible { outline: 3px solid var(--before); outline-offset: 2px; }
+.read { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: baseline; font: 500 .86rem/1.4 var(--font-data); }
+.read .verdict { font: 800 1.85rem/1 var(--font-display); letter-spacing: .03em; }
+.read .verdict.t { color: var(--after); } .read .verdict.a { color: var(--before); }
+.read .why { flex-basis: 100%; color: var(--muted); }
+.play .row2 { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.play .note { margin: 14px 0 0; font-size: .86rem; color: var(--muted); }
+
+/* 04 · act */
+.inv { margin: 0; padding: 0; list-style: none; display: grid; gap: 14px; }
+.inv li { display: grid; grid-template-columns: 54px 1fr; gap: 12px; align-items: baseline; }
+.inv b { font: 800 1.85rem/1 var(--font-display); }
+.shot.small { margin: 0; }
+.shot.small .frame { max-width: 460px; }
+
+/* 05 · calibrate: the receipt */
+.receipt { background: #FBF9F3; border: 2px solid var(--ink); border-radius: 4px; padding: 18px 20px; font: 500 .84rem/1.6 var(--font-data); position: relative; }
+.receipt dl { margin: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 3px 16px; }
+.receipt dt { color: var(--muted); }
+.receipt dd { margin: 0; overflow-wrap: anywhere; }
+.receipt .rstamp { position: absolute; right: 16px; top: 14px; transform: rotate(4deg); }
+
+/* 06 · the test sheet */
+.sheet { margin: 0; padding: 0; list-style: none; border-top: 2px solid var(--ink); }
+.sheet li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 14px; align-items: center; padding: 11px 0; border-bottom: 1px solid var(--rule); }
+.sheet .t { font-weight: 700; }
+.sheet .d { grid-column: 1 / -1; font-size: .88rem; color: var(--muted); }
+.sheet .v { font: 600 .92rem/1 var(--font-data); color: var(--ink); }
+.qtn { margin: 0 0 .9em; padding-left: 16px; border-left: 3px solid var(--rule); font-style: italic; }
+
+/* honest by design: printed warning labels */
+.labels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; margin-top: 30px; }
+.label { position: relative; margin: 0; background: #FBF9F3; border: 3px solid var(--ink); border-radius: 4px; padding: 0 0 18px; box-shadow: var(--shadow); }
+.label .lh { display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: var(--ink); color: var(--panel); font: 700 .86rem/1.2 var(--font-body); letter-spacing: .14em; text-transform: uppercase; }
+.label .lh svg { width: 20px; height: 20px; flex: none; }
+.label blockquote { margin: 16px 18px 0; font-size: 1.04rem; line-height: 1.5; }
+.label figcaption { margin: 12px 18px 0; font: 500 .78rem/1.3 var(--font-data); color: var(--muted); }
+
+/* FAQ */
+.faq { margin-top: 26px; border-top: 2px solid var(--ink); }
+.faq details { border-bottom: 1px solid var(--rule); }
+.faq summary { cursor: pointer; list-style: none; display: grid; grid-template-columns: 1fr 28px; gap: 16px; align-items: center; padding: 20px 4px; font: 700 1.12rem/1.35 var(--font-body); transition: color .2s; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary:hover { color: var(--before); }
+.faq summary .pm { width: 28px; height: 28px; border: 2px solid currentColor; border-radius: 3px; display: grid; place-items: center; font: 600 1.1rem/1 var(--font-data); transition: transform .25s var(--ease-out); }
+.faq details[open] summary .pm { transform: rotate(45deg); }
+.faq .a { padding: 0 44px 22px 4px; max-width: 74ch; }
+.faq .a p { margin: 0 0 .7em; }
+
+/* footer */
+footer { padding: 54px 0 70px; border-top: 2px solid var(--ink); margin-top: 20px; }
+.foot { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 30px; align-items: start; }
+.foot .big { font: 800 clamp(2.6rem, 6vw, 4.6rem)/.9 var(--font-display); margin: 0 0 12px; color: var(--ink); }
+.foot p { margin: 0; color: var(--muted); max-width: 52ch; }
+.foot nav { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
+.foot .fine { grid-column: 1 / -1; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 18px; padding-top: 18px; border-top: 1px solid var(--rule); font-size: .86rem; color: var(--muted); }
+
+/* ------------------------------------------------------------ responsive */
+@media (max-width: 1099px) {
+  .hero { --bh: clamp(200px, 30vw, 300px); }
+  .hero-top { grid-column: 1 / -1; }
+  .hero-bot { grid-column: 1 / span 6; padding-top: 70px; }
+  .rig { --notch: 50%; margin-top: calc(var(--bh) * .375 + 40px); }
+  .brk .stamp { font: 700 32px/1 var(--font-body); }
+  .plates { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .under { grid-template-columns: minmax(0, 1fr); }
+  .row-b { grid-template-columns: minmax(0, 1fr); padding-left: clamp(18px, 3vw, 34px); }
+  .labels { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 760px) {
+  body { font-size: 1.04rem; }
+  .stage { padding: 8px; } .rim { inset: 8px; }
+  .screw { width: 16px; height: 16px; } .screw.tl, .screw.bl { left: 16px; } .screw.tr, .screw.br { right: 16px; }
+  .screw.tl, .screw.tr { top: 16px; } .screw.bl, .screw.br { bottom: 16px; }
+  nav.top { padding: 18px 18px 0; } nav.top .links { display: none; } nav.top .btn span { display: none; } nav.top .btn { margin-left: auto; padding: 0 .8em; }
+  .hero { padding: 0 18px; --pad: 18px; --bh: 190px; column-gap: 0; }
+  .h1 { font-size: clamp(2.7rem, 13.4vw, 4.2rem); }
+  .hero-top { padding-top: 34px; }
+  .hero-bot { grid-column: 1 / -1; padding-top: calc(var(--bh) * .625 + 168px); }
+  .rig { --notch: 50%; margin-top: calc(var(--bh) * .375 + 64px); }
+  .rtape { height: 30px; top: -15px; font-size: .74rem; letter-spacing: .07em; padding: 0 7px; }
+  .seg-l .rtape { padding-right: 6px; } .seg-r .rtape { padding-left: 6px; }
+  .notch { top: -24px; height: 48px; } .notch b { top: 30px; }
+  .anno { left: 0; bottom: 30px; max-width: calc(100% - var(--bw) - 6px); }
+  .cells li { width: 13px; height: 13px; } .cells { gap: 4px; }
+  .count { white-space: normal; }
+  .brk .stamp { font: 700 34px/1 var(--font-body); }
+  .flag { top: calc(100% + 8px); left: auto; right: 0; transform: none; justify-items: end; width: 70vw; text-align: right; } .flag .stamp { font-size: 1.8rem; } .flag .ack { font-size: .76rem; }
+  .idplate { flex-wrap: wrap; row-gap: 8px; }
+  .plates { grid-template-columns: minmax(0, 1fr); }
+  .cols { display: none; }
+  .row-h { top: 0; grid-template-columns: 52px minmax(0, 1fr) auto; row-gap: 6px; }
+  .row-h .rating { grid-column: 2 / -1; grid-row: 2; }
+  .cct { font-size: 2rem; }
+  .drawer .two { grid-template-columns: minmax(0, 1fr); }
+  .strip { grid-template-columns: repeat(8, minmax(0, 1fr)); } .strip .to, .strip .vec { grid-column: span 4; }
+  .speeds { grid-template-columns: minmax(0, 1fr); }
+  .wins { grid-template-columns: repeat(6, minmax(0, 1fr)); row-gap: 26px; }
+  .callout { width: 24px; height: 24px; margin: -12px 0 0 -12px; font-size: .74rem; }
+  .sld-wide { display: none; } .sld-tall { display: block; max-width: 420px; margin: 0 auto; }
+  .foot { grid-template-columns: minmax(0, 1fr); } .foot nav { justify-content: flex-start; }
+  .term pre { font-size: .74rem; height: 26em; }
+  .proof ul { flex-direction: column; gap: 2px; } .proof li + li::before { content: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+@media print {
+  .door.is-pin { height: auto; } .door.is-pin .stage { position: relative; height: auto; }
+  .hint, nav.top .links, .term .bar button, .play .row2, .cmd button, .flag .btn { display: none !important; }
+  .row-h, .cols { position: static; }
+  .term pre { height: auto; overflow: visible; }
+  * { animation: none !important; transition: none !important; }
+  body { background: #fff; }
+}
+
+</style>
+<script>document.documentElement.classList.add("js");</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+
+<header class="door" id="door" aria-label="jaga">
+ <div class="stage">
+  <div class="rim" aria-hidden="true"></div>
+  <svg class="screw tl" viewBox="0 0 22 22" aria-hidden="true"><defs><radialGradient id="sctl" cx=".36" cy=".32" r=".8"><stop offset="0" stop-color="#FBF9F3"/><stop offset=".6" stop-color="#B9B2A3"/><stop offset="1" stop-color="#7D7667"/></radialGradient></defs><circle cx="11" cy="11" r="9.5" fill="url(#sctl)" stroke="#6E685B"/><path d="M6.5 11h9M11 6.5v9" stroke="#4A453C" stroke-width="2.2" stroke-linecap="round" transform="rotate(12 11 11)"/></svg><svg class="screw tr" viewBox="0 0 22 22" aria-hidden="true"><defs><radialGradient id="sctr" cx=".36" cy=".32" r=".8"><stop offset="0" stop-color="#FBF9F3"/><stop offset=".6" stop-color="#B9B2A3"/><stop offset="1" stop-color="#7D7667"/></radialGradient></defs><circle cx="11" cy="11" r="9.5" fill="url(#sctr)" stroke="#6E685B"/><path d="M6.5 11h9M11 6.5v9" stroke="#4A453C" stroke-width="2.2" stroke-linecap="round" transform="rotate(38 11 11)"/></svg><svg class="screw bl" viewBox="0 0 22 22" aria-hidden="true"><defs><radialGradient id="scbl" cx=".36" cy=".32" r=".8"><stop offset="0" stop-color="#FBF9F3"/><stop offset=".6" stop-color="#B9B2A3"/><stop offset="1" stop-color="#7D7667"/></radialGradient></defs><circle cx="11" cy="11" r="9.5" fill="url(#scbl)" stroke="#6E685B"/><path d="M6.5 11h9M11 6.5v9" stroke="#4A453C" stroke-width="2.2" stroke-linecap="round" transform="rotate(71 11 11)"/></svg><svg class="screw br" viewBox="0 0 22 22" aria-hidden="true"><defs><radialGradient id="scbr" cx=".36" cy=".32" r=".8"><stop offset="0" stop-color="#FBF9F3"/><stop offset=".6" stop-color="#B9B2A3"/><stop offset="1" stop-color="#7D7667"/></radialGradient></defs><circle cx="11" cy="11" r="9.5" fill="url(#scbr)" stroke="#6E685B"/><path d="M6.5 11h9M11 6.5v9" stroke="#4A453C" stroke-width="2.2" stroke-linecap="round" transform="rotate(25 11 11)"/></svg>
+  <div class="inner">
+   <nav class="top" aria-label="Main">
+    <a class="mark" href="#door" aria-label="jaga, back to the top"><img src="assets/icon.svg" alt="" width="34" height="34">JAGA</a>
+    <div class="links"><a href="#wiring">The wiring</a><a href="#schedule">Schedule</a><a href="#honest">Honest limits</a><a href="#faq">FAQ</a><a href="pitch/">Pitch deck</a></div>
+    <a class="btn" href="https://github.com/edycutjong/jaga"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span>Source on GitHub</span></a>
+   </nav>
+   <div class="hero">
+    <div class="hero-top">
+     <p class="idplate"><span class="tag">CCT 01</span><span class="t2">Physical AI · Nebius Global AI Hackathon</span></p>
+     <h1 class="h1"><span class="ln">Type a sentence.</span><span class="ln">The plug</span><span class="ln"><span class="tape">keeps watch.</span></span></h1>
+    </div>
+    <div class="rig" id="rig" aria-hidden="true">
+     <div class="seg seg-l"><div class="wire"></div><span class="end"></span><span class="rtape tape"><span class="ch" style="animation-delay:0.350s">N</span><span class="ch" style="animation-delay:0.382s">O</span><span class="ch" style="animation-delay:0.414s">B</span><span class="ch" style="animation-delay:0.446s">O</span><span class="ch" style="animation-delay:0.478s">D</span><span class="ch" style="animation-delay:0.510s">Y</span><span class="ch" style="animation-delay:0.542s"> </span><span class="ch" style="animation-delay:0.574s">I</span><span class="ch" style="animation-delay:0.606s">S</span><span class="ch" style="animation-delay:0.638s"> </span><span class="ch" style="animation-delay:0.670s">A</span><span class="ch" style="animation-delay:0.702s">T</span><span class="ch" style="animation-delay:0.734s"> </span><span class="ch" style="animation-delay:0.766s">T</span><span class="ch" style="animation-delay:0.798s">H</span><span class="ch" style="animation-delay:0.830s">E</span></span></div>
+     <div class="seg seg-r"><div class="wire"></div><span class="end"></span><span class="rtape tape"><span class="ch" style="animation-delay:0.862s">I</span><span class="ch" style="animation-delay:0.894s">R</span><span class="ch" style="animation-delay:0.926s">O</span><span class="ch" style="animation-delay:0.958s">N</span><span class="ch" style="animation-delay:0.990s">I</span><span class="ch" style="animation-delay:1.022s">N</span><span class="ch" style="animation-delay:1.054s">G</span><span class="ch" style="animation-delay:1.086s"> </span><span class="ch" style="animation-delay:1.118s">B</span><span class="ch" style="animation-delay:1.150s">O</span><span class="ch" style="animation-delay:1.182s">A</span><span class="ch" style="animation-delay:1.214s">R</span><span class="ch" style="animation-delay:1.246s">D</span></span></div>
+     <div class="notch"><b>θ</b></div>
+     <div class="anno"><p class="drawn">The rule, drawn — not a recording.</p>
+      <p class="count"><b class="k-on">0</b> of 12 windows above θ · trips at <b>10</b></p>
+      <ol class="cells"><li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li></ol></div>
+     <p class="hint">Scroll: the board stays empty <span class="ar">↓</span></p>
+     <div class="dcard" role="group" aria-label="The three frozen tripwires, as on a panel's schedule card"><span class="lab">Schedule · this camera</span><ol><li><span class="n">01</span><span>nobody is at the ironing board<span class="w">plug OFF after 120 s</span></span><span class="s"><span class="a">Armed</span><span class="t">Tripped</span></span></li><li><span class="n">02</span><span>the fridge door is left open and nobody is there<span class="w">notify after 60 s — a fridge is never cut</span></span><span class="s"><span class="u">Not armed</span></span></li><li><span class="n">03</span><span>the door is left open and nobody is there<span class="w">notify after 60 s</span></span><span class="s"><span class="u">Not armed</span></span></li></ol></div>
+     <div class="brk-wrap"><svg class="brk" viewBox="0 0 240 400" role="img" aria-labelledby="hb-t">
+<title id="hb-t">Breaker for circuit 01: lever up at ON; it drops to OFF on a trip</title>
+<defs>
+ <linearGradient id="hb-body" x1="0" x2="1"><stop offset="0" stop-color="#FBF9F3"/><stop offset=".72" stop-color="#F2EEE4"/><stop offset="1" stop-color="#DAD3C3"/></linearGradient>
+ <linearGradient id="hb-recess" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0F0E0D"/><stop offset="1" stop-color="#2E2B26"/></linearGradient>
+ <linearGradient id="hb-lever" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2B2925"/><stop offset=".45" stop-color="#3F3B35"/><stop offset="1" stop-color="#161513"/></linearGradient>
+ <radialGradient id="hb-screw" cx=".38" cy=".34" r=".75"><stop offset="0" stop-color="#F2EFE8"/><stop offset=".55" stop-color="#B9B2A3"/><stop offset="1" stop-color="#7D7667"/></radialGradient>
+ <filter id="hb-sh" x="-25%" y="-10%" width="160%" height="130%"><feDropShadow dx="7" dy="12" stdDeviation="10" flood-color="#3B352A" flood-opacity=".30"/></filter>
+</defs>
+<g filter="url(#hb-sh)">
+ <rect x="14" y="8" width="212" height="384" rx="14" fill="url(#hb-body)" stroke="#BDB6A6" stroke-width="1.5"/>
+ <path d="M20 70h200M20 330h200" stroke="#D3CCBC" stroke-width="1.5"/>
+ <rect x="202" y="16" width="18" height="368" rx="7" fill="#000" opacity=".04"/>
+</g>
+<g class="term">
+ <rect x="62" y="22" width="116" height="38" rx="5" fill="url(#hb-recess)"/>
+ <circle cx="120" cy="41" r="12.5" fill="url(#hb-screw)" stroke="#6E685B" stroke-width="1"/>
+ <path d="M111.5 41h17M120 32.5v17" stroke="#4A453C" stroke-width="2.4" stroke-linecap="round" transform="rotate(14 120 41)"/>
+ <rect x="62" y="340" width="116" height="38" rx="5" fill="url(#hb-recess)"/>
+ <circle cx="120" cy="359" r="12.5" fill="url(#hb-screw)" stroke="#6E685B" stroke-width="1"/>
+ <path d="M111.5 359h17M120 350.5v17" stroke="#4A453C" stroke-width="2.4" stroke-linecap="round" transform="rotate(-21 120 359)"/>
+</g>
+<g class="tag"><rect x="42" y="80" width="156" height="30" rx="2" fill="#1D4E89"/><rect x="42" y="80" width="156" height="10" rx="2" fill="#fff" opacity=".12"/>
+ <text x="120" y="101" text-anchor="middle" class="tag-t" fill="#fff">CCT 01</text></g>
+<rect x="86" y="124" width="68" height="176" rx="9" fill="url(#hb-recess)"/>
+<rect x="86" y="124" width="68" height="176" rx="9" fill="none" stroke="#000" stroke-opacity=".4" stroke-width="2"/>
+<rect x="90" y="128" width="60" height="5" rx="2.5" fill="#fff" opacity=".07"/>
+<g class="lever">
+ <rect x="94" y="130" width="52" height="72" rx="6" fill="url(#hb-lever)" stroke="#0B0A09" stroke-width="1.2"/>
+ <rect x="94" y="130" width="52" height="7" rx="3.5" fill="#fff" opacity=".13"/>
+ <path d="M102 178h36M102 186h36M102 194h36" stroke="#fff" stroke-opacity=".12" stroke-width="2"/>
+ <circle cx="120" cy="150" r="8.5" fill="#0B0A09"/><circle cx="120" cy="150" r="8.5" fill="none" stroke="#56514A" stroke-width="1.6"/>
+</g>
+<text x="162" y="158" class="stamp st-on">ON</text>
+<text x="162" y="292" class="stamp st-off">OFF</text>
+<rect class="trip-win" x="92" y="310" width="56" height="13" rx="3"/>
+<text x="120" y="320" text-anchor="middle" class="trip-t">TRIP</text>
+</svg><div class="flag"><span class="stamp">Tripped</span><span class="ack">OFF acknowledged by the plug</span><button class="btn btn-sm" type="button" id="runbtn">Run the dwell</button></div></div>
+    </div>
+    <div class="hero-bot">
+     <p class="sub"><span class="sc">A scenario:</span> Bu Sari leaves the iron on and runs to the warung. Her CCTV stays silent — an empty room has no motion. jaga turns one typed sentence into a tripwire: <b>Nemotron 3 Super</b> writes what the camera should look for, <b>Cosmos-Embed1</b> watches the webcam on the laptop — <b>8 frames, one vector, 1.24 s</b> at p50 — and a cheap smart plug cuts the power. <b>187 tests</b> hold the rule to its promises; no video frame leaves the laptop.</p>
+     <div class="ctas">
+      <a class="btn btn-ink" href="https://github.com/edycutjong/jaga"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>Source on GitHub</a>
+      <a class="btn" href="pitch/"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="1"/><path d="M12 16v4M8 20h8"/></svg>Pitch deck</a>
+      <a class="btn" href="https://github.com/edycutjong/jaga/blob/main/docs/PROTOCOL.md"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 15.5h6"/></svg>The protocol</a>
+     </div>
+     <div class="proof">
+      <ul><li>no model training</li><li>video frames never leave this laptop</li><li>served on 127.0.0.1 only</li><li>Apache-2.0</li></ul>
+      <span class="cmd"><span>pip install -e ".[test]" &amp;&amp; pytest</span><button type="button" data-copy='pip install -e ".[test]" &amp;&amp; pytest' aria-label="Copy the install-and-test command"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="1.5"/><path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8"/></svg></button></span>
+     </div>
+    </div>
+   </div>
+  </div>
+ </div>
+</header>
+
+<main id="main">
+
+<section class="sec" id="receipts" aria-labelledby="rc-h">
+ <div class="wrap">
+  <h2 class="h2" id="rc-h">Measured so far, and where it is written down.</h2>
+  <div class="plates"><div class="plate" data-count="187" data-dec="0"><span class="lab">Tests pass</span><span class="n"><span class="v">187</span></span><p>tests pass with no model, no key and no camera: the safety invariants, the decision rule, the measurement rules</p><span class="src">→ <a href="https://github.com/edycutjong/jaga/blob/main/evidence/runs/2026-10-17-pytest.txt">evidence/runs · pytest</a></span></div><div class="plate" data-count="49152" data-dec="0"><span class="lab">Rule, every pattern</span><span class="n"><span class="v">49,152</span></span><p>window patterns: the decision rule trips exactly where an independent oracle says, and one window never trips</p><span class="src">→ <a href="https://github.com/edycutjong/jaga/blob/main/tests/test_decision_exhaustive.py">tests/…exhaustive.py</a></span></div><div class="plate" data-count="1.2378" data-dec="2"><span class="lab">Cosmos on the laptop</span><span class="n"><span class="v">1.24<small>s</small></span></span><p>per 8-frame window: Cosmos-Embed1-224p on the laptop's GPU, fp32, p50 of 200 (p95 2.91 s, on a busy machine)</p><span class="src">→ <a href="https://github.com/edycutjong/jaga/blob/main/DEMO.md">DEMO.md §1</a></span></div><div class="plate" data-count="5" data-dec="0"><span class="lab">Sentences compiled</span><span class="n"><span class="v">5<small>/5</small></span></span><p>sentences compiled into a valid tripwire by Nemotron 3 Super — 2 of 2 in Indonesian — and the one a camera cannot see, refused</p><span class="src">→ <a href="https://github.com/edycutjong/jaga/blob/main/evidence/day0/tf-stage-t.json">evidence/day0/tf-stage-t.json</a></span></div></div>
+ </div>
+</section>
+
+<section class="sec" id="overlay" aria-labelledby="ov-h" style="padding-top:0">
+ <div class="wrap">
+  <h2 class="h2" id="ov-h">The overlay you arm it from.</h2>
+  <p class="lede">The page jaga serves on 127.0.0.1 while it watches. The sentence is a strip of label tape across the camera; the margin trace runs toward θ; the dwell fills; the breaker says OFF only when the plug answers. Beside it, real runs of the command line.</p>
+  <figure class="shot"><div class="frame"><img src="assets/page/overlay-tripped.webp" width="1600" height="837" alt="jaga's overlay, tripped: the label-tape sentence NOBODY IS AT THE IRONING BOARD snapped across a test card, the dwell bar full, the breaker at OFF with a red TRIPPED flag"><span class="callout" style="left:41.2%;top:23.5%" aria-hidden="true">1</span><span class="callout" style="left:46.0%;top:8.6%" aria-hidden="true">2</span><span class="callout" style="left:67.6%;top:34.0%" aria-hidden="true">3</span><span class="callout" style="left:20.0%;top:58.5%" aria-hidden="true">4</span><span class="callout" style="left:85.0%;top:26.0%" aria-hidden="true">5</span><span class="callout" style="left:65.5%;top:84.3%" aria-hidden="true">6</span></div><figcaption><span class="qa">QA render</span> The real overlay — the app <code>jaga serve</code> runs — driven by scripted windows, with the test suite's fake plug on loopback and a test card where the camera would be. Not a detection; the acknowledgement time on screen is the fake plug's. <span class="src">→ <a href="https://github.com/edycutjong/jaga/blob/main/evidence/runs/2026-10-17-overlay-qa.json">the record of this render</a></span></figcaption></figure>
+  <div class="under"><ol class="legend"><li><b>1</b><span>The sentence as label tape across the camera — snapped at θ.</span></li><li><b>2</b><span>The window: the last 8 frames, one a second.</span></li><li><b>3</b><span>The margin trace, against θ.</span></li><li><b>4</b><span>The dwell: windows above θ, held for 30 s (a labelled demo dwell; the default is 120 s).</span></li><li><b>5</b><span>The breaker: TRIPPED, and OFF only once the plug has acknowledged it.</span></li><li><b>6</b><span>The schedule: one row per tripwire armed for this camera.</span></li></ol><div><figure class="term" data-replay><div class="bar"><span>zsh · jaga · four real runs, 2026-10-17</span><button type="button">Replay</button></div><pre><span class="ln c"># ran 2026-10-17T08:11:10+0700 at commit 1355077</span><span class="ln tc" data-cmd="jaga compile &quot;nggak ada orang di meja setrika&quot;"><span class="p">$ </span><span class="tx">jaga compile &quot;nggak ada orang di meja setrika&quot;</span></span><span class="ln">“nggak ada orang di meja setrika” → IRONING BOARD EMPTY  (visual=True)</span><span class="ln">  + empty ironing board with iron on top</span><span class="ln">  + ironing board clear of people</span><span class="ln">  + vacant ironing table seen from above</span><span class="ln neg">  − person standing at ironing board</span><span class="ln neg">  − someone ironing a shirt on the board</span><span class="ln neg">  − hand resting on the ironing board</span><span class="ln">  dwell 60 s → notify · cool-down 600 s · language id</span><span class="ln">  nvidia/nemotron-3-super-120b-a12b · request e2a1f11c4ffc3a50c9d5bad87ea17a4c · 2.28 s</span><span class="ln gap"> </span><span class="ln c"># ran 2026-10-17T08:11:13+0700 at commit 1355077</span><span class="ln tc" data-cmd="jaga compile &quot;tell me if something is wrong&quot;"><span class="p">$ </span><span class="tx">jaga compile &quot;tell me if something is wrong&quot;</span></span><span class="ln">“tell me if something is wrong” → GENERIC ALERT  (visual=False)</span><span class="ln">  can&#x27;t see that: The sentence does not refer to any observable scene or object.</span><span class="ln">  dwell 60 s → notify · cool-down 600 s · language en</span><span class="ln">  nvidia/nemotron-3-super-120b-a12b · request 280be26c5fa7df675b14fb8781229c9a · 2.113 s</span><span class="ln gap"> </span><span class="ln c"># ran 2026-10-17T08:12:37+0700 at commit 1355077</span><span class="ln tc" data-cmd="pytest"><span class="p">$ </span><span class="tx">pytest</span></span><span class="ln">........................................................................ [ 38%]</span><span class="ln">........................................................................ [ 77%]</span><span class="ln">...........................................                              [100%]</span><span class="ln ok">187 passed in 64.75s (0:01:04)</span><span class="ln gap"> </span><span class="ln c"># ran 2026-10-17T08:12:27+0700 at commit 1355077</span><span class="ln tc" data-cmd="python scripts/verify_offline.py"><span class="p">$ </span><span class="tx">python scripts/verify_offline.py</span></span><span class="ln">{</span><span class="ln">  &quot;variant&quot;: &quot;ci&quot;,</span><span class="ln">  &quot;window_source&quot;: &quot;frozen caption vectors as stand-in windows (no clips committed yet)&quot;,</span><span class="ln">  &quot;tripped&quot;: true,</span><span class="ln">  &quot;plug_off_acknowledged&quot;: true,</span><span class="ln">  &quot;fake_plug_off_calls&quot;: 1,</span><span class="ln">  &quot;fake_plug_on_calls&quot;: 0,</span><span class="ln">  &quot;machine_online_before_block&quot;: true,</span><span class="ln">  &quot;outbound_after_block&quot;: false,</span><span class="ln">  &quot;blocked_attempts&quot;: [</span><span class="ln">    &quot;1.1.1.1&quot;</span><span class="ln">  ],</span><span class="ln ok">  &quot;pass&quot;: true</span><span class="ln">}</span></pre></figure><p class="src" style="margin-top:12px">Typed back from the transcripts, as printed: two live Token Factory compiles — one in Indonesian, one refused — the test suite, and the offline check → <a href="https://github.com/edycutjong/jaga/tree/main/evidence/runs">evidence/runs/</a></p></div></div>
+ </div>
+</section>
+
+<section class="sec" id="wiring" aria-labelledby="wi-h" style="padding-top:0">
+ <div class="wrap">
+  <h2 class="h2" id="wi-h">One sentence, wired to a plug.</h2>
+  <p class="lede">Electricians draw a circuit as a single line. This is jaga&#x27;s. The sentence leaves once, as text, and captions come back; the camera&#x27;s frames stay inside the laptop; only numbers — labelled margins out, a threshold back — reach the calibration Job; the plug is driven over the home network.</p>
+  <figure class="sldfig"><svg class="sld sld-wide" viewBox="0 0 1200 620" role="img" aria-label="jaga&#x27;s one flow as an electrician&#x27;s single-line diagram"><defs><marker id="sl-head-w" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#1A1916"/></marker></defs><rect x="20" y="16" width="1160" height="112" rx="10" class="sl-zone"/><text x="40" y="44" class="sl-k">NEBIUS AI CLOUD</text><rect x="20" y="168" width="850" height="432" rx="10" class="sl-bound"/><text x="40" y="588" class="sl-k">THE LAPTOP · the overlay listens on 127.0.0.1 only</text><g class="sl-cloud"><rect x="260" y="36" width="300" height="78" rx="4" class="sl-box"/><text x="274" y="62" class="sl-t">NEMOTRON 3 SUPER</text><text x="274" y="83" class="sl-s">Token Factory · JSON schema</text><text x="274" y="101" class="sl-c">nemotron-3-super-120b-a12b</text></g><g class="sl-cloud"><rect x="640" y="36" width="220" height="78" rx="4" class="sl-box"/><text x="654" y="62" class="sl-t">OBJECT STORAGE</text><text x="654" y="83" class="sl-s">two presigned URLs</text><text x="654" y="101" class="sl-c">jaga-calib · eu-west1</text></g><g class="sl-cloud"><rect x="930" y="36" width="230" height="78" rx="4" class="sl-box"/><text x="944" y="62" class="sl-t">SERVERLESS JOB</text><text x="944" y="83" class="sl-s">fits θ, recall ≥ 0.9</text><text x="944" y="101" class="sl-c">cpu-d3 · 4vcpu-16gb</text></g><g class="sl-node"><rect x="44" y="214" width="200" height="78" rx="4" class="sl-box"/><text x="58" y="240" class="sl-t">YOUR SENTENCE</text><text x="58" y="261" class="sl-s">typed in the overlay</text><text x="58" y="279" class="sl-c">plain text</text></g><g class="sl-node"><rect x="310" y="214" width="250" height="78" rx="4" class="sl-box"/><text x="324" y="240" class="sl-t">CAPTIONS + NEGATIVES</text><text x="324" y="261" class="sl-s">text vectors, same space</text><text x="324" y="279" class="sl-c">3–5 + 3–6 · 256-d</text></g><g class="sl-node"><rect x="44" y="346" width="150" height="78" rx="4" class="sl-box"/><text x="58" y="372" class="sl-t">CAMERA</text><text x="58" y="393" class="sl-s">webcam, 1 frame/s</text><text x="58" y="411" class="sl-c">OpenCV</text></g><g class="sl-node"><rect x="226" y="346" width="190" height="78" rx="4" class="sl-box"/><text x="240" y="372" class="sl-t">COSMOS-EMBED1</text><text x="240" y="393" class="sl-s">last 8 frames → 1 vector</text><text x="240" y="411" class="sl-c">224p · fp32 · MPS</text></g><g class="sl-node"><rect x="448" y="346" width="160" height="78" rx="4" class="sl-box"/><text x="462" y="372" class="sl-t">MARGIN</text><text x="462" y="393" class="sl-s">best + minus best −</text><text x="462" y="411" class="sl-c">cosine</text></g><g class="sl-node"><rect x="640" y="346" width="200" height="78" rx="4" class="sl-box"/><text x="654" y="372" class="sl-t">THE RULE</text><text x="654" y="393" class="sl-s">k of n over the dwell</text><text x="654" y="411" class="sl-c">k = ⌈0.8 n⌉ · ≥ 2</text></g><g class="sl-stop"><rect x="44" y="490" width="372" height="74" rx="4" class="sl-box"/><text x="58" y="518" class="sl-t">VIDEO FRAMES STAY HERE</text><text x="58" y="541" class="sl-s">frames, window vectors, thumbnails</text></g><g class="sl-node"><rect x="930" y="346" width="130" height="78" rx="4" class="sl-box"/><text x="944" y="372" class="sl-t">BREAKER</text><text x="944" y="393" class="sl-s">OFF or notify</text><text x="944" y="411" class="sl-c">I1 · I2 · I3</text></g><path d="M144 214 L144 75 L260 75" class="sl-a" marker-end="url(#sl-head-w)"/><text x="152" y="150" class="sl-l" text-anchor="start">the sentence, as text</text><path d="M435 114 L435 214" class="sl-a" marker-end="url(#sl-head-w)"/><text x="443" y="150" class="sl-l" text-anchor="start">captions back</text><path d="M435 292 L435 318 L528 318 L528 346" class="sl-a" marker-end="url(#sl-head-w)"/><path d="M194 385 L226 385" class="sl-a" marker-end="url(#sl-head-w)"/><path d="M416 385 L448 385" class="sl-a" marker-end="url(#sl-head-w)"/><path d="M608 385 L640 385" class="sl-a" marker-end="url(#sl-head-w)"/><path d="M705 346 L705 114" class="sl-a" marker-end="url(#sl-head-w)"/><text x="697" y="252" class="sl-l" text-anchor="end">labelled margins</text><path d="M800 114 L800 346" class="sl-a" marker-end="url(#sl-head-w)"/><text x="808" y="252" class="sl-l" text-anchor="start">θ back</text><path d="M860 64 L930 64" class="sl-a" marker-end="url(#sl-head-w)"/><text x="895" y="56" class="sl-l" text-anchor="middle">input</text><path d="M930 92 L860 92" class="sl-a" marker-end="url(#sl-head-w)"/><text x="895" y="108" class="sl-l" text-anchor="middle">result</text><path d="M840 385 L930 385" class="sl-a" marker-end="url(#sl-head-w)"/><text x="900" y="372" class="sl-l" text-anchor="middle">trip</text><g class="sl-x"><path d="M416 527 H858" class="sl-xl"/><path d="M862 519l16 16m0-16l-16 16"/></g><path d="M1060 385 H1076" class="sl-pw"/><g class="sl-sym"><circle cx="1076" cy="385" r="3" class="sl-dot"/><path d="M1076 385 L1106 370" class="sl-blade"/><path d="M1108 379l7 7m0-7l-7 7"/></g><path d="M1114 385 H1150 V424" class="sl-pw"/><g class="sl-sym"><path d="M1134 436 A16 16 0 0 0 1166 436"/><path d="M1150 452 V470"/></g><text x="1128" y="446" text-anchor="end" class="sl-k2">WI‑FI PLUG</text><text x="1128" y="465" text-anchor="end" class="sl-s2">home network</text><g class="sl-sym"><circle cx="1150" cy="506" r="18"/><path d="M1137.4 493.4L1162.6 518.6M1162.6 493.4L1137.4 518.6"/></g><text x="1150" y="550" text-anchor="middle" class="sl-s2">iron · lamp</text></svg><svg class="sld sld-tall" viewBox="0 0 400 1000" role="img" aria-label="jaga&#x27;s one flow as a single-line diagram: the laptop on the left, Nebius on the right"><defs><marker id="sl-head-t" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#1A1916"/></marker></defs><path d="M214 18 V980" class="sl-bound"/><text x="28" y="26" class="sl-k">THE LAPTOP</text><text x="228" y="26" class="sl-k">NEBIUS AI CLOUD</text><g class="sl-node"><rect x="28" y="44" width="170" height="74" rx="4" class="sl-box"/><text x="42" y="70" class="sl-t">YOUR SENTENCE</text><text x="42" y="91" class="sl-s">typed in the overlay</text><text x="42" y="105" class="sl-c">sent as text →</text></g><g class="sl-cloud"><rect x="228" y="44" width="158" height="74" rx="4" class="sl-box"/><text x="242" y="70" class="sl-t sl-t2">NEMOTRON 3 SUPER</text><text x="242" y="91" class="sl-s">Token Factory</text><text x="242" y="105" class="sl-c">JSON schema</text></g><g class="sl-node"><rect x="28" y="154" width="170" height="74" rx="4" class="sl-box"/><text x="42" y="180" class="sl-t">CAPTIONS</text><text x="42" y="201" class="sl-s">+ hard negatives</text><text x="42" y="215" class="sl-c">← from Nemotron</text></g><g class="sl-node"><rect x="28" y="264" width="170" height="74" rx="4" class="sl-box"/><text x="42" y="290" class="sl-t">CAMERA</text><text x="42" y="311" class="sl-s">webcam, 1 frame/s</text></g><g class="sl-node"><rect x="28" y="364" width="170" height="74" rx="4" class="sl-box"/><text x="42" y="390" class="sl-t">COSMOS-EMBED1</text><text x="42" y="411" class="sl-s">8 frames → 1 vector</text><text x="42" y="425" class="sl-c">fp32 · MPS</text></g><g class="sl-node"><rect x="28" y="474" width="170" height="74" rx="4" class="sl-box"/><text x="42" y="500" class="sl-t">MARGIN</text><text x="42" y="521" class="sl-s">best + minus best −</text></g><g class="sl-node"><rect x="28" y="574" width="170" height="74" rx="4" class="sl-box"/><text x="42" y="600" class="sl-t">THE RULE</text><text x="42" y="621" class="sl-s">k of n over the dwell</text><text x="42" y="635" class="sl-c">k = ⌈0.8 n⌉</text></g><g class="sl-cloud"><rect x="228" y="474" width="158" height="74" rx="4" class="sl-box"/><text x="242" y="500" class="sl-t sl-t2">OBJECT STORAGE</text><text x="242" y="521" class="sl-s">margins in, θ out</text><text x="242" y="535" class="sl-c">presigned URLs</text></g><g class="sl-cloud"><rect x="228" y="604" width="158" height="74" rx="4" class="sl-box"/><text x="242" y="630" class="sl-t sl-t2">SERVERLESS JOB</text><text x="242" y="651" class="sl-s">fits θ</text><text x="242" y="665" class="sl-c">cpu-d3</text></g><g class="sl-node"><rect x="28" y="684" width="170" height="74" rx="4" class="sl-box"/><text x="42" y="710" class="sl-t">BREAKER</text><text x="42" y="731" class="sl-s">OFF or notify</text><text x="42" y="745" class="sl-c">I1 · I2 · I3</text></g><g class="sl-stop"><rect x="28" y="896" width="170" height="74" rx="4" class="sl-box"/><text x="42" y="924" class="sl-t">VIDEO FRAMES</text><text x="42" y="947" class="sl-s">stay on this side</text></g><path d="M198 81 L228 81" class="sl-a" marker-end="url(#sl-head-t)"/><path d="M228 102 L206 102 L206 191 L198 191" class="sl-a" marker-end="url(#sl-head-t)"/><path d="M28 191 L14 191 L14 511 L28 511" class="sl-a sl-quiet" marker-end="url(#sl-head-t)"/><path d="M113 338 L113 364" class="sl-a" marker-end="url(#sl-head-t)"/><path d="M113 438 L113 474" class="sl-a" marker-end="url(#sl-head-t)"/><path d="M113 548 L113 574" class="sl-a" marker-end="url(#sl-head-t)"/><path d="M198 500 L228 500" class="sl-a" marker-end="url(#sl-head-t)"/><path d="M228 532 L206 532 L206 611 L198 611" class="sl-a" marker-end="url(#sl-head-t)"/><path d="M307 548 L307 604" class="sl-a" marker-end="url(#sl-head-t)" marker-start="url(#sl-head-t)"/><path d="M113 648 L113 684" class="sl-a" marker-end="url(#sl-head-t)"/><text x="121" y="670" class="sl-l" text-anchor="start">trip</text><g class="sl-x"><path d="M198 933 H210" class="sl-xl"/><path d="M208 925l16 16m0-16l-16 16"/></g><path d="M113 758 V786" class="sl-pw"/><g class="sl-sym"><circle cx="113" cy="786" r="3" class="sl-dot"/><path d="M113 786 L143 771" class="sl-blade"/><path d="M145 780l7 7m0-7l-7 7"/></g><path d="M151 786 H170 V812" class="sl-pw"/><g class="sl-sym"><path d="M154 824 A16 16 0 0 0 186 824"/><path d="M170 840 V858"/></g><g class="sl-sym"><circle cx="170" cy="876" r="15"/><path d="M159.5 865.5L180.5 886.5M180.5 865.5L159.5 886.5"/></g><text x="30" y="832" class="sl-k2">WI‑FI PLUG</text><text x="30" y="852" class="sl-s2">home network</text></svg></figure>
+ </div>
+</section>
+
+<section class="sec" id="schedule" aria-labelledby="sc-h" style="padding-top:0">
+ <div class="wrap">
+  <div class="card">
+   <div class="sched-head">
+    <h2 class="h2" id="sc-h">Schedule of circuits</h2>
+    <div class="keys"><span class="stamp s-measured">Measured</span><span class="stamp s-tested">Tested</span><span class="stamp s-smoke">Smoke run</span><span class="stamp s-pending">Pending</span></div>
+   </div>
+   <div class="cols lab" aria-hidden="true"><span>Cct</span><span>Circuit</span><span>Rating</span><span>State</span></div>
+   <article class="row" id="c01" aria-labelledby="c01-h"><div class="row-h"><span class="cct">01</span><span class="what"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h11l3 3-3 3H4z"/><path d="M7 10h5"/><path d="M4 17h16"/></svg>Compile</span><span class="rating">nemotron-3-super-120b-a12b<br>Token Factory · JSON schema</span><span class="stamp s-measured">Measured</span></div><div class="row-b"><div><h3 class="h2" id="c01-h">Nemotron writes what a camera can see.</h3><p>The Cosmos-Embed1 card warns that prompts outside its short, action-style captions may not line up with video. So Nemotron 3 Super rewrites your sentence into that register — 3 to 5 captions of the scene when it is true — and adds 3 to 6 hard negatives: the same place when it is false. You check both lists, and choose what happens and after how long, before anything is armed.</p><p>Each of the three tripwires was frozen from one compile made before any clip existed; then each sentence was compiled 5 more times, only to measure how much the captions vary (15 compiles, never used for a threshold).</p><span class="src">→ <a href="https://github.com/edycutjong/jaga/tree/main/fixtures/tripwires/variance">fixtures/tripwires/variance/</a></span></div><div class="vis"><div class="drawer" role="group" aria-label="Tripwire 01 as Nemotron 3 Super compiled it"><p class="lab" style="margin:0 0 10px">Compiled by Nemotron 3 Super · Token Factory</p><p class="you">You typed <b>“nobody is at the ironing board”</b></p><div class="two"><div><h4>Cosmos looks for</h4><ul class="pos"><li>empty ironing board with an iron on it</li><li>ironing board alone in the laundry room</li><li>bare ironing board next to a basket</li></ul></div><div><h4>…and tells it apart from</h4><ul class="neg"><li>person standing at the ironing board folding clothes</li><li>someone ironing a shirt on the ironing board</li><li>hand touching the iron on the ironing board</li></ul></div></div><p class="meta"><b>nvidia/nemotron-3-super-120b-a12b</b> · request <b>9727b666068a1e42a836b303ab8fd65c</b> · 2.46 s · frozen 2026-10-15 06:43 · Super proposed notify after 30 s; the protocol runs it as plug OFF after 120 s</p></div><span class="src">→ <a href="https://github.com/edycutjong/jaga/blob/main/fixtures/tripwires/01.json">fixtures/tripwires/01.json — the frozen compile, verbatim</a></span></div></div></article><article class="row" id="c02" aria-labelledby="c02-h"><div class="row-h"><span class="cct">02</span><span class="what"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="1.5"/><path d="M16 10l5-3v10l-5-3"/><circle cx="9.5" cy="12" r="2.5"/></svg>See</span><span class="rating">Cosmos-Embed1-224p<br>fp32 · Apple MPS or CPU</span><span class="stamp s-measured">Measured</span></div><div class="row-b"><div><h3 class="h2" id="c02-h">Cosmos watches on the laptop.</h3><p>Every window — the last 8 frames, sampled once a second — becomes one 256-d vector in the same space as the captions. No model training: the sentence is the classifier.</p><p>The model card says it was tested with BF16 on Ampere and Hopper GPUs under Linux. jaga runs it in fp32 on an Apple M1 Max — its GPU through MPS, or its CPU — and these speeds are ours, measured with whatever else was running on the machine (DEMO.md prints the load beside each).</p></div><div class="vis"><div class="strip" aria-label="Eight frames, one per second, become one 256-dimensional vector"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><span class="to">→</span><span class="vec">1 × 256-d</span></div><div class="speeds"><div><span class="k">GPU · MPS fp32</span><span class="v">1.24<small> s</small></span><span class="d">p50 of 200 windows · p95 2.91 s · load 4.55 → 9.82</span></div><div><span class="k">CPU · fp32</span><span class="v">3.09<small> s</small></span><span class="d">p50 of 200 windows · p95 3.72 s · load 9.42 → 5.95</span></div><div><span class="k">Live window period</span><span class="v">1.27<small> s</small></span><span class="d">p50 over 240 windows of the live loop · p95 1.79 s</span></div></div><span class="src">→ <a href="https://github.com/edycutjong/jaga/blob/main/DEMO.md">DEMO.md §1 — the speed table and how to reproduce it</a></span></div></div></article><article class="row" id="c03" aria-labelledby="c03-h"><div class="row-h"><span class="cct">03</span><span class="what"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17h4l3-8 3 5 2-3h6"/><path d="M3 9h18" stroke-dasharray="2 2"/></svg>Decide</span><span class="rating">k = ⌈0.8 n⌉ · never fewer than 2<br>margin vs θ · cool-down</span><span class="stamp s-tested">Tested</span></div><div class="row-b"><div><h3 class="h2" id="c03-h">One window never cuts the power.</h3><p>The model chooses where to look; the code decides when to act. The margin is the best positive cosine minus the best negative one. A trip needs k = ⌈0.8 n⌉ of the n windows in the dwell above θ — including the newest — and never fewer than two.</p><p>Flip the windows and pick a dwell. The test suite checks this rule on all 49,152 patterns of 12 windows, at 4 strides and 3 dwells, against an independent oracle.</p><span class="src">→ <a href="https://github.com/edycutjong/jaga/blob/main/tests/test_decision_exhaustive.py">tests/test_decision_exhaustive.py</a></span></div><div class="vis"><div class="play" id="play"><div class="opts"><span>dwell</span><span class="seg-ctl" data-k="dwell"><button type="button" data-v="4" aria-pressed="false">4 s</button><button type="button" data-v="6" aria-pressed="false">6 s</button><button type="button" data-v="10" aria-pressed="true">10 s</button></span><span>stride</span><span class="seg-ctl" data-k="stride"><button type="button" data-v="1" aria-pressed="true">1 s</button><button type="button" data-v="1.25" aria-pressed="false">1.25 s</button><button type="button" data-v="2" aria-pressed="false">2 s</button><button type="button" data-v="5" aria-pressed="false">5 s</button></span></div><div class="wins" aria-label="12 windows; press one to flip it above or below θ"><button type="button" aria-pressed="false">1</button><button type="button" aria-pressed="false">2</button><button type="button" aria-pressed="false">3</button><button type="button" aria-pressed="true">4</button><button type="button" aria-pressed="true">5</button><button type="button" aria-pressed="true">6</button><button type="button" aria-pressed="true">7</button><button type="button" aria-pressed="true">8</button><button type="button" aria-pressed="true">9</button><button type="button" aria-pressed="true">10</button><button type="button" aria-pressed="true">11</button><button type="button" aria-pressed="true">12</button></div><div class="read" aria-live="polite"><span>k = <b class="k">8</b> of n = <b class="n">10</b></span><span class="verdict t">Trips at window 11</span><span class="why"></span></div><div class="row2"><button class="btn" type="button" data-fill="all">All above θ</button><button class="btn" type="button" data-fill="none">All below</button><button class="btn" type="button" data-fill="one">One window</button><button class="btn" type="button" data-fill="mix">Two of every three</button></div><p class="note">Blue = a window above θ. The page runs a JavaScript port of <code>DecisionRule.push</code>; when the page is built it is run on all 49,152 patterns of the test suite and trips exactly where the Python rule does. Cool-down here: 3 strides, as in the test.</p></div></div></div></article><article class="row" id="c04" aria-labelledby="c04-h"><div class="row-h"><span class="cct">04</span><span class="what"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="3" width="10" height="18" rx="2"/><rect x="9.5" y="12" width="5" height="6" rx="1"/><path d="M10 6h4"/></svg>Act</span><span class="rating">tinytuya · Shelly RPC<br>OFF or notify — never ON</span><span class="stamp s-tested">Tested on fakes</span></div><div class="row-b"><div><h3 class="h2" id="c04-h">A trip can only switch it off.</h3><ul class="inv"><li><b>I1</b><span>A trip can only cut power or notify. The one piece of code that can switch a plug on, <code>jaga/operator_on.py</code>, is reached only by operator actions; tests check that nothing else in the package reaches it.</span></li><li><b>I2</b><span>One bad window cannot cut power: most windows over the dwell, the newest included, never fewer than two.</span></li><li><b>I3</b><span>OFF is shown only after the plug acknowledges this trip's OFF. A failed call is shown and pushed as ACTION FAILED, and retried — off only.</span></li></ul><p style="margin-top:1em">Cutting power is allowed only for heating or cooking appliances; a fridge or a freezer can never be cut. Neither plug driver has met a real plug yet: the Shelly driver runs against a fake LAN plug, the Tuya driver through a fake tinytuya device. The real plug is the next recording.</p></div><div class="vis"><figure class="shot small"><div class="frame"><img src="assets/page/overlay-breaker.webp" width="553" height="680" alt="The overlay's breaker panel: OFF, a red TRIPPED flag, and the event log with 01 TRIPPED and 01 PLUG OFF" ></div><figcaption><span class="qa">QA render</span> The overlay's breaker after the trip above: TRIPPED, then PLUG OFF in the log, with a “✗ wrong” button that keeps the trip as a labelled negative. Fake plug on loopback: 0 ON calls, 1 OFF. <span class="src">→ <a href="https://github.com/edycutjong/jaga/blob/main/evidence/runs/2026-10-17-overlay-qa.json">record</a></span></figcaption></figure></div></div></article><article class="row" id="c05" aria-labelledby="c05-h"><div class="row-h"><span class="cct">05</span><span class="what"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18a8 8 0 1 1 16 0"/><path d="M12 18l4-6"/><path d="M4 18h16"/></svg>Calibrate</span><span class="rating">Nebius Serverless Job<br>cpu-d3 · 4vcpu-16gb · eu-west1</span><span class="stamp s-smoke">Smoke run</span></div><div class="row-b"><div><h3 class="h2" id="c05-h">The threshold comes with a receipt.</h3><p>A Nebius Serverless Job fits each tripwire's threshold from labelled margins — numbers and labels; no vectors, no frames — at the highest margin that keeps recall at 0.9. It runs the stock python:3.11 image and a standard-library script, and holds no account credential: only two single-object Object Storage URLs that expire after 2 hours.</p><p>So far it has run once, as a smoke test on synthetic numbers — the plumbing, not a calibration. The threshold the soaks will use is fitted on the laptop from the labelled clips and frozen before them.</p></div><div class="vis"><div class="receipt"><span class="stamp s-smoke rstamp">Smoke run</span><dl><dt>job</dt><dd>aijob-e01e9n3qk4qq8zzk13</dd><dt>kind</dt><dd>smoke — not a calibration</dd><dt>state</dt><dd>COMPLETED</dd><dt>compute</dt><dd>cpu-d3 · 4vcpu-16gb · python:3.11</dd><dt>region</dt><dd>eu-west1</dd><dt>provisioning</dt><dd>259 s</dd><dt>wall clock</dt><dd>0.6 s</dd><dt>cost</dt><dd>$0.000022 at the listed $0.132/h</dd><dt>in / out</dt><dd>presigned GET in, presigned PUT out · bucket jaga-calib</dd></dl></div><p class="src" style="margin-top:12px">Object Storage stage: presigned PUT 200 · GET 200 · 1,024 bytes round-trip → <a href="https://github.com/edycutjong/jaga/blob/main/evidence/day0/s3-stage.json">evidence/day0/s3-stage.json</a> · <a href="https://github.com/edycutjong/jaga/blob/main/docs/RUNS.md">docs/RUNS.md</a></p></div></div></article><article class="row" id="c06" aria-labelledby="c06-h"><div class="row-h"><span class="cct">06</span><span class="what"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3.5" width="14" height="17.5" rx="1.5"/><path d="M9 3.5V6h6V3.5"/><path d="M8.5 11h7M8.5 14.5h7M8.5 18h4"/></svg>Measure</span><span class="rating">clips · soaks · outside people<br>pre-registered</span><span class="stamp s-pending">Pending</span></div><div class="row-b"><div><h3 class="h2" id="c06-h">Pending is a state, not a number.</h3><p>Accuracy needs recordings only a person can make: labelled clips of three events, two attended soaks with someone standing still at the board, and one night. The protocol was committed before any of it, with its question written down:</p><p class="qtn">“Of the still episodes in Soak B1 + B2, how many does jaga cut, and how many does a stillness timer cut — judged by one decision rule — and how many real exits does each catch, how fast?”</p><p>The target: jaga cuts fewer than half as many still episodes as the stillness timer, and catches at least 0.8 of the exits. If it does not, the counts are read out with no claim of a win. A tie is called a tie.</p></div><div class="vis"><ul class="sheet"><li><span class="t">Speed: Cosmos-Embed1 on the laptop</span><span class="stamp s-measured">Measured</span><span class="d"><span class="v">GPU p50 1.24 s · CPU p50 3.09 s</span> · DEMO.md §1</span></li><li><span class="t">Live window period</span><span class="stamp s-measured">Measured</span><span class="d"><span class="v">p50 1.27 s</span> · DEMO.md §1</span></li><li><span class="t">The decision rule, every pattern</span><span class="stamp s-tested">Tested</span><span class="d"><span class="v">49,152 of 49,152</span> · tests/test_decision_exhaustive.py</span></li><li><span class="t">Labelled clips: AUC and precision against motion and stillness baselines</span><span class="stamp s-pending">Pending</span><span class="d">DEMO.md §2</span></li><li><span class="t">A fresh sentence with no labelled clips</span><span class="stamp s-pending">Pending</span><span class="d">DEMO.md §3</span></li><li><span class="t">Soak B: still episodes cut — jaga vs a stillness timer, a person detector, a countdown timer</span><span class="stamp s-pending">Pending</span><span class="d">PROTOCOL §1–8</span></li><li><span class="t">Soak A: false alarms per armed hour, one night</span><span class="stamp s-pending">Pending</span><span class="d">PROTOCOL · Soak A</span></li><li><span class="t">Self-ablation: what the rewrite and the negatives are worth</span><span class="stamp s-pending">Pending</span><span class="d">DEMO.md §5</span></li><li><span class="t">Outside people&#x27;s own clips</span><span class="stamp s-pending">Pending</span><span class="d">DEMO.md §6</span></li></ul><p class="src" style="margin-top:14px">→ <a href="https://github.com/edycutjong/jaga/blob/main/docs/PROTOCOL.md">docs/PROTOCOL.md</a> (committed before any data) · <a href="https://github.com/edycutjong/jaga/blob/main/DEMO.md">DEMO.md</a> (written by bench.py)</p></div></div></article>
+  </div>
+ </div>
+</section>
+
+<section class="sec" id="honest" aria-labelledby="ho-h" style="padding-top:0">
+ <div class="wrap">
+  <h2 class="h2" id="ho-h">Read the labels before you wire it.</h2>
+  <p class="lede">Three limits, quoted from the README as written. A judge should know them before believing anything above.</p>
+  <div class="labels"><figure class="label"><div class="lh"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3.5 22 20.5H2z"/><path d="M12 9.5v5.5M12 17.6v.4" stroke-linecap="round"/></svg>An extra guard</div><blockquote>jaga is an extra guard, not a fire-safety device. It can miss an event; a trip only ever cuts power or sends a notification, and switching power back on is always a person&#x27;s job.</blockquote><figcaption>— README · top</figcaption></figure><figure class="label"><div class="lh"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3.5 22 20.5H2z"/><path d="M12 9.5v5.5M12 17.6v.4" stroke-linecap="round"/></svg>Scene states, not lights</div><blockquote>224p is small: jaga watches scene states (a person present or not, a door open), not an iron&#x27;s power light.</blockquote><figcaption>— README · Honest limits 3</figcaption></figure><figure class="label"><div class="lh"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3.5 22 20.5H2z"/><path d="M12 9.5v5.5M12 17.6v.4" stroke-linecap="round"/></svg>A lamp, not a hot iron</div><blockquote>In the soak protocol the plug&#x27;s visible load is a desk lamp and the iron is an unplugged prop: no heated iron is left unattended for a measurement.</blockquote><figcaption>— README · Honest limits 2</figcaption></figure></div>
+ </div>
+</section>
+
+<section class="sec" id="faq" aria-labelledby="fq-h" style="padding-top:0">
+ <div class="wrap">
+  <h2 class="h2" id="fq-h">Questions a judge would ask.</h2>
+  <div class="faq"><details><summary>Does any video leave the laptop?<span class="pm" aria-hidden="true">+</span></summary><div class="a"><p>No. The typed sentence goes to Token Factory. Labelled margins — numbers and labels, no vectors — go to the calibration Job through Object Storage, and a threshold comes back. The overlay listens on 127.0.0.1 only.</p><p>An offline check arms a tripwire and trips it while every connection outside the local network is refused, and the (fake, local) plug still switches OFF. A Tuya plug's own firmware may talk to Tuya's cloud by itself — that is outside jaga's control; the Shelly path can be fully local.</p></div></details><details><summary>How accurate is it?<span class="pm" aria-hidden="true">+</span></summary><div class="a"><p>Not measured yet. The labelled clips, two attended soaks and one night are pre-registered in docs/PROTOCOL.md, committed before any data, and DEMO.md says “not yet run” for each until it runs. This page shows a number only once bench.py has written it.</p></div></details><details><summary>Is anything on this page mocked?<span class="pm" aria-hidden="true">+</span></summary><div class="a"><p>The overlay screenshots are QA renders: the real app, driven by scripted windows, the test suite's fake plug and a test card — and they say so. The breaker that trips at the top of the page is a drawing of the rule, not a recording. The terminal is typed back from real transcripts. Every number links the file it comes from.</p></div></details><details><summary>Can it tell whether the iron is hot?<span class="pm" aria-hidden="true">+</span></summary><div class="a"><p>No. 224p is small: jaga watches scene states — a person present or not, a door open — not an iron's power light. That is why tripwire 01 watches for nobody at the board, not for the iron.</p></div></details><details><summary>What stops a wrong trip from doing harm?<span class="pm" aria-hidden="true">+</span></summary><div class="a"><p>A trip can only cut power or notify (I1, tested); one window never trips (I2, all 49,152 patterns); OFF is shown only on the plug's acknowledgement (I3). Cutting power is allowed only for heating or cooking appliances, and switching power back on is always a person's job.</p></div></details><details><summary>Why does Nemotron rewrite my sentence?<span class="pm" aria-hidden="true">+</span></summary><div class="a"><p>The Cosmos-Embed1 card says prompts outside its short, action-focused captions may not align with video. Super writes that register, and the hard negatives that turn “nobody” into a visual contrast. Whether the rewrite earns its place is one of the pre-registered ablations — not run yet.</p></div></details></div>
+ </div>
+</section>
+
+</main>
+
+<footer>
+ <div class="wrap foot">
+  <div>
+   <p class="big">JAGA</p>
+   <p><i>jaga</i> is Indonesian for “to guard, to keep watch”. Built on NVIDIA Cosmos. Built for the Nebius Global AI Hackathon, Physical AI track.</p>
+  </div>
+  <nav aria-label="Footer">
+   <a class="btn btn-ink" href="https://github.com/edycutjong/jaga"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>Source on GitHub</a>
+   <a class="btn" href="pitch/"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="1"/><path d="M12 16v4M8 20h8"/></svg>Pitch deck</a>
+   <a class="btn" href="https://github.com/edycutjong/jaga/blob/main/docs/PROTOCOL.md"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 15.5h6"/></svg>The protocol</a>
+  </nav>
+  <div class="fine"><span>Apache-2.0 · <a href="https://github.com/edycutjong/jaga/blob/main/LICENSE">LICENSE</a> · <a href="https://github.com/edycutjong/jaga/blob/main/NOTICE">NOTICE</a> · <a href="https://github.com/edycutjong/jaga/blob/main/DEMO.md">DEMO.md</a> · <a href="https://nebiusglobalaihackathon.devpost.com/">the event</a></span><span class="mono">v0.0.0-dev · page built from commit 1355077</span></div>
+ </div>
+</footer>
+
+<script>
+/* A port of jaga.score.DecisionRule.push (k-of-n over the dwell, cool-down), used by the page's drawings and the
+   "play the rule" widget. The page build runs it on all 49,152 window patterns of tests/test_decision_exhaustive.py and
+   requires the same trips as the Python rule on every one. */
+(function (root) {
+  var K_FRACTION = 0.8, MIN_WINDOWS = 2;
+  function kn(dwell, stride) {
+    var n = Math.max(MIN_WINDOWS, Math.floor(dwell / Math.max(stride, 1e-6) + 1e-9));
+    var k = Math.max(MIN_WINDOWS, Math.ceil(K_FRACTION * n - 1e-9));
+    return [k, n];
+  }
+  function Rule(dwell, cooldown) { this.dwell = dwell; this.cooldown = cooldown; this.h = []; this.coolUntil = -Infinity; }
+  Rule.prototype.push = function (ts, above, stride) {
+    this.h.push([ts, !!above]);
+    while (this.h.length && this.h[0][0] <= ts - this.dwell) this.h.shift();
+    var kn_ = kn(this.dwell, stride), count = 0;
+    for (var i = 0; i < this.h.length; i++) if (this.h[i][1]) count++;
+    return { fire: !!above && count >= kn_[0] && ts >= this.coolUntil, count: count, k: kn_[0], n: kn_[1] };
+  };
+  Rule.prototype.startCooldown = function (ts) { this.coolUntil = ts + this.cooldown; this.h = []; };
+  /* windows i = 0, 1, … at t = i · stride; a trip starts the cool-down (as in the exhaustive test) */
+  function run(flags, stride, dwell, cooldown) {
+    var r = new Rule(dwell, cooldown), out = [], steps = [];
+    for (var i = 0; i < flags.length; i++) {
+      var d = r.push(i * stride, flags[i], stride);
+      steps.push(d);
+      if (d.fire) { out.push(i); r.startCooldown(i * stride); }
+    }
+    return { fired: out, steps: steps };
+  }
+  var api = { kn: kn, Rule: Rule, run: run };
+  if (typeof module !== "undefined" && module.exports) module.exports = api; else root.JagaRule = api;
+})(this);
+
+(function () {
+  "use strict";
+  var RM = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+
+  /* ---------------------------------------------------------------- copy buttons */
+  $$("[data-copy]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var t = b.getAttribute("data-copy"), done = function () { b.setAttribute("aria-label", "Copied"); b.classList.add("ok"); setTimeout(function () { b.setAttribute("aria-label", "Copy the install-and-test command"); b.classList.remove("ok"); }, 1600); };
+      if (navigator.clipboard) navigator.clipboard.writeText(t).then(done, done); else done();
+    });
+  });
+
+  /* ---------------------------------------------------------------- the door: load, then the trip */
+  var door = $("#door"), rig = $("#rig");
+  if (door && rig) {
+    var cells = $$(".cells li", rig), kOn = $(".k-on", rig), btn = $("#runbtn"), timers = [], played = false;
+    /* the drawn rule is the real one: n = 12 windows (dwell 12 s at a 1 s stride), all above θ → it trips at window 10 */
+    var TRIP = window.JagaRule.run([true, true, true, true, true, true, true, true, true, true, true, true], 1, 12, 36).fired[0];
+    var st = { on: 0, snapped: false };
+    var later = function (f, ms) { timers.push(setTimeout(f, ms)); };
+    var clear = function () { timers.forEach(clearTimeout); timers = []; };
+    var setCells = function (n) {
+      st.on = n;
+      cells.forEach(function (c, i) {
+        c.classList.toggle("on", i < n && !(st.snapped && i === TRIP));
+        c.classList.toggle("fire", st.snapped && i === TRIP);
+      });
+      kOn.textContent = String(Math.min(n, TRIP + 1));
+    };
+    var snap = function () {
+      if (st.snapped) return;
+      st.snapped = true; clear();
+      door.classList.remove("is-rearm"); door.classList.add("is-snap", "has-run");
+      setCells(TRIP + 1);
+      later(function () { door.classList.add("is-off"); }, RM ? 0 : 240);
+      later(function () { door.classList.add("is-stamped"); }, RM ? 0 : 520);
+      later(function () { door.classList.add("is-acked"); }, RM ? 0 : 900);
+      if (btn) { btn.textContent = "Re-arm"; btn.setAttribute("aria-label", "Re-arm: a person switches the power back on"); }
+    };
+    var rearm = function () {
+      clear();
+      if (st.snapped) {
+        st.snapped = false;
+        door.classList.remove("is-acked", "is-stamped", "is-off", "is-snap");
+        if (!RM) { door.classList.add("is-rearm"); later(function () { door.classList.remove("is-rearm"); }, 650); }
+      }
+      setCells(0);
+      if (btn) { btn.textContent = "Run the dwell"; btn.removeAttribute("aria-label"); }
+    };
+    var run = function () {
+      rearm();
+      if (RM) { setCells(TRIP + 1); snap(); return; }
+      for (var i = 1; i <= TRIP + 1; i++) (function (i) { later(function () { setCells(i); if (i === TRIP + 1) later(snap, 160); }, 220 * i); })(i);
+    };
+    if (btn) btn.addEventListener("click", function () { if (st.snapped) rearm(); else run(); });
+
+    /* the load: tape printed, wire pulled taut, headline settles; then the animation is dropped (captures and print see the page) */
+    if (!RM) { door.classList.add("is-load"); setTimeout(function () { door.classList.remove("is-load"); }, 2600); }
+
+    /* pinned scrub on large screens; elsewhere it plays once when the rig is in view */
+    var pinOK = function () { return !RM && window.innerWidth >= 1100 && window.innerHeight >= 640; };
+    var onScroll = function () {
+      if (!door.classList.contains("is-pin")) return;
+      var r = door.getBoundingClientRect(), total = door.offsetHeight - window.innerHeight;
+      var p = Math.min(1, Math.max(0, -r.top / Math.max(1, total)));
+      if (p >= 0.5) { snap(); return; }
+      if (st.snapped) rearm();
+      setCells(Math.max(0, Math.min(TRIP, Math.floor((p - 0.06) / (0.44 / (TRIP + 1))))));
+    };
+    var ticking = false;
+    window.addEventListener("scroll", function () { if (!ticking) { ticking = true; requestAnimationFrame(function () { ticking = false; onScroll(); }); } }, { passive: true });
+    var mode = function () {
+      var want = pinOK();
+      if (want !== door.classList.contains("is-pin")) { door.classList.toggle("is-pin", want); rearm(); onScroll(); }
+    };
+    mode();
+    window.addEventListener("resize", mode);
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver(function (es) {
+        es.forEach(function (e) {
+          if (e.isIntersecting && !played && !RM && !door.classList.contains("is-pin")) { played = true; later(run, 600); }
+        });
+      }, { threshold: 0.4 }).observe($(".brk-wrap", rig));
+    }
+  }
+
+  /* ---------------------------------------------------------------- count-ups on the rating plates */
+  var fmt = function (v, dec) { return v.toLocaleString("en-US", { minimumFractionDigits: dec, maximumFractionDigits: dec }); };
+  if (!RM && "IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        io.unobserve(e.target);
+        var el = e.target, to = parseFloat(el.getAttribute("data-count")), dec = parseInt(el.getAttribute("data-dec") || "0", 10);
+        var node = el.querySelector(".v") || el, t0 = performance.now(), D = 1100, final = node.textContent;
+        var tick = function (t) {
+          var k = Math.min(1, (t - t0) / D), e3 = 1 - Math.pow(1 - k, 3);
+          node.textContent = k < 1 ? fmt(to * e3, dec) : final;
+          if (k < 1) requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      });
+    }, { threshold: 0.6 });
+    $$("[data-count]").forEach(function (el) { io.observe(el); });
+  }
+
+  /* ---------------------------------------------------------------- terminal replay (real transcripts) */
+  $$(".term[data-replay]").forEach(function (term) {
+    var pre = $("pre", term), lines = $$(".ln", pre), btnR = $(".bar button", term), busy = false;
+    var play = function () {
+      if (busy || RM) return; busy = true;
+      lines.forEach(function (l) { l.hidden = true; });
+      var i = 0;
+      var next = function () {
+        if (i >= lines.length) { busy = false; return; }
+        var l = lines[i++]; l.hidden = false;
+        if (l.classList.contains("tc")) {
+          var full = l.getAttribute("data-cmd"), tx = $(".tx", l), j = 0;
+          tx.textContent = "";
+          var type = function () { if (j <= full.length) { tx.textContent = full.slice(0, j++); setTimeout(type, 22); } else setTimeout(next, 280); };
+          type();
+        } else setTimeout(next, l.classList.contains("gap") ? 120 : 55);
+        pre.scrollTop = pre.scrollHeight;
+      };
+      next();
+    };
+    if (btnR) btnR.addEventListener("click", function () { pre.scrollTop = 0; play(); });
+    if (!RM && "IntersectionObserver" in window) {
+      var seen = false;
+      new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting && !seen) { seen = true; play(); } }); }, { threshold: 0.35 }).observe(term);
+    }
+  });
+
+  /* ---------------------------------------------------------------- play the rule */
+  var pl = $("#play");
+  if (pl) {
+    var wins = $$(".wins button", pl), dwell = 10, stride = 1, out = $(".read", pl);
+    var flags = wins.map(function (b) { return b.getAttribute("aria-pressed") === "true"; });
+    var render = function () {
+      var r = window.JagaRule.run(flags, stride, dwell, 3 * stride), kn = window.JagaRule.kn(dwell, stride);
+      wins.forEach(function (b, i) {
+        b.setAttribute("aria-pressed", flags[i] ? "true" : "false");
+        var fire = r.fired.indexOf(i) >= 0;
+        b.classList.toggle("fire", fire);
+        b.setAttribute("aria-label", "window " + (i + 1) + " at " + fmt(i * stride, stride % 1 ? 2 : 0) + " s: " + (flags[i] ? "above θ" : "below θ") + (fire ? ", trips here" : ""));
+      });
+      var first = r.fired[0];
+      $(".k", out).textContent = kn[0]; $(".n", out).textContent = kn[1];
+      var v = $(".verdict", out);
+      if (first === undefined) { v.textContent = "Holds — no trip"; v.className = "verdict a"; $(".why", out).textContent = "no window has " + kn[0] + " of the last " + kn[1] + " above θ with the newest above"; }
+      else {
+        v.textContent = "Trips at window " + (first + 1); v.className = "verdict t";
+        $(".why", out).textContent = r.steps[first].count + " of the windows in the last " + fmt(dwell, 0) + " s above θ, the newest included" + (r.fired.length > 1 ? " · again at window " + (r.fired[1] + 1) + " after the cool-down" : "");
+      }
+    };
+    wins.forEach(function (b, i) { b.addEventListener("click", function () { flags[i] = !flags[i]; render(); }); });
+    $$(".seg-ctl", pl).forEach(function (g) {
+      $$("button", g).forEach(function (b) {
+        b.addEventListener("click", function () {
+          $$("button", g).forEach(function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
+          if (g.getAttribute("data-k") === "dwell") dwell = parseFloat(b.getAttribute("data-v")); else stride = parseFloat(b.getAttribute("data-v"));
+          render();
+        });
+      });
+    });
+    $$("[data-fill]", pl).forEach(function (b) {
+      b.addEventListener("click", function () {
+        var m = b.getAttribute("data-fill");
+        flags = flags.map(function (_, i) { return m === "all" ? true : m === "none" ? false : m === "one" ? i === 5 : (i % 3 !== 1); });
+        render();
+      });
+    });
+    render();
+  }
+
+  /* print: open the answers */
+  window.addEventListener("beforeprint", function () { $$("details").forEach(function (d) { d.open = true; }); });
+})();
+
+</script>
+</body>
+</html>
