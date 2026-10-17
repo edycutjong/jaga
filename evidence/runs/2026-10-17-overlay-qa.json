@@ -1,0 +1,20 @@
+{
+ "what": "QA render of the overlay for the landing page and the deck (not a detection, not a measurement)",
+ "captured_at": "2026-10-17T08:19:12+0700",
+ "commit": "1355077",
+ "server": "jaga.server.create_app + jaga.daemon.Watcher, the same code jaga serve runs",
+ "camera_pane": "a test card played through jaga.capture.FileSource (no camera; it reads 'QA render \u00b7 scripted windows \u00b7 no camera')",
+ "windows": "scripted: vectors placed on the negative side, then the positive side, so ARMED -> HOLDING -> TRIPPED happens on cue",
+ "dwell": "tripwire 01 with the 30 s demo dwell (default 120 s), as the overlay shows",
+ "plug": "the test suite's fake LAN plug (tests/fakeplug.py) on loopback; its acknowledgement time is not a real plug's",
+ "plug_calls": {
+  "on": 0,
+  "off": 1
+ },
+ "compile_drawer": {
+  "sentence": "the stove is on and nobody is in the kitchen",
+  "how": "typed into the overlay, one real Token Factory call",
+  "tf_request_id": "5eea18b4e10f8e564abca93899723eea"
+ },
+ "header_cropped": "the header bar is cut from every shot: under scripted windows its s/clip is not a measurement"
+}

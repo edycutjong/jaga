@@ -1,0 +1,11 @@
+# ran 2026-10-17T08:11:10+0700 at commit 1355077 on Apple M1 Max
+$ jaga compile "nggak ada orang di meja setrika"
+“nggak ada orang di meja setrika” → IRONING BOARD EMPTY  (visual=True)
+  + empty ironing board with iron on top
+  + ironing board clear of people
+  + vacant ironing table seen from above
+  − person standing at ironing board
+  − someone ironing a shirt on the board
+  − hand resting on the ironing board
+  dwell 60 s → notify · cool-down 600 s · language id
+  nvidia/nemotron-3-super-120b-a12b · request e2a1f11c4ffc3a50c9d5bad87ea17a4c · 2.28 s

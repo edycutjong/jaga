@@ -1,0 +1,16 @@
+# ran 2026-10-17T08:12:27+0700 at commit 1355077 on Apple M1 Max
+$ python scripts/verify_offline.py
+{
+  "variant": "ci",
+  "window_source": "frozen caption vectors as stand-in windows (no clips committed yet)",
+  "tripped": true,
+  "plug_off_acknowledged": true,
+  "fake_plug_off_calls": 1,
+  "fake_plug_on_calls": 0,
+  "machine_online_before_block": true,
+  "outbound_after_block": false,
+  "blocked_attempts": [
+    "1.1.1.1"
+  ],
+  "pass": true
+}
