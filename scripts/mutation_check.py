@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Does the decision-rule test actually notice a broken rule?
+"""Do the decision-rule tests actually notice a broken rule?
 
-Copies the package to a temp directory, breaks `DecisionRule` / the k-of-n floor one way at a time, and runs
-`tests/test_decision_exhaustive.py` against the broken copy (PYTHONPATH points at the copy; the repo is never touched).
-A mutant the tests miss is reported as SURVIVED, with the reason when it is behaviour-preserving on the tested grid.
+Copies the package to a temp directory, breaks `DecisionRule` / the k-of-n floor one way at a time, and runs the rule's
+tests (`tests/test_decision_exhaustive.py` + `tests/test_score.py`) against the broken copy (PYTHONPATH points at the
+copy; the repo is never touched). A mutant the tests miss is reported as SURVIVED, with the reason when it cannot change
+the rule's behaviour at the shipped settings.
 
     python scripts/mutation_check.py          # exit 0 only if every non-equivalent mutant is killed
 """
@@ -18,7 +19,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 FILE = "jaga/score.py"
-# name, old, new, equivalent-on-the-tested-grid reason (None = the tests must kill it)
+# name, old, new, why it cannot change behaviour at the shipped settings (None = the tests must kill it)
 MUTANTS = [
     ("one window may trip (MIN_WINDOWS 2 -> 1)", "MIN_WINDOWS = 2", "MIN_WINDOWS = 1", None),
     ("k rounds down (ceil -> floor)", "int(math.ceil(self.k_fraction * n - 1e-9))",
@@ -32,18 +33,17 @@ MUTANTS = [
     ("suspend ignored", "        if ts < self.suspended_until:\n            k, n = self.kn(stride_s)\n"
      "            return Decision(False, 0, k, n, False)\n", "", None),
     ("newest window not required", "fire = newest and count >= k and ts >= self.cooldown_until",
-     "fire = count >= k and ts >= self.cooldown_until",
-     "the cool-down (3 strides) ends before k windows can pile up without the newest one, for every dwell and "
-     "stride the test covers"),
+     "fire = count >= k and ts >= self.cooldown_until", None),
     ("k floor MIN_WINDOWS dropped", "k = max(MIN_WINDOWS, int(math.ceil(self.k_fraction * n - 1e-9)))",
      "k = int(math.ceil(self.k_fraction * n - 1e-9))",
-     "n is already floored at MIN_WINDOWS = 2, so ceil(0.8 n) >= 2 without the floor"),
+     "n is already floored at MIN_WINDOWS = 2, so ceil(0.8 n) >= 2 at the shipped k fraction 0.8 without the floor"),
 ]
 
 
 def run(workdir: Path) -> int:
     env = {**os.environ, "PYTHONPATH": str(workdir)}
-    cmd = [sys.executable, "-m", "pytest", "-q", "-x", "-p", "no:cacheprovider", "tests/test_decision_exhaustive.py"]
+    cmd = [sys.executable, "-m", "pytest", "-q", "-x", "-p", "no:cacheprovider",
+           "tests/test_decision_exhaustive.py", "tests/test_score.py"]
     return subprocess.run(cmd, cwd=workdir, env=env, capture_output=True, text=True).returncode
 
 

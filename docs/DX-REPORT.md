@@ -33,12 +33,14 @@ where the evidence is. It feeds the hackathon's feedback form.
    (`shape_ok_counts`: tf 0, openai 6, json_object 6).
 7. **Super is a reasoning model.** We send `max_tokens` 4096 with `reasoning_effort: "low"` so reasoning leaves room
    for the answer, strip any think block, and treat empty content as a compile error — never as a spec (`jaga/compile.py`; test `test_reasoning_only_reply_is_an_error_never_an_invented_spec`).
-8. **At the recommended temperature (1.0) the proposed action varies.** The first compile of the fridge sentence
-   (later superseded) proposed `plug_off` for a fridge (cutting a fridge's power is the harm) and, after a prompt
-   fix, `notify` for the ironing board. We made the action and dwell an explicit choice shown before arming, kept a
-   code-side "never cut" list (fridge, freezer,
-   medical…), and measure caption variance with K = 5 extra compiles per sentence
-   (`fixtures/tripwires/variance/`). The superseded compiles are recorded in each fixture.
+8. **At the recommended temperature (1.0) the proposed action and dwell vary.** Five repeat compiles of the same
+   sentence ("nobody is at the ironing board", same prompt) proposed `notify` four times and `plug_off` once, with
+   dwells of 30, 60, 60, 120 and 60 s (`fixtures/tripwires/variance/01-k*.json`). Separately, the very first compile of
+   the fridge sentence (before a compiler-prompt revision, so not a temperature effect) proposed `plug_off` for a fridge
+   (cutting a fridge's power is the harm). We made the action and dwell an explicit choice shown before arming, kept a
+   code-side "never cut" list (fridge, freezer, medical…), and recorded K = 5 extra compiles per sentence
+   (`fixtures/tripwires/variance/`); what that variance does to accuracy is not measured yet. The superseded compiles
+   are recorded in each fixture.
 9. **Indonesian works.** Both Indonesian test sentences compiled into valid English-caption specs
    (`evidence/day0/tf-stage-t.json`: Indonesian 2/2).
 
