@@ -1,0 +1,3 @@
+# ran 2026-10-17T09:59:32+0700 at commit ef61d2d on Apple M1 Max
+$ python scripts/check_page_rule.py
+the page's rule matches DecisionRule on all 49,152 patterns
