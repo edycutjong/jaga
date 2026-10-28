@@ -8,8 +8,8 @@
 
   <br/>
 
-  [![Landing page](https://img.shields.io/badge/🚀_Live-Landing_page-06b6d4?style=for-the-badge)](https://jaga-ashy.vercel.app)
-  [![Pitch Deck](https://img.shields.io/badge/📊_Pitch-Deck-f59e0b?style=for-the-badge)](https://jaga-ashy.vercel.app/pitch/)
+  [![Landing page](https://img.shields.io/badge/🚀_Live-Landing_page-06b6d4?style=for-the-badge)](https://jaga.edycu.dev)
+  [![Pitch Deck](https://img.shields.io/badge/📊_Pitch-Deck-f59e0b?style=for-the-badge)](https://jaga.edycu.dev/pitch/)
   [![Measured results](https://img.shields.io/badge/📊_Measured-DEMO.md-06b6d4?style=for-the-badge)](DEMO.md)
   [![Pre-registered protocol](https://img.shields.io/badge/📐_Protocol-PROTOCOL.md-f59e0b?style=for-the-badge)](docs/PROTOCOL.md)
   [![Built for Nebius](https://img.shields.io/badge/Devpost-Nebius_Global_AI_Hackathon-8b5cf6?style=for-the-badge)](https://nebiusglobalaihackathon.devpost.com/)
